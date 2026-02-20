@@ -22,7 +22,7 @@ export default function VibeApp() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [activeTab, setActiveTab] = useState("picks");
   const [selectedWeek, setSelectedWeek] = useState(2); // Default to current week
-  const [selectedPicks, setSelectedPicks] = useState<number[]>([]);
+  const [selectedPicks, setSelectedPicks] = useState<string[]>([]);
   const [currentLeague, setCurrentLeague] = useState("The Degenerates");
   const [modalOpen, setModalOpen] = useState<{open: boolean, type: 'join' | 'create'}>({ open: false, type: 'join' });
   const [viewingPlayer, setViewingPlayer] = useState<any | null>(null);
