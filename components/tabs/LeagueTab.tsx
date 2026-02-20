@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Sliders } from "lucide-react";
-import { LEAGUE_STANDINGS } from '@/lib/constants';
+import { LEAGUE_MEMBERSHIPS, MOCK_PROFILES } from '@/lib/constants';
 
 interface LeagueTabProps {
   currentLeague: string;
@@ -17,6 +17,18 @@ export function LeagueTab({
   setLeagueSettingsOpen, 
   setViewingPlayer 
 }: LeagueTabProps) {
+  const members = LEAGUE_MEMBERSHIPS[currentLeague] || [];
+  const displayPlayers = members.map((member) => {
+    const profile = MOCK_PROFILES[member.user_id];
+    return {
+      id: member.user_id,
+      name: profile?.username || "Unknown Player",
+      league_points: member.league_points,
+      role: member.role,
+      w: member.w ?? 3, 
+      l: member.l ?? 1
+    };
+  }).sort((a, b) => b.points - a.points);
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center px-1">
@@ -36,20 +48,23 @@ export function LeagueTab({
       <Card className="bg-zinc-950 border-zinc-800 rounded-2xl overflow-hidden">
         <Table>
           <TableBody>
-            {LEAGUE_STANDINGS[currentLeague].map((m) => (
+            {displayPlayers.map((player) => (
               <TableRow 
-                key={m.name} 
+                key={player.user_id || player.id} 
                 className="border-zinc-800 cursor-pointer hover:bg-zinc-900 transition-colors"
-                onClick={() => setViewingPlayer(m)}
+                onClick={() => setViewingPlayer(player)}
               >
-                <TableCell className="font-bold uppercase text-white text-xs tracking-tight">
-                  {m.name}
+                <TableCell className="font-bold uppercase text-white text-xs tracking-tight flex items-center gap-2">
+                  {player.name}
+                  {player.role === 'admin' && (
+                    <span className="text-[8px] bg-zinc-800 text-zinc-400 px-1 rounded">ADM</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-center font-mono text-zinc-500 text-xs">
-                  {m.w}-{m.l}
+                  {(player.w ?? 0)}-{(player.l ?? 0)}
                 </TableCell>
-                <TableCell className={`text-right font-mono font-black text-xs ${m.p >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {m.p >= 0 ? `+$${m.p}` : `-$${Math.abs(m.p)}`}
+                <TableCell className={`text-right font-mono font-black text-xs ${player.league_points >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {player.league_points >= 0 ? `+$${player.league_points}` : `-$${Math.abs(player.league_points)}`}
                 </TableCell>
               </TableRow>
             ))}

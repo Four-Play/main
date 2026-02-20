@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { LEAGUE_STANDINGS } from '@/lib/constants';
+import { LEAGUE_MEMBERSHIPS } from '@/lib/constants';
 
 interface HeaderProps {
   currentLeague: string;
@@ -30,7 +30,7 @@ export function Header({ currentLeague, setCurrentLeague, setModalOpen }: Header
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-white w-56 shadow-2xl">
-            {Object.keys(LEAGUE_STANDINGS).map((league) => (
+            {Object.keys(LEAGUE_MEMBERSHIPS).map((league) => (
               <DropdownMenuItem key={league} onClick={() => setCurrentLeague(league)} className="focus:bg-green-500 focus:text-black font-bold uppercase text-[10px]">
                 {league}
               </DropdownMenuItem>
