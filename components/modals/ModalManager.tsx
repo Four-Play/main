@@ -1,31 +1,35 @@
 "use client"
-import React from 'react';
-import { PlayerDetailModal } from './PlayerDetailModal';
-import { LeagueEntryModal } from './LeagueEntryModal';
-import { LeagueSettingsModal } from './LeagueSettingsModal';
+import React from 'react'
+import { PlayerDetailModal } from './PlayerDetailModal'
+import { LeagueEntryModal } from './LeagueEntryModal'
+import { LeagueSettingsModal } from './LeagueSettingsModal'
+import type { League } from '@/types/database'
 
 interface ModalManagerProps {
-  // Player Detail Props
-  viewingPlayer: any;
-  setViewingPlayer: (player: any) => void;
-  
-  // League Entry Props (Join/Create)
-  modalOpen: { open: boolean; type: 'join' | 'create' };
-  setModalOpen: (val: any) => void;
-  inviteCode: string;
-  setInviteCode: (val: string) => void;
-  newLeagueName: string;
-  setNewLeagueName: (val: string) => void;
-  
-  // League Settings Props
-  leagueSettingsOpen: boolean;
-  setLeagueSettingsOpen: (val: boolean) => void;
-  
-  // Shared State
-  currentLeague: string;
-  setCurrentLeague: (val: string) => void;
-  isLoading: boolean;
-  setIsLoading: (val: boolean) => void;
+  // Player Detail
+  viewingPlayer: any
+  setViewingPlayer: (player: any) => void
+
+  // League Entry (Join / Create)
+  modalOpen: { open: boolean; type: 'join' | 'create' }
+  setModalOpen: (val: any) => void
+  inviteCode: string
+  setInviteCode: (val: string) => void
+  newLeagueName: string
+  setNewLeagueName: (val: string) => void
+
+  // League Settings
+  leagueSettingsOpen: boolean
+  setLeagueSettingsOpen: (val: boolean) => void
+
+  // Shared
+  currentLeague: League | null
+  setCurrentLeague: (league: League) => void
+  isLoading: boolean
+  setIsLoading: (val: boolean) => void
+  currentUserId: string
+  onLeagueJoined?: (league: League) => void
+  onLeagueCreated?: (league: League) => void
 }
 
 export function ModalManager({
@@ -42,19 +46,20 @@ export function ModalManager({
   currentLeague,
   setCurrentLeague,
   isLoading,
-  setIsLoading
+  setIsLoading,
+  currentUserId,
+  onLeagueJoined,
+  onLeagueCreated,
 }: ModalManagerProps) {
-  
   return (
     <>
-      {/* 1. Show player history and team details */}
-      <PlayerDetailModal 
-        player={viewingPlayer} 
-        onClose={() => setViewingPlayer(null)} 
+      <PlayerDetailModal
+        player={viewingPlayer}
+        onClose={() => setViewingPlayer(null)}
+        currentLeagueId={currentLeague?.id ?? null}
       />
 
-      {/* 2. Handle Joining or Creating a League */}
-      <LeagueEntryModal 
+      <LeagueEntryModal
         isOpen={modalOpen.open}
         type={modalOpen.type}
         onClose={() => setModalOpen({ ...modalOpen, open: false })}
@@ -65,15 +70,17 @@ export function ModalManager({
         newLeagueName={newLeagueName}
         setNewLeagueName={setNewLeagueName}
         setCurrentLeague={setCurrentLeague}
+        currentUserId={currentUserId}
+        onLeagueJoined={onLeagueJoined}
+        onLeagueCreated={onLeagueCreated}
       />
 
-      {/* 3. Handle League Rules and Admin actions */}
-      <LeagueSettingsModal 
+      <LeagueSettingsModal
         isOpen={leagueSettingsOpen}
         onClose={setLeagueSettingsOpen}
         currentLeague={currentLeague}
-        setCurrentLeague={setCurrentLeague}
+        onLeagueUpdated={setCurrentLeague}
       />
     </>
-  );
+  )
 }

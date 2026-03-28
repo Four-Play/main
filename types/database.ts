@@ -1,45 +1,104 @@
 // src/types/database.ts
 
-export interface Game {
-  id: string;          // e.g., "game_05"
-  fav: string;         // Favorite team
-  dog: string;         // Underdog team
-  spread: number;      // e.g., -4.5
-  time: string;        // Game start time/status
-  result?: 'WIN' | 'LOSS' | 'PUSH';
-}
+// types/database.ts - Replace your existing file with this
 
 export interface Profile {
-    id: string;          // UUID from Supabase Auth
-    username: string;    // Display name
-    avatar_url?: string; 
-    total_points: number;
-  }
-  
-  export interface League {
-    id: string;
-    name: string;
-    invite_code: string; // The 6-digit code friends use to join
-    admin_id: string;    // The user who created it
-  }
+  id: string
+  username: string
+  avatar_url?: string
+  total_points: number
+  created_at?: string
+}
 
-  export interface LeagueMember {
-    league_id: string;
-    user_id: string;
-    role: 'admin' | 'member';
-    joined_at: string;
-    league_points: number; // Their score specifically for THIS league
-    w?: number; // Added as optional
-    l?: number;
-  }
-  
-  export interface Pick {
-    id: string;
-    user_id: string;
-    league_id: string;
-    game_id: string;     // ID from the Sports API
-    team_selected: string;
-    week_number: number;
-    is_locked: boolean;  // Can they still change it?
-    created_at: string; // Good for tie-breakers (who picked first?)
-  }
+export interface League {
+  id: string
+  name: string
+  invite_code: string
+  admin_id: string
+  entry_fee_cents: number
+  payout_per_loss_cents: number
+  spread_cushion: number
+  created_at?: string
+}
+
+export interface LeagueMember {
+  id: string
+  league_id: string
+  user_id: string
+  role: 'admin' | 'member'
+  league_points: number
+  wins: number
+  losses: number
+  total_owed_cents: number
+  joined_at?: string
+  // Joined from profiles table
+  profile?: Profile
+}
+
+export interface Game {
+  id: string
+  external_id: string
+  home_team: string
+  away_team: string
+  favorite_team: string
+  underdog_team: string
+  spread: number
+  commence_time: string
+  nfl_week: number
+  season_year: number
+  home_score?: number
+  away_score?: number
+  status: 'upcoming' | 'live' | 'final'
+  // Computed for display
+  fav?: string
+  dog?: string
+  time?: string
+  result?: 'WIN' | 'LOSS' | 'PUSH'
+}
+
+export interface Pick {
+  id: string
+  user_id: string
+  league_id: string
+  game_id: string
+  team_selected: string
+  is_locked: boolean
+  result?: 'win' | 'loss' | 'push' | null
+  nfl_week: number
+  season_year: number
+  created_at?: string
+  // Joined
+  game?: Game
+}
+
+export interface WeeklyResult {
+  id: string
+  user_id: string
+  league_id: string
+  nfl_week: number
+  season_year: number
+  picks_correct: number
+  is_winner: boolean
+  amount_won_cents: number
+  amount_owed_cents: number
+  calculated_at?: string
+  // Joined
+  profile?: Profile
+}
+
+// Scoring logic
+export interface WeekSummary {
+  week: number
+  year: number
+  winners: WeeklyResult[]
+  losers: WeeklyResult[]
+  prizePerWinner: number
+  isFinal: boolean
+}
+
+// Utility: format cents to dollar string
+export function formatCents(cents: number): string {
+  const abs = Math.abs(cents)
+  const str = `$${(abs / 100).toFixed(2)}`
+  return cents < 0 ? `-${str}` : str
+}
