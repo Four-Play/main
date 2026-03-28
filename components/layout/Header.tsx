@@ -1,24 +1,30 @@
 "use client"
-import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Plus, Link as LinkIcon } from "lucide-react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
-import { LEAGUE_MEMBERSHIPS } from '@/lib/constants';
+import React from 'react'
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { ChevronDown, Plus, Link as LinkIcon } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
+import type { League } from '@/types/database'
 
 interface HeaderProps {
-  currentLeague: string;
-  setCurrentLeague: (name: string) => void;
-  setModalOpen: (val: any) => void;
+  currentLeague: string
+  leagues: League[]
+  setCurrentLeague: (league: League) => void
+  setModalOpen: (val: any) => void
 }
 
-export function Header({ currentLeague, setCurrentLeague, setModalOpen }: HeaderProps) {
+export function Header({ currentLeague, leagues, setCurrentLeague, setModalOpen }: HeaderProps) {
+  // Filter for unique league IDs before mapping
+  const uniqueLeagues = Array.from(
+    new Map(leagues.map((league) => [league.id, league])).values()
+  );
+
   return (
     <header className="p-4 bg-zinc-950 border-b border-zinc-800 sticky top-0 z-50 flex justify-between items-center backdrop-blur-md bg-zinc-950/90">
       <div className="flex flex-col">
@@ -30,17 +36,24 @@ export function Header({ currentLeague, setCurrentLeague, setModalOpen }: Header
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-white w-56 shadow-2xl">
-            {Object.keys(LEAGUE_MEMBERSHIPS).map((league) => (
-              <DropdownMenuItem key={league} onClick={() => setCurrentLeague(league)} className="focus:bg-green-500 focus:text-black font-bold uppercase text-[10px]">
-                {league}
+            {uniqueLeagues.map((league) => (
+              <DropdownMenuItem
+                key={league.id}
+                onClick={() => setCurrentLeague(league)}
+                className="focus:bg-green-500 focus:text-black font-bold uppercase text-[10px]"
+              >
+                {league.name}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator className="bg-zinc-800" />
-            <DropdownMenuItem onClick={() => setModalOpen({open: true, type: 'join'})} className="text-green-500 focus:bg-green-500/10 focus:text-green-400 uppercase text-[10px] font-black">
+            <DropdownMenuItem
+              onClick={() => setModalOpen({ open: true, type: 'join' })}
+              className="text-green-500 focus:bg-green-500/10 focus:text-green-400 uppercase text-[10px] font-black"
+            >
               <LinkIcon className="mr-2 h-4 w-4" /> Join League
             </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => setModalOpen({open: true, type: 'create'})} 
+            <DropdownMenuItem
+              onClick={() => setModalOpen({ open: true, type: 'create' })}
               className="text-green-500 focus:bg-green-500/10 focus:text-green-400 uppercase text-[10px] font-black"
             >
               <Plus className="mr-2 h-4 w-4" /> Create League
@@ -50,5 +63,5 @@ export function Header({ currentLeague, setCurrentLeague, setModalOpen }: Header
       </div>
       <Badge variant="outline" className="border-green-500 text-green-500 font-mono font-bold italic">FOURPLAY</Badge>
     </header>
-  );
+  )
 }

@@ -1,28 +1,31 @@
 "use client"
-import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription 
-} from "@/components/ui/dialog";
-import { joinLeagueWithCode, createLeague } from '@/services/leagueService';
+import React from 'react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from "@/components/ui/dialog"
+import { joinLeagueWithCode, createLeague } from '@/services/leagueService'
+import type { League } from '@/types/database'
 
 interface LeagueEntryModalProps {
-  isOpen: boolean;
-  type: 'join' | 'create';
-  onClose: () => void;
-  // State from parent
-  isLoading: boolean;
-  setIsLoading: (loading: boolean) => void;
-  inviteCode: string;
-  setInviteCode: (code: string) => void;
-  newLeagueName: string;
-  setNewLeagueName: (name: string) => void;
-  setCurrentLeague: (name: string) => void;
+  isOpen: boolean
+  type: 'join' | 'create'
+  onClose: () => void
+  isLoading: boolean
+  setIsLoading: (loading: boolean) => void
+  inviteCode: string
+  setInviteCode: (code: string) => void
+  newLeagueName: string
+  setNewLeagueName: (name: string) => void
+  setCurrentLeague: (league: League) => void
+  currentUserId: string
+  onLeagueJoined?: (league: League) => void
+  onLeagueCreated?: (league: League) => void
 }
 
 export function LeagueEntryModal({
@@ -35,38 +38,42 @@ export function LeagueEntryModal({
   setInviteCode,
   newLeagueName,
   setNewLeagueName,
-  setCurrentLeague
+  setCurrentLeague,
+  currentUserId,
+  onLeagueJoined,
+  onLeagueCreated,
 }: LeagueEntryModalProps) {
-  
+
   const handleJoin = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      await joinLeagueWithCode(inviteCode);
-      setInviteCode(""); // Clear on success
-      onClose();
+      const league = await joinLeagueWithCode(inviteCode, currentUserId)
+      setInviteCode('')
+      setCurrentLeague(league)
+      onLeagueJoined?.(league)
+      onClose()
     } catch (err: any) {
-      alert(err.message);
+      alert(err.message)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleCreate = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const newLeague = await createLeague(newLeagueName);
-      if (newLeague) {
-        setCurrentLeague(newLeague.name);
-      }
-      setNewLeagueName(""); // Clear on success
-      onClose();
-      alert(`League Created! Invite code: ${newLeague?.invite_code}`);
+      const league = await createLeague(newLeagueName, currentUserId)
+      setNewLeagueName('')
+      setCurrentLeague(league)
+      onLeagueCreated?.(league)
+      onClose()
+      alert(`League created! Share your invite code: ${league.invite_code}`)
     } catch (err: any) {
-      alert(err.message);
+      alert(err.message)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -76,54 +83,51 @@ export function LeagueEntryModal({
             {type === 'join' ? 'Join League' : 'Create League'}
           </DialogTitle>
           <DialogDescription className="text-zinc-500 text-[10px] uppercase font-bold">
-            {type === 'join' 
-              ? 'Enter your crew’s invite code' 
+            {type === 'join'
+              ? "Enter your crew's invite code"
               : 'Start a new pool for your squad'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {type === 'join' ? (
-            /* JOIN LEAGUE FORM */
             <div className="space-y-4">
-              <Input 
-                placeholder="LEAGUE ID (E.G. FOUR-123)" 
-                className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500" 
+              <Input
+                placeholder="INVITE CODE (E.G. ABC123)"
+                className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500 uppercase"
                 value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
               />
-              <Button 
+              <Button
                 disabled={isLoading || !inviteCode}
                 onClick={handleJoin}
                 className="w-full bg-green-500 text-black font-black uppercase tracking-widest h-12"
               >
-                {isLoading ? "Checking Code..." : "JOIN LEAGUE"}
+                {isLoading ? 'Checking Code...' : 'JOIN LEAGUE'}
               </Button>
             </div>
           ) : (
-            /* CREATE LEAGUE FORM */
             <div className="space-y-4">
-              <Input 
-                placeholder="LEAGUE NAME (E.G. THE SHARKS)" 
-                className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500" 
+              <Input
+                placeholder="LEAGUE NAME"
+                className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500"
                 value={newLeagueName}
                 onChange={(e) => setNewLeagueName(e.target.value)}
               />
-              <Input 
-                placeholder="ENTRY FEE (OPTIONAL)" 
-                className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500" 
-              />
-              <Button 
-                disabled={isLoading || !newLeagueName}
+              <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
+                Default payout: $50 per loss. Change in league settings after creation.
+              </p>
+              <Button
+                disabled={isLoading || !newLeagueName || newLeagueName.length < 3}
                 onClick={handleCreate}
                 className="w-full bg-green-500 text-black font-black uppercase tracking-widest h-12 hover:bg-green-600 transition-colors"
               >
-                {isLoading ? "CREATING..." : "START LEAGUE"}
+                {isLoading ? 'CREATING...' : 'START LEAGUE'}
               </Button>
             </div>
           )}
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
