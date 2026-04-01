@@ -49,12 +49,17 @@ export default function FourplayApp() {
   // Check session on mount
   useEffect(() => {
     const checkSession = async () => {
-      const session = await getSession()
-      if (session?.user) {
-        const profile = await getProfile(session.user.id)
-        if (profile) setUser(profile)
+      try {
+        const session = await getSession()
+        if (session?.user) {
+          const profile = await getProfile(session.user.id)
+          if (profile) setUser(profile)
+        }
+      } catch (err) {
+        console.error('Session check failed:', err)
+      } finally {
+        setAuthChecked(true)
       }
-      setAuthChecked(true)
     }
 
     checkSession()
