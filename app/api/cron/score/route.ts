@@ -8,6 +8,9 @@ import { createServiceClient } from '@/lib/supabase/server'
 const ODDS_API_KEY = process.env.ODDS_API_KEY!
 const CRON_SECRET = process.env.CRON_SECRET // optional security
 
+// Must match the SPORT_KEY used in app/api/games/route.ts
+const SPORT_KEY = 'basketball_nba'
+
 export async function GET(request: Request) {
   // Simple auth check for cron
   const authHeader = request.headers.get('authorization')
@@ -18,8 +21,8 @@ export async function GET(request: Request) {
   const supabase = createServiceClient()
 
   try {
-    // 1. Fetch scores from Odds API for completed NFL games
-    const scoresUrl = `https://api.the-odds-api.com/v4/sports/americanfootball_nfl/scores/?apiKey=${ODDS_API_KEY}&daysFrom=3`
+    // 1. Fetch scores from Odds API for completed games
+    const scoresUrl = `https://api.the-odds-api.com/v4/sports/${SPORT_KEY}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=3`
     const scoresRes = await fetch(scoresUrl)
     const scoresData = await scoresRes.json()
 
