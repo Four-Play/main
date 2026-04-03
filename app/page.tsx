@@ -49,13 +49,25 @@ export default function FourplayApp() {
   // Check session on mount
   useEffect(() => {
     const checkSession = async () => {
+      const timeout = new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error('Auth check timed out')), 5000)
+      )
       try {
-        const session = await getSession()
-        if (session?.user) {
-          const profile = await getProfile(session.user.id)
-          if (profile) setUser(profile)
+        await Promise.race([
+          (async () => {
+            const session = await getSession()
+            if (session?.user) {
+              const profile = await getProfile(session.user.id)
+              if (profile) setUser(profile)
+            }
+          })(),
+          timeout,
+        ])
+      } catch (err: any) {
+        // Stale/invalid refresh token — clear it so the user sees the login screen cleanly
+        if (err?.message?.includes('Refresh Token') || err?.code === 'refresh_token_not_found') {
+          try { await createClient().auth.signOut() } catch { /* ignore */ }
         }
-      } catch (err) {
         console.error('Session check failed:', err)
       } finally {
         setAuthChecked(true)
@@ -67,7 +79,7 @@ export default function FourplayApp() {
     // Listen for auth changes
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
         setUser(null)
         setLeagues([])
         setCurrentLeague(null)
@@ -179,7 +191,7 @@ export default function FourplayApp() {
     }
   }
 
-  const handleTogglePick = async (gameId: string) => {
+  const handleTogglePick = async (gameId: string, teamSelected: string) => {
     if (!user || !currentLeague || isLocked) return
 
     const game = games.find(g => g.id === gameId)
@@ -192,9 +204,10 @@ export default function FourplayApp() {
     }
 
     const alreadyPicked = selectedPicks.has(gameId)
+    const currentTeam = picksMap.get(gameId)?.team_selected
 
-    if (alreadyPicked) {
-      // Remove pick
+    // Case 1: Clicking already-selected team → remove pick
+    if (alreadyPicked && currentTeam === teamSelected) {
       try {
         await deletePick(user.id, currentLeague.id, gameId)
         setSelectedPicks(prev => { const n = new Set(prev); n.delete(gameId); return n })
@@ -202,10 +215,24 @@ export default function FourplayApp() {
       } catch (err: any) {
         alert(err.message)
       }
-    } else if (selectedPicks.size < 4) {
-      // Add pick - default to favorite team
+      return
+    }
+
+    // Case 2: Game already picked, clicking the other team → switch
+    if (alreadyPicked && currentTeam !== teamSelected) {
       try {
-        const pick = await savePick(user.id, currentLeague.id, gameId, game.fav!, selectedWeek, currentYear)
+        const pick = await savePick(user.id, currentLeague.id, gameId, teamSelected, selectedWeek, currentYear)
+        setPicksMap(prev => new Map([...prev, [gameId, pick]]))
+      } catch (err: any) {
+        alert(err.message)
+      }
+      return
+    }
+
+    // Case 3: New pick
+    if (!alreadyPicked && selectedPicks.size < 4) {
+      try {
+        const pick = await savePick(user.id, currentLeague.id, gameId, teamSelected, selectedWeek, currentYear)
         setSelectedPicks(prev => new Set([...prev, gameId]))
         setPicksMap(prev => new Map([...prev, [gameId, pick]]))
       } catch (err: any) {
@@ -357,6 +384,8 @@ export default function FourplayApp() {
         isLoading={isLoading}
         setIsLoading={setIsLoading}
         currentUserId={user.id}
+        currentWeek={currentWeek}
+        currentYear={currentYear}
         onLeagueJoined={(league: League) => {
           setLeagues(prev => [...prev, league])
           setCurrentLeague(league)

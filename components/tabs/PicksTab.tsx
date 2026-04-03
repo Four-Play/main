@@ -14,7 +14,7 @@ interface PicksTabProps {
   gamesLoading: boolean
   selectedPicks: Set<string>      // Set of game IDs
   picksMap: Map<string, Pick>     // gameId -> Pick (has result for historical)
-  onTogglePick: (gameId: string) => void
+  onTogglePick: (gameId: string, teamSelected: string) => void
   isLocked: boolean
 }
 
@@ -89,6 +89,8 @@ export function PicksTab({
             const isSelected = selectedPicks.has(game.id)
             const result = pick?.result
 
+            const selectedTeam = picksMap.get(game.id)?.team_selected
+
             return (
               <GameCard
                 key={game.id}
@@ -97,6 +99,7 @@ export function PicksTab({
                 isHistorical={isHistorical}
                 result={result}
                 onSelect={onTogglePick}
+                selectedTeam={selectedTeam}
                 disabled={isLocked}
               />
             )

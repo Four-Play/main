@@ -1,5 +1,4 @@
 "use client"
-import React from 'react'
 import { PlayerDetailModal } from './PlayerDetailModal'
 import { LeagueEntryModal } from './LeagueEntryModal'
 import { LeagueSettingsModal } from './LeagueSettingsModal'
@@ -28,6 +27,8 @@ interface ModalManagerProps {
   isLoading: boolean
   setIsLoading: (val: boolean) => void
   currentUserId: string
+  currentWeek: number
+  currentYear: number
   onLeagueJoined?: (league: League) => void
   onLeagueCreated?: (league: League) => void
 }
@@ -48,6 +49,8 @@ export function ModalManager({
   isLoading,
   setIsLoading,
   currentUserId,
+  currentWeek,
+  currentYear,
   onLeagueJoined,
   onLeagueCreated,
 }: ModalManagerProps) {
@@ -80,6 +83,8 @@ export function ModalManager({
         onClose={setLeagueSettingsOpen}
         currentLeague={currentLeague}
         onLeagueUpdated={setCurrentLeague}
+        currentWeek={currentWeek}
+        currentYear={currentYear}
       />
     </>
   )

@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -11,7 +11,7 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog"
-import { Crown, Lock, Copy, Check, Trash2, Loader2 } from "lucide-react"
+import { Crown, Copy, Check, Trash2, Loader2, FlaskConical, Play } from "lucide-react"
 import { updateLeague, deleteLeague } from '@/services/leagueService'
 import type { League } from '@/types/database'
 
@@ -20,6 +20,8 @@ interface LeagueSettingsModalProps {
   onClose: (open: boolean) => void
   currentLeague: League | null
   onLeagueUpdated: (league: League) => void
+  currentWeek: number
+  currentYear: number
 }
 
 export function LeagueSettingsModal({
@@ -27,6 +29,8 @@ export function LeagueSettingsModal({
   onClose,
   currentLeague,
   onLeagueUpdated,
+  currentWeek,
+  currentYear,
 }: LeagueSettingsModalProps) {
   const [name, setName] = useState('')
   const [payoutDollars, setPayoutDollars] = useState('50')
@@ -34,13 +38,19 @@ export function LeagueSettingsModal({
   const [isDeleting, setIsDeleting] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // Sync local state when league changes
+  // Dev tools state
+  const [simWeek, setSimWeek] = useState(1)
+  const [isScoring, setIsScoring] = useState(false)
+  const [isSimulating, setIsSimulating] = useState(false)
+  const [devMessage, setDevMessage] = useState('')
+
   useEffect(() => {
     if (currentLeague) {
       setName(currentLeague.name)
       setPayoutDollars(String(currentLeague.payout_per_loss_cents / 100))
     }
-  }, [currentLeague])
+    setSimWeek(currentWeek)
+  }, [currentLeague, currentWeek])
 
   if (!currentLeague) return null
 
@@ -55,13 +65,11 @@ export function LeagueSettingsModal({
       alert('League name must be at least 3 characters')
       return
     }
-
     const dollars = parseFloat(payoutDollars)
     if (isNaN(dollars) || dollars < 1) {
       alert('Payout must be at least $1')
       return
     }
-
     setIsSaving(true)
     try {
       const updated = await updateLeague(currentLeague.id, {
@@ -82,24 +90,51 @@ export function LeagueSettingsModal({
       `Delete "${currentLeague.name}"? This removes all picks and results for everyone in the league. This cannot be undone.`
     )
     if (!confirmed) return
-  
     setIsDeleting(true)
     try {
       await deleteLeague(currentLeague.id)
-      
-      // 1. Clear any local storage that might be holding onto this ID
-      localStorage.removeItem('lastLeagueId') 
-      
-      // 2. Close the modal first
+      localStorage.removeItem('lastLeagueId')
       onClose(false)
-  
-      // 3. Redirect to the dashboard or home instead of just reloading
-      // This forces the app to pick a NEW league or show the "Join" screen
-      window.location.href = '/' 
-      
+      window.location.href = '/'
     } catch (err: any) {
       alert(err.message)
-      setIsDeleting(false) // Reset if it failed
+      setIsDeleting(false)
+    }
+  }
+
+  const handleRunScoring = async () => {
+    setIsScoring(true)
+    setDevMessage('')
+    try {
+      const res = await fetch('/api/admin/score', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setDevMessage(`✓ Scored ${data.picksScored} picks across ${data.weeksCalculated} week(s)`)
+    } catch (err: any) {
+      setDevMessage(`✗ ${err.message}`)
+    } finally {
+      setIsScoring(false)
+    }
+  }
+
+  const handleSimulateWeek = async () => {
+    setIsSimulating(true)
+    setDevMessage('')
+    try {
+      const res = await fetch('/api/admin/simulate-week', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ week: simWeek, year: currentYear }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setDevMessage(
+        `✓ Week ${simWeek}: ${data.gamesSimulated} games simulated, ${data.picksScored} picks scored`
+      )
+    } catch (err: any) {
+      setDevMessage(`✗ ${err.message}`)
+    } finally {
+      setIsSimulating(false)
     }
   }
 
@@ -142,10 +177,7 @@ export function LeagueSettingsModal({
                 className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-[10px] font-bold uppercase h-12 px-4"
                 onClick={handleCopy}
               >
-                {copied
-                  ? <Check className="w-4 h-4 text-green-500" />
-                  : <Copy className="w-4 h-4" />
-                }
+                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
             <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
@@ -194,6 +226,63 @@ export function LeagueSettingsModal({
             </div>
           </div>
 
+          {/* Dev / Simulate */}
+          <div className="pt-4 border-t border-zinc-900 space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <FlaskConical className="w-3 h-3 text-zinc-500" />
+              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                Dev Tools
+              </label>
+            </div>
+
+            {/* Run Scoring */}
+            <Button
+              variant="outline"
+              disabled={isScoring}
+              onClick={handleRunScoring}
+              className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[10px] h-10 tracking-widest"
+            >
+              {isScoring
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <><Play className="w-3 h-3 mr-2" /> Run Scoring Now</>
+              }
+            </Button>
+
+            {/* Simulate Week */}
+            <div className="flex gap-2">
+              <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-md px-3 h-10 flex-shrink-0">
+                <span className="text-[10px] text-zinc-500 font-black uppercase">Wk</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={simWeek}
+                  onChange={(e) => setSimWeek(Number(e.target.value))}
+                  className="w-10 bg-transparent text-white font-mono text-sm text-center outline-none"
+                />
+              </div>
+              <Button
+                variant="outline"
+                disabled={isSimulating}
+                onClick={handleSimulateWeek}
+                className="flex-1 border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[10px] h-10 tracking-widest"
+              >
+                {isSimulating
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : 'Simulate Week'
+                }
+              </Button>
+            </div>
+
+            {devMessage && (
+              <p className={`text-[10px] font-mono px-1 ${devMessage.startsWith('✓') ? 'text-green-500' : 'text-red-400'}`}>
+                {devMessage}
+              </p>
+            )}
+            <p className="text-[9px] text-zinc-700 uppercase tracking-widest px-1">
+              Load the week in Picks first, then simulate to auto-score with random results
+            </p>
+          </div>
+
           {/* Danger Zone */}
           <div className="pt-4 border-t border-zinc-900">
             <label className="text-[10px] font-black text-red-500 uppercase tracking-widest px-1 block mb-3">
@@ -219,10 +308,7 @@ export function LeagueSettingsModal({
             disabled={isSaving}
             className="w-full bg-green-500 text-black font-black uppercase tracking-widest h-12"
           >
-            {isSaving
-              ? <Loader2 className="w-4 h-4 animate-spin" />
-              : 'Save Changes'
-            }
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
           </Button>
         </DialogFooter>
       </DialogContent>
