@@ -198,7 +198,7 @@ export default function FourplayApp() {
     if (!game) return
 
     // Can't pick a game that has started
-    if (new Date(game.commence_time) < new Date()) {
+    if (game.commence_time && new Date(game.commence_time) < new Date()) {
       alert('This game has already started and cannot be selected.')
       return
     }

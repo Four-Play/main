@@ -68,7 +68,7 @@ export async function deletePick(
 }
 
 export async function lockInPicks(
-  userId: string,
+  _userId: string,
   leagueId: string,
   week: number,
   year: number
@@ -116,6 +116,6 @@ export async function getLeaguePicks(
     const game = pick.game as Game | undefined
     if (!game) return false
     // Show pick if game has started
-    return new Date(game.commence_time) < now
+    return game.commence_time ? new Date(game.commence_time) < now : false
   })
 }

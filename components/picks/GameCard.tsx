@@ -18,7 +18,7 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
   const dogTeam = game.dog ?? game.underdog_team
   const cushion = Math.abs(game.spread) + 13
   const isInteractionDisabled = isHistorical || disabled
-  const hasStarted = new Date(game.commence_time) < new Date()
+  const hasStarted = game.commence_time ? new Date(game.commence_time) < new Date() : false
 
   const favSelected = isSelected && selectedTeam === favTeam
   const dogSelected = isSelected && selectedTeam === dogTeam
@@ -82,7 +82,7 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
         <div className={`flex gap-2 ${isInteractionDisabled ? 'pointer-events-none' : ''}`}>
           <button
             className={halfClass(favSelected)}
-            onClick={() => onSelect(game.id, favTeam)}
+            onClick={() => favTeam && onSelect(game.id, favTeam)}
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{favTeam}</p>
             <p className="text-[10px] font-mono text-red-400 mt-0.5">-{cushion}</p>
@@ -90,7 +90,7 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
 
           <button
             className={halfClass(dogSelected)}
-            onClick={() => onSelect(game.id, dogTeam)}
+            onClick={() => dogTeam && onSelect(game.id, dogTeam)}
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{dogTeam}</p>
             <p className="text-[10px] font-mono text-green-400 mt-0.5">+{cushion}</p>
