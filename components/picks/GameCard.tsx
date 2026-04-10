@@ -45,9 +45,8 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
   return (
     <Card
       className={`transition-all duration-300 bg-zinc-900 border-zinc-800 relative ${
-        isSelected ? 'border-green-500 ring-1 ring-green-500' : ''
-      } ${disabled && !isSelected ? 'opacity-40 grayscale' : 'opacity-100'}
-      `}
+  disabled && !isSelected ? 'opacity-40 grayscale' : 'opacity-100'
+}`}
     >
       <CardContent className="p-4">
         {disabled && isSelected && (
@@ -86,7 +85,7 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
             onClick={() => favTeam && onSelect(game.id, favTeam)}
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{favTeam}</p>
-            <p className="text-[10px] font-mono text-red-400 mt-0.5">
+            <p className="text-xs font-mono text-red-400 mt-0.5">
   {game.spread > 0 ? '+' : ''}{game.spread} <span className="text-zinc-500 text-[9px]">(+{favCushion} cushion)</span>
 </p>
           </button>
@@ -96,7 +95,7 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
             onClick={() => dogTeam && onSelect(game.id, dogTeam)}
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{dogTeam}</p>
-            <p className="text-[10px] font-mono text-green-400 mt-0.5">
+            <p className="text-xs font-mono text-green-400 mt-0.5">
   +{Math.abs(game.spread)} <span className="text-zinc-500 text-[9px]">(+{dogCushion} cushion)</span>
 </p>
           </button>
