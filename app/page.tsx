@@ -49,9 +49,25 @@ export default function FourplayApp() {
   // Check session on mount
   useEffect(() => {
     const checkSession = async () => {
-      const timeout = new Promise<void>((_, reject) =>
-        setTimeout(() => reject(new Error('Auth check timed out')), 5000)
-      )
+  try {
+    const supabase = createClient()
+    const { data: { session }, error } = await supabase.auth.getSession()
+    
+    if (error || !session) {
+      await supabase.auth.signOut()
+      setAuthChecked(true)
+      return
+    }
+
+    const profile = await getProfile(session.user.id)
+    if (profile) setUser(profile)
+  } catch (err) {
+    console.error('Session check failed:', err)
+    try { await createClient().auth.signOut() } catch {}
+  } finally {
+    setAuthChecked(true)
+  }
+}
       try {
         await Promise.race([
           (async () => {
