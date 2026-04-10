@@ -37,18 +37,18 @@ export interface LeagueMember {
 
 export interface Game {
   id: string
-  external_id: string
-  home_team: string
-  away_team: string
-  favorite_team: string
-  underdog_team: string
+  external_id?: string
+  home_team?: string
+  away_team?: string
+  favorite_team?: string
+  underdog_team?: string
   spread: number
-  commence_time: string
-  nfl_week: number
-  season_year: number
+  commence_time?: string
+  nfl_week?: number
+  season_year?: number
   home_score?: number
   away_score?: number
-  status: 'upcoming' | 'live' | 'final'
+  status?: 'upcoming' | 'live' | 'final'
   // Computed for display
   fav?: string
   dog?: string
