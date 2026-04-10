@@ -16,7 +16,8 @@ interface GameCardProps {
 export function GameCard({ game, isSelected, isHistorical, result, onSelect, selectedTeam, disabled }: GameCardProps) {
   const favTeam = game.fav ?? game.favorite_team
   const dogTeam = game.dog ?? game.underdog_team
-  const cushion = Math.abs(game.spread) + 13
+  const favCushion = game.spread + 13
+  const dogCushion = Math.abs(game.spread) + 13
   const isInteractionDisabled = isHistorical || disabled
   const hasStarted = game.commence_time ? new Date(game.commence_time) < new Date() : false
 
@@ -85,7 +86,7 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
             onClick={() => favTeam && onSelect(game.id, favTeam)}
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{favTeam}</p>
-            <p className="text-[10px] font-mono text-red-400 mt-0.5">-{cushion}</p>
+            <p className="text-[10px] font-mono text-red-400 mt-0.5">+{favCushion}</p>
           </button>
 
           <button
@@ -93,7 +94,7 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
             onClick={() => dogTeam && onSelect(game.id, dogTeam)}
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{dogTeam}</p>
-            <p className="text-[10px] font-mono text-green-400 mt-0.5">+{cushion}</p>
+            <p className="text-[10px] font-mono text-green-400 mt-0.5">+{dogCushion}</p>
           </button>
         </div>
 
