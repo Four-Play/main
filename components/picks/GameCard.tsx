@@ -86,7 +86,9 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
             onClick={() => favTeam && onSelect(game.id, favTeam)}
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{favTeam}</p>
-            <p className="text-[10px] font-mono text-red-400 mt-0.5">+{favCushion}</p>
+            <p className="text-[10px] font-mono text-red-400 mt-0.5">
+  {game.spread > 0 ? '+' : ''}{game.spread} <span className="text-zinc-500 text-[9px]">(+{favCushion} cushion)</span>
+</p>
           </button>
 
           <button
@@ -94,7 +96,9 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
             onClick={() => dogTeam && onSelect(game.id, dogTeam)}
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{dogTeam}</p>
-            <p className="text-[10px] font-mono text-green-400 mt-0.5">+{dogCushion}</p>
+            <p className="text-[10px] font-mono text-green-400 mt-0.5">
+  +{Math.abs(game.spread)} <span className="text-zinc-500 text-[9px]">(+{dogCushion} cushion)</span>
+</p>
           </button>
         </div>
 
