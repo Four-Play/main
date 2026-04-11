@@ -320,14 +320,23 @@ export default function FourplayApp() {
       <main className="p-4 pb-40">
         {/* Add this check at the top of your main content */}
         {leagues.length === 0 && !isLoading ? (
-          <div className="flex flex-col items-center justify-center pt-20 text-center">
-            <h2 className="text-xl font-bold mb-4">You aren't in any leagues!</h2>
-            <button 
-              onClick={() => setModalOpen({ open: true, type: 'join' })}
-              className="bg-green-500 text-black px-6 py-2 rounded-full font-bold"
-            >
-              Join or Create a League
-            </button>
+          <div className="flex flex-col items-center justify-center pt-20 text-center px-6">
+            <h2 className="text-xl font-black italic uppercase tracking-tighter text-white mb-2">No Leagues Yet</h2>
+            <p className="text-zinc-500 text-[11px] uppercase tracking-widest font-bold mb-8">Join a friend's league or start your own</p>
+            <div className="flex flex-col gap-3 w-full max-w-xs">
+              <button
+                onClick={() => setModalOpen({ open: true, type: 'create' })}
+                className="bg-green-500 text-black px-6 py-3 rounded-full font-black uppercase text-[11px] tracking-widest"
+              >
+                Create a League
+              </button>
+              <button
+                onClick={() => setModalOpen({ open: true, type: 'join' })}
+                className="bg-zinc-900 border border-zinc-700 text-white px-6 py-3 rounded-full font-black uppercase text-[11px] tracking-widest"
+              >
+                Join a League
+              </button>
+            </div>
           </div>
         ) : (
           <> 
