@@ -1,5 +1,4 @@
 "use client"
-"use client"
 import React, { useState, useEffect, useCallback } from 'react'
 import { AuthScreen } from '@/components/auth/AuthScreen'
 import { PicksTab } from '@/components/tabs/PicksTab'
@@ -9,7 +8,7 @@ import { ModalManager } from '@/components/modals/ModalManager'
 import { Header } from '@/components/layout/Header'
 import { Navbar } from '@/components/layout/Navbar'
 import { SelectionSlip } from '@/components/layout/SelectionSlip'
-import { signIn, signUp, signOut, getSession, getProfile } from '@/services/authService'
+import { signIn, signUp, signOut, getProfile } from '@/services/authService'
 import { getMyLeagues } from '@/services/leagueService'
 import { getMyPicks, savePick, deletePick, lockInPicks } from '@/services/picksService'
 import { createClient } from '@/lib/supabase/client'
@@ -68,28 +67,6 @@ export default function FourplayApp() {
     setAuthChecked(true)
   }
 }
-      try {
-        await Promise.race([
-          (async () => {
-            const session = await getSession()
-            if (session?.user) {
-              const profile = await getProfile(session.user.id)
-              if (profile) setUser(profile)
-            }
-          })(),
-          timeout,
-        ])
-      } catch (err: any) {
-        // Stale/invalid refresh token — clear it so the user sees the login screen cleanly
-        if (err?.message?.includes('Refresh Token') || err?.code === 'refresh_token_not_found') {
-          try { await createClient().auth.signOut() } catch { /* ignore */ }
-        }
-        console.error('Session check failed:', err)
-      } finally {
-        setAuthChecked(true)
-      }
-    }
-
     checkSession()
 
     // Listen for auth changes
