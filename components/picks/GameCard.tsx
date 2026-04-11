@@ -124,9 +124,16 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
             onClick={() => favTeam && onSelect(game.id, favTeam)}
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{favTeam}</p>
-            <p className="text-xs font-mono text-red-400 mt-0.5">
-  {game.spread > 0 ? '+' : ''}{game.spread} <span className="text-zinc-500 text-[9px]">({favCushion >= 0 ? '+' : ''}{favCushion} cushion)</span>
-</p>
+            <div className="mt-1.5 space-y-0.5">
+              <p className="text-[10px] font-mono leading-tight">
+                <span className="text-zinc-500">Spread: </span>
+                <span className="text-red-400">{game.spread > 0 ? '+' : ''}{game.spread}</span>
+              </p>
+              <p className="text-[10px] font-mono leading-tight">
+                <span className="text-zinc-500">Adjusted Spread: </span>
+                <span className="text-green-400">{favCushion >= 0 ? '+' : ''}{favCushion}</span>
+              </p>
+            </div>
           </button>
 
           <button
@@ -134,9 +141,16 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
             onClick={() => dogTeam && onSelect(game.id, dogTeam)}
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{dogTeam}</p>
-            <p className="text-xs font-mono text-green-400 mt-0.5">
-  +{Math.abs(game.spread)} <span className="text-zinc-500 text-[9px]">(+{dogCushion} cushion)</span>
-</p>
+            <div className="mt-1.5 space-y-0.5">
+              <p className="text-[10px] font-mono leading-tight">
+                <span className="text-zinc-500">Spread: </span>
+                <span className="text-green-400">+{Math.abs(game.spread)}</span>
+              </p>
+              <p className="text-[10px] font-mono leading-tight">
+                <span className="text-zinc-500">Adjusted Spread: </span>
+                <span className="text-green-400">+{dogCushion}</span>
+              </p>
+            </div>
           </button>
         </div>
 
