@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { AuthScreen } from '@/components/auth/AuthScreen'
 import { PicksTab } from '@/components/tabs/PicksTab'
 import { LeagueTab } from '@/components/tabs/LeagueTab'
@@ -7,6 +7,7 @@ import { ProfileTab } from '@/components/tabs/ProfileTab'
 import { ModalManager } from '@/components/modals/ModalManager'
 import { Header } from '@/components/layout/Header'
 import { Navbar } from '@/components/layout/Navbar'
+import { SubmitBar } from '@/components/layout/SubmitBar'
 import { signIn, signUp, signOut, getProfile } from '@/services/authService'
 import { getMyLeagues } from '@/services/leagueService'
 import { getMyPicks, savePick, deletePick } from '@/services/picksService'
@@ -40,7 +41,9 @@ export default function FourplayApp() {
   const [games, setGames] = useState<Game[]>([])
   const [gamesLoading, setGamesLoading] = useState(false)
   const [selectedPicks, setSelectedPicks] = useState<Set<string>>(new Set()) // Set of game IDs
-  const [picksMap, setPicksMap] = useState<Map<string, Pick>>(new Map()) // gameId -> Pick
+  const [picksMap, setPicksMap] = useState<Map<string, Pick>>(new Map()) // gameId -> Pick (current UI state, may include unsaved drafts)
+  const [savedPicksMap, setSavedPicksMap] = useState<Map<string, string>>(new Map()) // gameId -> team_selected (last-known DB state, for diffing)
+  const [isSubmittingPicks, setIsSubmittingPicks] = useState(false)
   const [currentWeek, setCurrentWeek] = useState(() => computeCurrentWeek(ACTIVE_SPORT))
   const [currentYear, setCurrentYear] = useState(SEASON_YEAR)
   const [selectedWeek, setSelectedWeek] = useState(() => computeCurrentWeek(ACTIVE_SPORT))
@@ -158,14 +161,17 @@ export default function FourplayApp() {
       try {
         const picks = await getMyPicks(user.id, currentLeague.id, selectedWeek, currentYear)
         const map = new Map<string, Pick>()
+        const saved = new Map<string, string>()
         const selected = new Set<string>()
 
         for (const pick of picks) {
           map.set(pick.game_id, pick)
+          saved.set(pick.game_id, pick.team_selected)
           selected.add(pick.game_id)
         }
 
         setPicksMap(map)
+        setSavedPicksMap(saved)
         setSelectedPicks(selected)
       } catch (err) {
         console.error('Failed to load picks:', err)
@@ -204,7 +210,7 @@ export default function FourplayApp() {
     }
   }
 
-  const handleTogglePick = async (gameId: string, teamSelected: string) => {
+  const handleTogglePick = (gameId: string, teamSelected: string) => {
     if (!user || !currentLeague) return
 
     const game = games.find(g => g.id === gameId)
@@ -219,38 +225,105 @@ export default function FourplayApp() {
     const alreadyPicked = selectedPicks.has(gameId)
     const currentTeam = picksMap.get(gameId)?.team_selected
 
-    // Case 1: Clicking already-selected team → remove pick
+    // Case 1: Clicking already-selected team → remove pick (local only)
     if (alreadyPicked && currentTeam === teamSelected) {
-      try {
-        await deletePick(user.id, currentLeague.id, gameId)
-        setSelectedPicks(prev => { const n = new Set(prev); n.delete(gameId); return n })
-        setPicksMap(prev => { const n = new Map(prev); n.delete(gameId); return n })
-      } catch (err: any) {
-        alert(err.message)
-      }
+      setSelectedPicks(prev => { const n = new Set(prev); n.delete(gameId); return n })
+      setPicksMap(prev => { const n = new Map(prev); n.delete(gameId); return n })
       return
     }
 
-    // Case 2: Game already picked, clicking the other team → switch
+    // Case 2: Game already picked, clicking the other team → switch (local only)
     if (alreadyPicked && currentTeam !== teamSelected) {
-      try {
-        const pick = await savePick(user.id, currentLeague.id, gameId, teamSelected, selectedWeek, currentYear)
-        setPicksMap(prev => new Map([...prev, [gameId, pick]]))
-      } catch (err: any) {
-        alert(err.message)
-      }
+      setPicksMap(prev => {
+        const n = new Map(prev)
+        const existing = n.get(gameId)
+        n.set(gameId, { ...(existing as Pick), team_selected: teamSelected })
+        return n
+      })
       return
     }
 
-    // Case 3: New pick
+    // Case 3: New pick (local only)
     if (!alreadyPicked && selectedPicks.size < 4) {
-      try {
-        const pick = await savePick(user.id, currentLeague.id, gameId, teamSelected, selectedWeek, currentYear)
-        setSelectedPicks(prev => new Set([...prev, gameId]))
-        setPicksMap(prev => new Map([...prev, [gameId, pick]]))
-      } catch (err: any) {
-        alert(err.message)
+      const draftPick: Pick = {
+        id: `draft-${gameId}`,
+        user_id: user.id,
+        league_id: currentLeague.id,
+        game_id: gameId,
+        team_selected: teamSelected,
+        is_locked: false,
+        nfl_week: selectedWeek,
+        season_year: currentYear,
       }
+      setSelectedPicks(prev => new Set([...prev, gameId]))
+      setPicksMap(prev => new Map([...prev, [gameId, draftPick]]))
+    }
+  }
+
+  // Compute the diff between local state and last-known DB state
+  const pickDiff = useMemo(() => {
+    const toSave: Array<{ gameId: string; team: string }> = []
+    const toDelete: string[] = []
+
+    for (const [gameId, pick] of picksMap) {
+      const savedTeam = savedPicksMap.get(gameId)
+      if (savedTeam !== pick.team_selected) {
+        toSave.push({ gameId, team: pick.team_selected })
+      }
+    }
+    for (const gameId of savedPicksMap.keys()) {
+      if (!picksMap.has(gameId)) {
+        toDelete.push(gameId)
+      }
+    }
+    return { toSave, toDelete, total: toSave.length + toDelete.length }
+  }, [picksMap, savedPicksMap])
+
+  const handleSubmitPicks = async () => {
+    if (!user || !currentLeague) return
+    if (pickDiff.total === 0) return
+    setIsSubmittingPicks(true)
+
+    try {
+      const now = new Date()
+
+      // Skip anything for games that have already started — those are locked
+      const canEdit = (gameId: string) => {
+        const game = games.find(g => g.id === gameId)
+        if (!game?.commence_time) return true
+        return new Date(game.commence_time) > now
+      }
+
+      const savePromises = pickDiff.toSave
+        .filter(({ gameId }) => canEdit(gameId))
+        .map(({ gameId, team }) =>
+          savePick(user.id, currentLeague.id, gameId, team, selectedWeek, currentYear)
+        )
+      const deletePromises = pickDiff.toDelete
+        .filter(canEdit)
+        .map((gameId) => deletePick(user.id, currentLeague.id, gameId))
+
+      const savedPicks = await Promise.all(savePromises)
+      await Promise.all(deletePromises)
+
+      // Update maps with authoritative DB results
+      setPicksMap(prev => {
+        const n = new Map(prev)
+        for (const pick of savedPicks) n.set(pick.game_id, pick)
+        return n
+      })
+      setSavedPicksMap(prev => {
+        const n = new Map(prev)
+        for (const pick of savedPicks) n.set(pick.game_id, pick.team_selected)
+        for (const gameId of pickDiff.toDelete) {
+          if (canEdit(gameId)) n.delete(gameId)
+        }
+        return n
+      })
+    } catch (err: any) {
+      alert(err.message ?? 'Failed to submit picks')
+    } finally {
+      setIsSubmittingPicks(false)
     }
   }
 
@@ -258,6 +331,7 @@ export default function FourplayApp() {
     setCurrentLeague(league)
     setSelectedPicks(new Set())
     setPicksMap(new Map())
+    setSavedPicksMap(new Map())
   }
 
   if (!authChecked) {
@@ -278,6 +352,8 @@ export default function FourplayApp() {
       />
     )
   }
+
+  const isHistorical = selectedWeek < currentWeek
 
   return (
     <div className="relative max-w-md mx-auto min-h-screen bg-black text-white overflow-x-hidden font-sans">
@@ -351,6 +427,13 @@ export default function FourplayApp() {
           </>
         )}
       </main>
+
+      <SubmitBar
+        changeCount={pickDiff.total}
+        isSubmitting={isSubmittingPicks}
+        onSubmit={handleSubmitPicks}
+        isVisible={!isHistorical && activeTab === 'picks' && pickDiff.total > 0}
+      />
 
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
