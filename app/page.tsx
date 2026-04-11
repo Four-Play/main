@@ -50,25 +50,44 @@ export default function FourplayApp() {
   // Check session on mount
   useEffect(() => {
     const checkSession = async () => {
-  try {
-    const supabase = createClient()
-    const { data: { session }, error } = await supabase.auth.getSession()
-    
-    if (error || !session) {
-      await supabase.auth.signOut()
-      setAuthChecked(true)
-      return
+      // Safety net: never stay stuck on the loading screen.
+      // If anything hangs (stale token, network blip, bad cache after a deploy)
+      // we force the auth check to complete and show the login screen.
+      const giveUpTimer = setTimeout(() => {
+        console.warn('Auth check timed out — clearing session')
+        createClient().auth.signOut().catch(() => {})
+        setAuthChecked(true)
+      }, 6000)
+
+      try {
+        const supabase = createClient()
+        const { data: { session }, error } = await supabase.auth.getSession()
+
+        if (error || !session) {
+          await supabase.auth.signOut().catch(() => {})
+          return
+        }
+
+        // Invalid / revoked refresh token — common after a new deployment
+        const isStaleToken =
+          (error as any)?.code === 'refresh_token_not_found' ||
+          (error as any)?.message?.includes('Refresh Token')
+        if (isStaleToken) {
+          await supabase.auth.signOut().catch(() => {})
+          return
+        }
+
+        const profile = await getProfile(session.user.id)
+        if (profile) setUser(profile)
+      } catch (err: any) {
+        console.error('Session check failed:', err)
+        try { await createClient().auth.signOut() } catch {}
+      } finally {
+        clearTimeout(giveUpTimer)
+        setAuthChecked(true)
+      }
     }
 
-    const profile = await getProfile(session.user.id)
-    if (profile) setUser(profile)
-  } catch (err) {
-    console.error('Session check failed:', err)
-    try { await createClient().auth.signOut() } catch {}
-  } finally {
-    setAuthChecked(true)
-  }
-}
     checkSession()
 
     // Listen for auth changes
