@@ -184,6 +184,10 @@ export default function FourplayApp() {
     e.preventDefault()
     setIsAuthLoading(true)
 
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out — please check your connection and try again.')), 10000)
+    )
+
     try {
       const formData = new FormData(e.currentTarget)
       const email = formData.get('email') as string
@@ -192,9 +196,9 @@ export default function FourplayApp() {
       let profile: Profile
       if (isSignUp) {
         const username = formData.get('name') as string
-        profile = await signUp(email, password, username)
+        profile = await Promise.race([signUp(email, password, username), timeout])
       } else {
-        profile = await signIn(email, password)
+        profile = await Promise.race([signIn(email, password), timeout])
       }
 
       setUser(profile)
