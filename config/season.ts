@@ -7,18 +7,19 @@
 
 export interface SeasonWeek {
   week: number
-  name: string       // Display name shown throughout the UI
-  startDate: string  // YYYY-MM-DD (inclusive)
-  endDate: string    // YYYY-MM-DD (inclusive) — adjust if round ends early/late
+  name: string           // Display name shown throughout the UI
+  startDate: string      // YYYY-MM-DD (inclusive)
+  endDate: string        // YYYY-MM-DD (inclusive) — adjust if round ends early/late
+  placeholderCount: number  // How many TBD game cards to show before matchups are set
 }
 
 // ─── NBA PLAYOFFS 2026 ───────────────────────────────────────────────────────
 export const SEASON_WEEKS: SeasonWeek[] = [
-  { week: 1, name: 'Play-In',          startDate: '2026-04-14', endDate: '2026-04-17' },
-  { week: 2, name: 'First Round',      startDate: '2026-04-19', endDate: '2026-04-28' },
-  { week: 3, name: 'Conf. Semis',      startDate: '2026-04-29', endDate: '2026-05-12' },
-  { week: 4, name: 'Conf. Finals',     startDate: '2026-05-13', endDate: '2026-05-26' },
-  { week: 5, name: 'NBA Finals',       startDate: '2026-05-29', endDate: '2026-06-22' },
+  { week: 1, name: 'Play-In',      startDate: '2026-04-14', endDate: '2026-04-17', placeholderCount: 4 },
+  { week: 2, name: 'First Round',  startDate: '2026-04-19', endDate: '2026-04-28', placeholderCount: 8 },
+  { week: 3, name: 'Conf. Semis',  startDate: '2026-04-29', endDate: '2026-05-12', placeholderCount: 4 },
+  { week: 4, name: 'Conf. Finals', startDate: '2026-05-13', endDate: '2026-05-26', placeholderCount: 2 },
+  { week: 5, name: 'NBA Finals',   startDate: '2026-05-29', endDate: '2026-06-22', placeholderCount: 4 },
 ]
 
 // Switch to 'americanfootball_nfl' in September when the NFL season begins
@@ -59,4 +60,11 @@ export function getCurrentSportKey(): string {
  */
 export function getWeekName(week: number): string {
   return SEASON_WEEKS.find(w => w.week === week)?.name ?? `Week ${week}`
+}
+
+/**
+ * Returns how many TBD placeholder cards to show before matchups are announced.
+ */
+export function getPlaceholderCount(week: number): number {
+  return SEASON_WEEKS.find(w => w.week === week)?.placeholderCount ?? 4
 }

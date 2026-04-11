@@ -56,16 +56,27 @@ export async function POST(request: Request) {
   }
 
   // 3. Reset member stats (wins, losses, points, owed)
-  const { error: membersError } = await supabase
+  const { data: members, error: membersError } = await supabase
     .from('league_members')
     .update({ wins: 0, losses: 0, league_points: 0, total_owed_cents: 0 })
     .eq('league_id', leagueId)
+    .select('user_id')
 
   if (membersError) {
     return NextResponse.json({ error: 'Failed to reset member stats' }, { status: 500 })
   }
 
-  // 4. Optionally clear the games cache for the active season
+  // 4. Zero out profiles.total_points for each member in this league.
+  //    This reflects the cleared league_points — scoring re-runs will rebuild it.
+  if (members && members.length > 0) {
+    const userIds = members.map((m: any) => m.user_id)
+    await supabase
+      .from('profiles')
+      .update({ total_points: 0 })
+      .in('id', userIds)
+  }
+
+  // 5. Optionally clear the games cache for the active season
   let gamesCleared = 0
   if (clearGames) {
     const { seasonYear } = SPORT_CONFIG[ACTIVE_SPORT]

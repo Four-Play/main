@@ -5,11 +5,11 @@ import { GameCard } from '@/components/picks/GameCard'
 import { WeekSwitcher } from '@/components/picks/WeekSwitcher'
 import { CheckCircle2, Lock, Loader2 } from "lucide-react"
 import type { Game, Pick } from '@/types/database'
-import { ACTIVE_SPORT, SPORT_CONFIG, getWeekLabel, isPreSeason } from '@/lib/weekUtils'
-import { Countdown } from '@/components/picks/Countdown'
+import { ACTIVE_SPORT, SPORT_CONFIG, getWeekLabel } from '@/lib/weekUtils'
+import { SEASON_WEEKS, getPlaceholderCount } from '@/config/season'
+import { GameCardPlaceholder } from '@/components/picks/GameCardPlaceholder'
 
 const activeSport = SPORT_CONFIG[ACTIVE_SPORT]
-const preseason = isPreSeason(ACTIVE_SPORT)
 
 interface PicksTabProps {
   selectedWeek: number
@@ -35,9 +35,10 @@ export function PicksTab({
   isLocked,
 }: PicksTabProps) {
   const isHistorical = selectedWeek < currentWeek
+  const isFuture = selectedWeek > currentWeek
 
-  // Build week numbers for switcher (current and past weeks)
-  const weeks = Array.from({ length: currentWeek }, (_, i) => i + 1)
+  // Show all rounds from the season config — future rounds show placeholders until games are set
+  const weeks = SEASON_WEEKS.map(w => w.week)
 
   return (
     <div className="space-y-5">
@@ -83,7 +84,7 @@ export function PicksTab({
       <div className="flex justify-between items-center px-1">
         <div>
           <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
-            {isHistorical ? 'Past Results' : 'Live Slate'}
+            {isHistorical ? 'Past Results' : isFuture ? 'Coming Soon' : 'Live Slate'}
           </h2>
           {activeSport.weekLabels && (
             <p className="text-[9px] text-zinc-600 uppercase tracking-widest mt-0.5">
@@ -96,27 +97,26 @@ export function PicksTab({
             COMPLETED
           </Badge>
         )}
-        {!isHistorical && !isLocked && (
+        {!isHistorical && !isFuture && !isLocked && (
           <Badge className="bg-green-500/10 text-green-500 border-none text-[9px]">
             {selectedPicks.size}/4 SELECTED
           </Badge>
         )}
       </div>
 
-      {preseason ? (
-        <Countdown
-          targetDate={activeSport.seasonStart}
-          label={activeSport.displayName}
-          sublabel={`${getWeekLabel(1, ACTIVE_SPORT)} · ${new Date(activeSport.seasonStart).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`}
-        />
-      ) : gamesLoading ? (
+      {gamesLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
         </div>
       ) : games.length === 0 ? (
-        <div className="flex flex-col items-center py-16 gap-2 text-zinc-600">
-          <p className="text-[10px] font-black uppercase tracking-widest">No games found</p>
-          <p className="text-[9px] uppercase">Week {selectedWeek} games will appear here</p>
+        // No matchups yet — show TBD placeholder cards
+        <div className="space-y-1">
+          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-600 px-1 pb-1">
+            Matchups TBD
+          </p>
+          {Array.from({ length: getPlaceholderCount(selectedWeek) }).map((_, i) => (
+            <GameCardPlaceholder key={i} />
+          ))}
         </div>
       ) : (
         <div className="space-y-1">
