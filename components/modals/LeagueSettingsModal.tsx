@@ -79,10 +79,13 @@ export function LeagueSettingsModal({
     }
     setIsSaving(true)
     try {
+      // Only include is_locked when the admin has actually toggled it — avoids
+      // a schema error if the is_locked column hasn't been added to Supabase yet.
+      const lockChanged = isAdmin && isLeagueLocked !== (currentLeague.is_locked ?? false)
       const updated = await updateLeague(currentLeague.id, {
         name: name.trim(),
         payout_per_loss_cents: Math.round(dollars * 100),
-        ...(isAdmin && { is_locked: isLeagueLocked }),
+        ...(lockChanged && { is_locked: isLeagueLocked }),
       })
       onLeagueUpdated(updated)
       onClose(false)
@@ -170,7 +173,7 @@ export function LeagueSettingsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-zinc-950 border-zinc-800 text-white rounded-t-2xl sm:rounded-2xl">
+      <DialogContent className="bg-zinc-950 border-zinc-800 text-white rounded-t-2xl sm:rounded-2xl flex flex-col max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-green-500 uppercase font-black italic tracking-widest">
             League Settings
@@ -180,7 +183,7 @@ export function LeagueSettingsModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 py-4 overflow-y-auto flex-1 min-h-0">
           {/* League Name */}
           <div className="space-y-2">
             <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">
