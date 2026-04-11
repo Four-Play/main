@@ -154,32 +154,31 @@ export default function FourplayApp() {
   }, [selectedWeek, currentYear, loadGames])
 
   // Load user's existing picks for this week
-  useEffect(() => {
+  const loadPicks = useCallback(async () => {
     if (!user || !currentLeague) return
+    try {
+      const picks = await getMyPicks(user.id, currentLeague.id, selectedWeek, currentYear)
+      const map = new Map<string, Pick>()
+      const saved = new Map<string, string>()
+      const selected = new Set<string>()
 
-    const loadPicks = async () => {
-      try {
-        const picks = await getMyPicks(user.id, currentLeague.id, selectedWeek, currentYear)
-        const map = new Map<string, Pick>()
-        const saved = new Map<string, string>()
-        const selected = new Set<string>()
-
-        for (const pick of picks) {
-          map.set(pick.game_id, pick)
-          saved.set(pick.game_id, pick.team_selected)
-          selected.add(pick.game_id)
-        }
-
-        setPicksMap(map)
-        setSavedPicksMap(saved)
-        setSelectedPicks(selected)
-      } catch (err) {
-        console.error('Failed to load picks:', err)
+      for (const pick of picks) {
+        map.set(pick.game_id, pick)
+        saved.set(pick.game_id, pick.team_selected)
+        selected.add(pick.game_id)
       }
-    }
 
-    loadPicks()
+      setPicksMap(map)
+      setSavedPicksMap(saved)
+      setSelectedPicks(selected)
+    } catch (err) {
+      console.error('Failed to load picks:', err)
+    }
   }, [user, currentLeague, selectedWeek, currentYear])
+
+  useEffect(() => {
+    loadPicks()
+  }, [loadPicks])
 
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -222,42 +221,33 @@ export default function FourplayApp() {
       return
     }
 
-    const alreadyPicked = selectedPicks.has(gameId)
-    const currentTeam = picksMap.get(gameId)?.team_selected
+    const existingPick = picksMap.get(gameId)
 
-    // Case 1: Clicking already-selected team → remove pick (local only)
-    if (alreadyPicked && currentTeam === teamSelected) {
+    // Unselect: clicking the already-selected team
+    if (existingPick && existingPick.team_selected === teamSelected) {
       setSelectedPicks(prev => { const n = new Set(prev); n.delete(gameId); return n })
       setPicksMap(prev => { const n = new Map(prev); n.delete(gameId); return n })
       return
     }
 
-    // Case 2: Game already picked, clicking the other team → switch (local only)
-    if (alreadyPicked && currentTeam !== teamSelected) {
-      setPicksMap(prev => {
-        const n = new Map(prev)
-        const existing = n.get(gameId)
-        n.set(gameId, { ...(existing as Pick), team_selected: teamSelected })
-        return n
-      })
-      return
-    }
+    // Max 4 picks — ignore additional new selections
+    if (!existingPick && selectedPicks.size >= 4) return
 
-    // Case 3: New pick (local only)
-    if (!alreadyPicked && selectedPicks.size < 4) {
-      const draftPick: Pick = {
-        id: `draft-${gameId}`,
-        user_id: user.id,
-        league_id: currentLeague.id,
-        game_id: gameId,
-        team_selected: teamSelected,
-        is_locked: false,
-        nfl_week: selectedWeek,
-        season_year: currentYear,
-      }
-      setSelectedPicks(prev => new Set([...prev, gameId]))
-      setPicksMap(prev => new Map([...prev, [gameId, draftPick]]))
-    }
+    // Switch or new pick: upsert in local state
+    const nextPick: Pick = existingPick
+      ? { ...existingPick, team_selected: teamSelected }
+      : {
+          id: `draft-${gameId}`,
+          user_id: user.id,
+          league_id: currentLeague.id,
+          game_id: gameId,
+          team_selected: teamSelected,
+          is_locked: false,
+          nfl_week: selectedWeek,
+          season_year: currentYear,
+        }
+    setSelectedPicks(prev => new Set(prev).add(gameId))
+    setPicksMap(prev => new Map(prev).set(gameId, nextPick))
   }
 
   // Compute the diff between local state and last-known DB state
@@ -284,43 +274,50 @@ export default function FourplayApp() {
     if (pickDiff.total === 0) return
     setIsSubmittingPicks(true)
 
+    // Hard timeout — never leave the spinner hanging forever
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Submission timed out — please try again')), 12000)
+    )
+
     try {
       const now = new Date()
-
-      // Skip anything for games that have already started — those are locked
       const canEdit = (gameId: string) => {
         const game = games.find(g => g.id === gameId)
         if (!game?.commence_time) return true
         return new Date(game.commence_time) > now
       }
 
-      const savePromises = pickDiff.toSave
-        .filter(({ gameId }) => canEdit(gameId))
-        .map(({ gameId, team }) =>
-          savePick(user.id, currentLeague.id, gameId, team, selectedWeek, currentYear)
-        )
-      const deletePromises = pickDiff.toDelete
-        .filter(canEdit)
-        .map((gameId) => deletePick(user.id, currentLeague.id, gameId))
+      const savesToMake = pickDiff.toSave.filter(({ gameId }) => canEdit(gameId))
+      const deletesToMake = pickDiff.toDelete.filter(canEdit)
 
-      const savedPicks = await Promise.all(savePromises)
-      await Promise.all(deletePromises)
+      console.log('[submit] saving:', savesToMake, 'deleting:', deletesToMake)
 
-      // Update maps with authoritative DB results
-      setPicksMap(prev => {
-        const n = new Map(prev)
-        for (const pick of savedPicks) n.set(pick.game_id, pick)
-        return n
-      })
-      setSavedPicksMap(prev => {
-        const n = new Map(prev)
-        for (const pick of savedPicks) n.set(pick.game_id, pick.team_selected)
-        for (const gameId of pickDiff.toDelete) {
-          if (canEdit(gameId)) n.delete(gameId)
+      const work = (async () => {
+        // Run sequentially so one failing save gives us a clear error location
+        for (const { gameId, team } of savesToMake) {
+          try {
+            await savePick(user.id, currentLeague.id, gameId, team, selectedWeek, currentYear)
+          } catch (err: any) {
+            console.error(`[submit] savePick failed for ${gameId}:`, err)
+            throw new Error(`Failed to save pick: ${err?.message ?? 'unknown error'}`)
+          }
         }
-        return n
-      })
+        for (const gameId of deletesToMake) {
+          try {
+            await deletePick(user.id, currentLeague.id, gameId)
+          } catch (err: any) {
+            console.error(`[submit] deletePick failed for ${gameId}:`, err)
+            throw new Error(`Failed to remove pick: ${err?.message ?? 'unknown error'}`)
+          }
+        }
+      })()
+
+      await Promise.race([work, timeout])
+
+      // Reload authoritative state from DB so the UI matches what was actually saved
+      await loadPicks()
     } catch (err: any) {
+      console.error('[submit] handleSubmitPicks error:', err)
       alert(err.message ?? 'Failed to submit picks')
     } finally {
       setIsSubmittingPicks(false)
