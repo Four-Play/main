@@ -88,5 +88,20 @@ export async function updateProfile(userId: string, updates: Partial<Profile>): 
   return data as Profile
 }
 
+export async function uploadAvatar(userId: string, file: File): Promise<string> {
+  const ext = file.name.split('.').pop() ?? 'jpg'
+  const path = `${userId}/avatar.${ext}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(path, file, { upsert: true, contentType: file.type })
+
+  if (uploadError) throw new Error(uploadError.message)
+
+  // Append a cache-buster so the browser picks up the new image immediately
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+  return `${data.publicUrl}?t=${Date.now()}`
+}
+
 // Keep the old mock for reference during migration
 export const mockSignIn = signIn

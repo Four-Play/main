@@ -1,6 +1,6 @@
 "use client"
-import React from 'react'
-import { UserPlus, Ticket, Loader2 } from "lucide-react"
+import React, { useState } from 'react'
+import { UserPlus, Ticket, Loader2, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -13,6 +13,8 @@ interface AuthScreenProps {
 }
 
 export function AuthScreen({ isSignUp, setIsSignUp, handleAuth, isLoading = false }: AuthScreenProps) {
+  const [showPassword, setShowPassword] = useState(false)
+
   return (
     <div className="flex items-center justify-center min-h-screen p-6 bg-black text-white font-sans">
       <Card className="w-full max-w-md bg-zinc-950 border-zinc-800 shadow-[0_0_50px_rgba(34,197,94,0.1)]">
@@ -49,15 +51,30 @@ export function AuthScreen({ isSignUp, setIsSignUp, handleAuth, isLoading = fals
                 required
                 disabled={isLoading}
               />
-              <Input
-                name="password"
-                type="password"
-                placeholder="Password"
-                className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500"
-                required
-                minLength={6}
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Password"
+                  className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500 pr-12"
+                  required
+                  minLength={6}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onMouseDown={() => setShowPassword(true)}
+                  onMouseUp={() => setShowPassword(false)}
+                  onMouseLeave={() => setShowPassword(false)}
+                  onTouchStart={() => setShowPassword(true)}
+                  onTouchEnd={() => setShowPassword(false)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors p-1"
+                  aria-label="Hold to show password"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <Button

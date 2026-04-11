@@ -1,9 +1,10 @@
 "use client"
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
+import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Users, Crown, Sliders, Loader2, Sun, Moon } from "lucide-react"
-import { updateProfile } from '@/services/authService'
+import { Users, Crown, Sliders, Loader2, Sun, Moon, Camera } from "lucide-react"
+import { updateProfile, uploadAvatar } from '@/services/authService'
 import { useTheme } from '@/lib/theme'
 import type { Profile } from '@/types/database'
 
@@ -27,7 +28,10 @@ export function ProfileTab({
   const [username, setUsername] = useState(user.username)
   const [isSaving, setIsSaving] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(user.avatar_url ?? null)
   const { theme, toggleTheme } = useTheme()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSave = async () => {
     if (!username.trim() || username.length < 2) {
@@ -62,16 +66,66 @@ export function ProfileTab({
     setIsEditing(false)
   }
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsUploadingAvatar(true)
+    try {
+      const url = await uploadAvatar(user.id, file)
+      await updateProfile(user.id, { avatar_url: url })
+      setAvatarUrl(url)
+      setUser({ ...user, avatar_url: url })
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setIsUploadingAvatar(false)
+      // Reset so the same file can be re-selected if needed
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   return (
     <div className="flex flex-col items-center pt-8 px-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Avatar */}
       <div className="relative mb-6">
-        <div className="w-24 h-24 bg-zinc-900 border-2 border-green-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.15)]">
-          <Users className="w-10 h-10 text-green-500" />
-        </div>
-        <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1.5 border-4 border-black">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploadingAvatar}
+          className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.15)] group focus:outline-none"
+          aria-label="Upload profile picture"
+        >
+          {avatarUrl ? (
+            <Image
+              src={avatarUrl}
+              alt="Profile picture"
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
+              <Users className="w-10 h-10 text-green-500" />
+            </div>
+          )}
+          {/* Camera overlay on hover / while uploading */}
+          <div className={`absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity ${isUploadingAvatar ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            {isUploadingAvatar
+              ? <Loader2 className="w-6 h-6 text-white animate-spin" />
+              : <Camera className="w-6 h-6 text-white" />
+            }
+          </div>
+        </button>
+        <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1.5 border-4 border-black pointer-events-none">
           <Crown className="w-3 h-3 text-black" />
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
       </div>
 
       {!isEditing ? (
