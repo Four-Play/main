@@ -48,13 +48,13 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
   disabled && !isSelected ? 'opacity-40 grayscale' : 'opacity-100'
 }`}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-2">
         {disabled && isSelected && (
           <Lock className="absolute top-2 right-10 w-3 h-3 text-green-500/50" />
         )}
 
         {/* Header row — unchanged */}
-        <div className="flex justify-between items-start mb-3">
+        <div className="flex justify-between items-start mb-2">
           <span className="text-[9px] font-black text-zinc-500 bg-zinc-800 px-2 py-1 rounded uppercase flex items-center gap-1">
             {(isHistorical || hasStarted) && <Clock className="w-3 h-3" />}
             {game.time ?? game.status}
