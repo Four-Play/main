@@ -3,9 +3,10 @@ import React, { useState, useRef } from 'react'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Users, Crown, Sliders, Loader2, Sun, Moon, Camera } from "lucide-react"
+import { Users, Crown, Sliders, Loader2, Sun, Moon, Camera, HelpCircle } from "lucide-react"
 import { updateProfile, uploadAvatar } from '@/services/authService'
 import { useTheme } from '@/lib/theme'
+import { HowToPlayModal } from '@/components/modals/HowToPlayModal'
 import type { Profile } from '@/types/database'
 
 interface ProfileTabProps {
@@ -30,6 +31,7 @@ export function ProfileTab({
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState(user.avatar_url ?? null)
+  const [howToPlayOpen, setHowToPlayOpen] = useState(false)
   const { theme, toggleTheme } = useTheme()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -211,6 +213,14 @@ export function ProfileTab({
       </div>
 
       <div className="w-full pt-6 border-t border-zinc-900 flex flex-col items-center gap-2">
+        <Button
+          variant="ghost"
+          className="text-zinc-400 font-bold uppercase text-[9px] tracking-widest hover:text-white w-full flex items-center gap-2"
+          onClick={() => setHowToPlayOpen(true)}
+        >
+          <HelpCircle className="w-3.5 h-3.5 text-green-500" />
+          How to Play
+        </Button>
         {!isEditing && (
           <Button
             variant="ghost"
@@ -229,6 +239,8 @@ export function ProfileTab({
           {isSigningOut ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign Out'}
         </Button>
       </div>
+
+      <HowToPlayModal isOpen={howToPlayOpen} onClose={setHowToPlayOpen} />
     </div>
   )
 }

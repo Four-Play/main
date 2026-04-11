@@ -176,27 +176,44 @@ export function LeagueSettingsModal({
       <DialogContent className="bg-zinc-950 border-zinc-800 text-white rounded-t-2xl sm:rounded-2xl flex flex-col max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-green-500 uppercase font-black italic tracking-widest">
-            League Settings
+            {isAdmin ? 'League Settings' : 'League Info'}
           </DialogTitle>
           <DialogDescription className="text-zinc-500 text-[10px] uppercase font-bold">
-            Manage rules and invites
+            {isAdmin ? 'Manage rules and invites' : 'View league rules and invite code'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4 overflow-y-auto flex-1 min-h-0">
+
+          {/* Non-admin notice */}
+          {!isAdmin && (
+            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5">
+              <Lock className="w-3 h-3 text-zinc-500 flex-shrink-0" />
+              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
+                Only the league creator can edit these settings
+              </p>
+            </div>
+          )}
+
           {/* League Name */}
           <div className="space-y-2">
             <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">
               League Name
             </label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500 font-bold"
-            />
+            {isAdmin ? (
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500 font-bold"
+              />
+            ) : (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-md flex items-center px-4 h-12 font-bold text-white">
+                {name}
+              </div>
+            )}
           </div>
 
-          {/* Invite Code */}
+          {/* Invite Code — everyone can copy */}
           <div className="space-y-2">
             <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">
               Invite Code
@@ -234,10 +251,7 @@ export function LeagueSettingsModal({
                 }`}
               >
                 <span className="flex items-center gap-2">
-                  {isLeagueLocked
-                    ? <Lock className="w-3.5 h-3.5" />
-                    : <Unlock className="w-3.5 h-3.5" />
-                  }
+                  {isLeagueLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                   {isLeagueLocked ? 'League Locked' : 'League Open'}
                 </span>
                 <span className={`text-[9px] px-2 py-0.5 rounded-full font-black ${
@@ -257,17 +271,23 @@ export function LeagueSettingsModal({
             <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">
               Payout Per Loss ($)
             </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">$</span>
-              <Input
-                type="number"
-                min="1"
-                step="1"
-                value={payoutDollars}
-                onChange={(e) => setPayoutDollars(e.target.value)}
-                className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500 font-bold pl-8"
-              />
-            </div>
+            {isAdmin ? (
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">$</span>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={payoutDollars}
+                  onChange={(e) => setPayoutDollars(e.target.value)}
+                  className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500 font-bold pl-8"
+                />
+              </div>
+            ) : (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-md flex items-center px-4 h-12 font-bold text-white">
+                ${payoutDollars}
+              </div>
+            )}
             <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
               Tracked only — money is not exchanged through the app
             </p>
@@ -293,69 +313,69 @@ export function LeagueSettingsModal({
             </div>
           </div>
 
-          {/* Dev / Simulate */}
-          <div className="pt-4 border-t border-zinc-900 space-y-3">
-            <div className="flex items-center gap-2 px-1">
-              <FlaskConical className="w-3 h-3 text-zinc-500" />
-              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-                Dev Tools
-              </label>
-            </div>
-
-            {/* Run Scoring */}
-            <Button
-              variant="outline"
-              disabled={isScoring}
-              onClick={handleRunScoring}
-              className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[10px] h-10 tracking-widest"
-            >
-              {isScoring
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <><Play className="w-3 h-3 mr-2" /> Run Scoring Now</>
-              }
-            </Button>
-
-            {/* Simulate Week */}
-            <div className="flex gap-2">
-              <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-md px-3 h-10 flex-shrink-0">
-                <span className="text-[10px] text-zinc-500 font-black uppercase">Wk</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={simWeek}
-                  onChange={(e) => setSimWeek(Number(e.target.value))}
-                  className="w-10 bg-transparent text-white font-mono text-sm text-center outline-none"
-                />
+          {/* Dev / Simulate — admin only */}
+          {isAdmin && (
+            <div className="pt-4 border-t border-zinc-900 space-y-3">
+              <div className="flex items-center gap-2 px-1">
+                <FlaskConical className="w-3 h-3 text-zinc-500" />
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                  Dev Tools
+                </label>
               </div>
+
               <Button
                 variant="outline"
-                disabled={isSimulating}
-                onClick={handleSimulateWeek}
-                className="flex-1 border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[10px] h-10 tracking-widest"
+                disabled={isScoring}
+                onClick={handleRunScoring}
+                className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[10px] h-10 tracking-widest"
               >
-                {isSimulating
+                {isScoring
                   ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : 'Simulate Week'
+                  : <><Play className="w-3 h-3 mr-2" /> Run Scoring Now</>
                 }
               </Button>
-            </div>
 
-            {devMessage && (
-              <p className={`text-[10px] font-mono px-1 ${devMessage.startsWith('✓') ? 'text-green-500' : 'text-red-400'}`}>
-                {devMessage}
+              <div className="flex gap-2">
+                <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-md px-3 h-10 flex-shrink-0">
+                  <span className="text-[10px] text-zinc-500 font-black uppercase">Wk</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={simWeek}
+                    onChange={(e) => setSimWeek(Number(e.target.value))}
+                    className="w-10 bg-transparent text-white font-mono text-sm text-center outline-none"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  disabled={isSimulating}
+                  onClick={handleSimulateWeek}
+                  className="flex-1 border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[10px] h-10 tracking-widest"
+                >
+                  {isSimulating
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : 'Simulate Week'
+                  }
+                </Button>
+              </div>
+
+              {devMessage && (
+                <p className={`text-[10px] font-mono px-1 ${devMessage.startsWith('✓') ? 'text-green-500' : 'text-red-400'}`}>
+                  {devMessage}
+                </p>
+              )}
+              <p className="text-[9px] text-zinc-700 uppercase tracking-widest px-1">
+                Load the week in Picks first, then simulate to auto-score with random results
               </p>
-            )}
-            <p className="text-[9px] text-zinc-700 uppercase tracking-widest px-1">
-              Load the week in Picks first, then simulate to auto-score with random results
-            </p>
-          </div>
+            </div>
+          )}
 
-          {/* Danger Zone */}
-          <div className="pt-4 border-t border-zinc-900 space-y-2">
-            <label className="text-[10px] font-black text-red-500 uppercase tracking-widest px-1 block">
-              Danger Zone
-            </label>
-            {isAdmin && (
+          {/* Danger Zone — admin only */}
+          {isAdmin && (
+            <div className="pt-4 border-t border-zinc-900 space-y-2">
+              <label className="text-[10px] font-black text-red-500 uppercase tracking-widest px-1 block">
+                Danger Zone
+              </label>
               <Button
                 variant="outline"
                 disabled={isResetting}
@@ -367,29 +387,39 @@ export function LeagueSettingsModal({
                   : <><FlaskConical className="w-3.5 h-3.5 mr-2" /> Reset League</>
                 }
               </Button>
-            )}
-            <Button
-              variant="outline"
-              disabled={isDeleting}
-              className="w-full border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-500 font-black uppercase text-[10px] h-10 tracking-widest"
-              onClick={handleDelete}
-            >
-              {isDeleting
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <><Trash2 className="w-3.5 h-3.5 mr-2" /> Delete League</>
-              }
-            </Button>
-          </div>
+              <Button
+                variant="outline"
+                disabled={isDeleting}
+                className="w-full border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-500 font-black uppercase text-[10px] h-10 tracking-widest"
+                onClick={handleDelete}
+              >
+                {isDeleting
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <><Trash2 className="w-3.5 h-3.5 mr-2" /> Delete League</>
+                }
+              </Button>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="w-full bg-green-500 text-black font-black uppercase tracking-widest h-12"
-          >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
-          </Button>
+          {isAdmin ? (
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full bg-green-500 text-black font-black uppercase tracking-widest h-12"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
+            </Button>
+          ) : (
+            <Button
+              onClick={() => onClose(false)}
+              variant="outline"
+              className="w-full border-zinc-700 bg-zinc-900 text-white font-black uppercase tracking-widest h-12"
+            >
+              Close
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
