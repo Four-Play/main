@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { ACTIVE_SPORT, SPORT_CONFIG, computeWeekFromDate, computeCurrentWeek } from '@/lib/weekUtils'
+import { SEASON_WEEKS } from '@/config/season'
 
 const ODDS_API_KEY = process.env.ODDS_API_KEY!
 const ODDS_BASE = 'https://api.the-odds-api.com/v4'
@@ -29,13 +30,22 @@ export async function GET(request: Request) {
     .order('commence_time', { ascending: true })
 
   if (cached && cached.length > 0) {
+    // Filter to only games that fall within this week's date window
+    const weekConfig = SEASON_WEEKS.find(w => w.week === week)
+    const filtered = weekConfig
+      ? cached.filter((g: any) => {
+          const gameDate = g.commence_time.slice(0, 10) // YYYY-MM-DD
+          return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
+        })
+      : cached
+
     const now = new Date().toISOString()
     // Stale if every game is in the past with no score — leftover test data
-    const isStale = cached.every(
+    const isStale = filtered.length === 0 || filtered.every(
       (g: any) => g.commence_time < now && g.status !== 'final' && g.home_score == null
     )
     if (!isStale) {
-      return NextResponse.json({ games: cached, week, currentWeek, year, source: 'cache' })
+      return NextResponse.json({ games: filtered, week, currentWeek, year, source: 'cache' })
     }
   }
 
