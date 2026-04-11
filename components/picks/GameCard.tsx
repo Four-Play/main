@@ -3,6 +3,45 @@ import { Card, CardContent } from "@/components/ui/card"
 import { CheckCircle2, XCircle, Clock, Lock } from "lucide-react"
 import type { Game } from '@/types/database'
 
+const CUSHION = 13
+
+/** Returns display strings for the result breakdown — no logic changes, purely cosmetic */
+function getBreakdown(game: Game, selectedTeam: string) {
+  if (game.home_score == null || game.away_score == null || !game.home_team || !game.away_team) return null
+
+  const favTeam = game.fav ?? game.favorite_team
+  const pickedFavorite = selectedTeam === favTeam
+  const pickedIsHome = selectedTeam === game.home_team
+  const homeMargin = game.home_score - game.away_score
+  const pickedMargin = pickedIsHome ? homeMargin : -homeMargin
+  const absSpread = Math.abs(game.spread)
+
+  // Effective cushioned line — mirrors the threshold in lib/scoring.ts
+  // Fav: cushion - spread  (e.g. 13 - 7 = +6, fav can lose by 6)
+  // Dog: spread + cushion  (e.g. 7 + 13 = +20, dog can lose by 19)
+  const effectiveLine = pickedFavorite ? CUSHION - absSpread : absSpread + CUSHION
+
+  const neededDesc = pickedFavorite
+    ? effectiveLine >= 0
+      ? `Not lose by ${effectiveLine + 1}+`
+      : `Win by ${Math.abs(effectiveLine)}+`
+    : `Not lose by ${effectiveLine}+`
+
+  const marginDesc = pickedMargin > 0
+    ? `Won by ${pickedMargin}`
+    : pickedMargin < 0
+    ? `Lost by ${Math.abs(pickedMargin)}`
+    : `Tied`
+
+  return {
+    neededDesc,
+    marginDesc,
+    score: `${game.home_team} ${game.home_score} – ${game.away_team} ${game.away_score}`,
+    role: pickedFavorite ? 'FAV' : 'DOG',
+    effectiveLine,
+  }
+}
+
 interface GameCardProps {
   game: Game
   isSelected: boolean
@@ -101,8 +140,31 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
           </button>
         </div>
 
-        {/* Scores if final */}
-        {game.status === 'final' && game.home_score != null && (
+        {/* Result breakdown for completed picked games */}
+        {isHistorical && isSelected && result && game.status === 'final' && selectedTeam && (() => {
+          const bd = getBreakdown(game, selectedTeam)
+          if (!bd) return null
+          const color = result === 'win' ? 'text-green-400' : result === 'loss' ? 'text-red-400' : 'text-zinc-400'
+          return (
+            <div className="mt-3 pt-3 border-t border-zinc-800 space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                  {selectedTeam} <span className="text-zinc-700">·</span> {bd.role}
+                </span>
+                <span className="text-[9px] text-zinc-600">Needed: {bd.neededDesc}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-mono text-zinc-500">{bd.score}</span>
+                <span className={`text-[9px] font-black uppercase ${color}`}>
+                  {bd.marginDesc} → {result.toUpperCase()}
+                </span>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Scores only (no pick) for non-selected final games */}
+        {game.status === 'final' && game.home_score != null && (!isSelected || !result) && (
           <div className="mt-2 text-[10px] font-mono text-zinc-500">
             {game.home_team} {game.home_score} — {game.away_team} {game.away_score}
           </div>

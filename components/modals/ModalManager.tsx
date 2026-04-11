@@ -85,6 +85,7 @@ export function ModalManager({
         onLeagueUpdated={setCurrentLeague}
         currentWeek={currentWeek}
         currentYear={currentYear}
+        currentUserId={currentUserId}
       />
     </>
   )
