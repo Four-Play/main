@@ -83,7 +83,7 @@ export function PicksTab({
           <p className="text-[9px] uppercase">Week {selectedWeek} games will appear here</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-1">
           {games.map((game) => {
             const pick = picksMap.get(game.id)
             const isSelected = selectedPicks.has(game.id)
