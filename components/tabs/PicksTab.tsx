@@ -35,7 +35,7 @@ export function PicksTab({
   const weeks = Array.from({ length: currentWeek }, (_, i) => i + 1)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <WeekSwitcher
         selectedWeek={selectedWeek}
         onSelectWeek={setSelectedWeek}
