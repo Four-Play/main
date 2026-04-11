@@ -14,6 +14,7 @@ import { getMyPicks, savePick, deletePick, lockInPicks } from '@/services/picksS
 import { createClient } from '@/lib/supabase/client'
 import type { Profile, League, Game, Pick } from '@/types/database'
 import { computeCurrentWeek, ACTIVE_SPORT } from '@/lib/weekUtils'
+import { SEASON_YEAR } from '@/config/season'
 
 export default function FourplayApp() {
   // Auth state
@@ -43,7 +44,7 @@ export default function FourplayApp() {
   const [picksMap, setPicksMap] = useState<Map<string, Pick>>(new Map()) // gameId -> Pick
   const [isLocked, setIsLocked] = useState(false)
   const [currentWeek, setCurrentWeek] = useState(() => computeCurrentWeek(ACTIVE_SPORT))
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+  const [currentYear, setCurrentYear] = useState(SEASON_YEAR)
   const [selectedWeek, setSelectedWeek] = useState(() => computeCurrentWeek(ACTIVE_SPORT))
 
   // Check session on mount

@@ -5,12 +5,12 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { scoreExistingGames } from '@/lib/scoring'
+import { getCurrentSportKey } from '@/config/season'
 
 const ODDS_API_KEY = process.env.ODDS_API_KEY!
 const CRON_SECRET = process.env.CRON_SECRET
 
-// Must match the SPORT_KEY used in app/api/games/route.ts
-const SPORT_KEY = 'basketball_nba'
+const SPORT_KEY = getCurrentSportKey()
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization')

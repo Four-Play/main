@@ -11,7 +11,7 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog"
-import { Crown, Copy, Check, Trash2, Loader2, FlaskConical, Play } from "lucide-react"
+import { Crown, Copy, Check, Trash2, Loader2, FlaskConical, Play, Lock, Unlock } from "lucide-react"
 import { updateLeague, deleteLeague } from '@/services/leagueService'
 import type { League } from '@/types/database'
 
@@ -36,6 +36,7 @@ export function LeagueSettingsModal({
 }: LeagueSettingsModalProps) {
   const [name, setName] = useState('')
   const [payoutDollars, setPayoutDollars] = useState('50')
+  const [isLeagueLocked, setIsLeagueLocked] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
@@ -53,6 +54,7 @@ export function LeagueSettingsModal({
     if (currentLeague) {
       setName(currentLeague.name)
       setPayoutDollars(String(currentLeague.payout_per_loss_cents / 100))
+      setIsLeagueLocked(currentLeague.is_locked ?? false)
     }
     setSimWeek(currentWeek)
   }, [currentLeague, currentWeek])
@@ -80,6 +82,7 @@ export function LeagueSettingsModal({
       const updated = await updateLeague(currentLeague.id, {
         name: name.trim(),
         payout_per_loss_cents: Math.round(dollars * 100),
+        ...(isAdmin && { is_locked: isLeagueLocked }),
       })
       onLeagueUpdated(updated)
       onClose(false)
@@ -211,6 +214,40 @@ export function LeagueSettingsModal({
               Share this code with friends to join
             </p>
           </div>
+
+          {/* Lock League — admin only */}
+          {isAdmin && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">
+                New Member Access
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsLeagueLocked(prev => !prev)}
+                className={`w-full h-12 rounded-md border font-black uppercase text-[10px] tracking-widest flex items-center justify-between px-4 transition-colors ${
+                  isLeagueLocked
+                    ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20'
+                    : 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  {isLeagueLocked
+                    ? <Lock className="w-3.5 h-3.5" />
+                    : <Unlock className="w-3.5 h-3.5" />
+                  }
+                  {isLeagueLocked ? 'League Locked' : 'League Open'}
+                </span>
+                <span className={`text-[9px] px-2 py-0.5 rounded-full font-black ${
+                  isLeagueLocked ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
+                }`}>
+                  {isLeagueLocked ? 'NO NEW MEMBERS' : 'ACCEPTING MEMBERS'}
+                </span>
+              </button>
+              <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
+                When locked, invite codes are disabled and no one can join
+              </p>
+            </div>
+          )}
 
           {/* Payout Per Loss */}
           <div className="space-y-2">

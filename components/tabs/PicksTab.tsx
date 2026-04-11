@@ -62,6 +62,7 @@ export function PicksTab({
         selectedWeek={selectedWeek}
         onSelectWeek={setSelectedWeek}
         weeks={weeks}
+        getLabel={(w) => getWeekLabel(w, ACTIVE_SPORT)}
       />
 
       {isLocked && !isHistorical && (
@@ -72,7 +73,7 @@ export function PicksTab({
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-green-500">Picks Confirmed</p>
-              <p className="text-[9px] text-zinc-500 uppercase">Week {selectedWeek} is locked in</p>
+              <p className="text-[9px] text-zinc-500 uppercase">{getWeekLabel(selectedWeek, ACTIVE_SPORT)} is locked in</p>
             </div>
           </div>
           <Lock className="w-4 h-4 text-zinc-700" />

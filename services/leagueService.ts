@@ -50,6 +50,8 @@ export async function joinLeagueWithCode(
 
   if (error || !league) throw new Error('Invalid invite code')
 
+  if (league.is_locked) throw new Error('This league is not accepting new members')
+
   // Check if already a member
   const { data: existing } = await supabase
     .from('league_members')
@@ -133,7 +135,7 @@ export async function getLeagueWeeklyResults(
 
 export async function updateLeague(
   leagueId: string,
-  updates: Partial<Pick<League, 'name' | 'payout_per_loss_cents' | 'spread_cushion'>>
+  updates: Partial<Pick<League, 'name' | 'payout_per_loss_cents' | 'spread_cushion' | 'is_locked'>>
 ): Promise<League> {
   const { data, error } = await supabase
     .from('leagues')

@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Sliders, Trophy, TrendingDown, TrendingUp } from "lucide-react"
 import { getLeagueMembers, getLeagueWeeklyResults } from '@/services/leagueService'
+import { getWeekLabel, ACTIVE_SPORT } from '@/lib/weekUtils'
 import type { LeagueMember, WeekSummary } from '@/types/database'
 import { formatCents } from '@/types/database'
 
@@ -99,7 +100,7 @@ export function LeagueTab({
               : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
           }`}
         >
-          WEEK {currentWeek}
+          {getWeekLabel(currentWeek, ACTIVE_SPORT).toUpperCase()}
         </button>
       </div>
 
@@ -187,7 +188,7 @@ export function LeagueTab({
           ) : (
             <div className="flex flex-col items-center py-12 gap-3 text-zinc-600">
               <TrendingUp className="w-8 h-8" />
-              <p className="text-[10px] font-black uppercase tracking-widest">Week {currentWeek} in progress</p>
+              <p className="text-[10px] font-black uppercase tracking-widest">{getWeekLabel(currentWeek, ACTIVE_SPORT)} in progress</p>
               <p className="text-[9px] text-zinc-700 uppercase">Results calculated after all games final</p>
             </div>
           )}

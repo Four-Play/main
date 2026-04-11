@@ -18,6 +18,7 @@ export interface League {
   entry_fee_cents: number
   payout_per_loss_cents: number
   spread_cushion: number
+  is_locked?: boolean
   created_at?: string
 }
 
