@@ -86,7 +86,7 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{favTeam}</p>
             <p className="text-xs font-mono text-red-400 mt-0.5">
-  {game.spread > 0 ? '+' : ''}{game.spread} <span className="text-zinc-500 text-[9px]">(+{favCushion} cushion)</span>
+  {game.spread > 0 ? '+' : ''}{game.spread} <span className="text-zinc-500 text-[9px]">({favCushion >= 0 ? '+' : ''}{favCushion} cushion)</span>
 </p>
           </button>
 
