@@ -62,31 +62,8 @@ export async function deletePick(
     .eq('user_id', userId)
     .eq('league_id', leagueId)
     .eq('game_id', gameId)
-    .eq('is_locked', false)
 
   if (error) throw new Error(error.message)
-}
-
-export async function lockInPicks(
-  _userId: string,
-  leagueId: string,
-  week: number,
-  year: number
-): Promise<Pick[]> {
-  // Delegate to server-side API route which uses an atomic RPC with auth check
-  const res = await fetch('/api/picks/lock', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ leagueId, week, year }),
-  })
-
-  const data = await res.json()
-
-  if (!res.ok) {
-    throw new Error(data.error ?? 'Failed to lock picks')
-  }
-
-  return (data.picks ?? []) as Pick[]
 }
 
 // Get picks for all members in a league for a week (used in league tab)

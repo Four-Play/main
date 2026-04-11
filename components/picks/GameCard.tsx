@@ -49,16 +49,17 @@ interface GameCardProps {
   result?: 'win' | 'loss' | 'push' | null
   onSelect: (id: string, teamSelected: string) => void
   selectedTeam?: string
-  disabled?: boolean
 }
 
-export function GameCard({ game, isSelected, isHistorical, result, onSelect, selectedTeam, disabled }: GameCardProps) {
+export function GameCard({ game, isSelected, isHistorical, result, onSelect, selectedTeam }: GameCardProps) {
   const favTeam = game.fav ?? game.favorite_team
   const dogTeam = game.dog ?? game.underdog_team
   const favCushion = game.spread + 13
   const dogCushion = Math.abs(game.spread) + 13
-  const isInteractionDisabled = isHistorical || disabled
   const hasStarted = game.commence_time ? new Date(game.commence_time) < new Date() : false
+  // A pick becomes locked once its individual game has started
+  const isLocked = hasStarted && !isHistorical
+  const isInteractionDisabled = isHistorical || hasStarted
 
   const favSelected = isSelected && selectedTeam === favTeam
   const dogSelected = isSelected && selectedTeam === dogTeam
@@ -84,12 +85,12 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
   return (
     <Card
       className={`transition-all duration-300 bg-zinc-900 border-zinc-800 relative ${
-  disabled && !isSelected ? 'opacity-40 grayscale' : 'opacity-100'
+  isLocked && !isSelected ? 'opacity-50' : 'opacity-100'
 }`}
     >
       <CardContent className="px-2 pt-1.5 pb-2">
-        {disabled && isSelected && (
-          <Lock className="absolute top-1.5 right-2 w-3 h-3 text-green-500/50" />
+        {isLocked && isSelected && (
+          <Lock className="absolute top-1.5 right-2 w-3 h-3 text-green-500/60" />
         )}
 
         {/* Header row */}

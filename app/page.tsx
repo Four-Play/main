@@ -7,10 +7,9 @@ import { ProfileTab } from '@/components/tabs/ProfileTab'
 import { ModalManager } from '@/components/modals/ModalManager'
 import { Header } from '@/components/layout/Header'
 import { Navbar } from '@/components/layout/Navbar'
-import { SelectionSlip } from '@/components/layout/SelectionSlip'
 import { signIn, signUp, signOut, getProfile } from '@/services/authService'
 import { getMyLeagues } from '@/services/leagueService'
-import { getMyPicks, savePick, deletePick, lockInPicks } from '@/services/picksService'
+import { getMyPicks, savePick, deletePick } from '@/services/picksService'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile, League, Game, Pick } from '@/types/database'
 import { computeCurrentWeek, ACTIVE_SPORT } from '@/lib/weekUtils'
@@ -42,7 +41,6 @@ export default function FourplayApp() {
   const [gamesLoading, setGamesLoading] = useState(false)
   const [selectedPicks, setSelectedPicks] = useState<Set<string>>(new Set()) // Set of game IDs
   const [picksMap, setPicksMap] = useState<Map<string, Pick>>(new Map()) // gameId -> Pick
-  const [isLocked, setIsLocked] = useState(false)
   const [currentWeek, setCurrentWeek] = useState(() => computeCurrentWeek(ACTIVE_SPORT))
   const [currentYear, setCurrentYear] = useState(SEASON_YEAR)
   const [selectedWeek, setSelectedWeek] = useState(() => computeCurrentWeek(ACTIVE_SPORT))
@@ -161,17 +159,14 @@ export default function FourplayApp() {
         const picks = await getMyPicks(user.id, currentLeague.id, selectedWeek, currentYear)
         const map = new Map<string, Pick>()
         const selected = new Set<string>()
-        let hasLocked = false
 
         for (const pick of picks) {
           map.set(pick.game_id, pick)
           selected.add(pick.game_id)
-          if (pick.is_locked) hasLocked = true
         }
 
         setPicksMap(map)
         setSelectedPicks(selected)
-        setIsLocked(hasLocked)
       } catch (err) {
         console.error('Failed to load picks:', err)
       }
@@ -210,14 +205,14 @@ export default function FourplayApp() {
   }
 
   const handleTogglePick = async (gameId: string, teamSelected: string) => {
-    if (!user || !currentLeague || isLocked) return
+    if (!user || !currentLeague) return
 
     const game = games.find(g => g.id === gameId)
     if (!game) return
 
-    // Can't pick a game that has started
+    // Each game is locked individually once it starts
     if (game.commence_time && new Date(game.commence_time) < new Date()) {
-      alert('This game has already started and cannot be selected.')
+      alert('This game has already started and cannot be changed.')
       return
     }
 
@@ -259,32 +254,10 @@ export default function FourplayApp() {
     }
   }
 
-  const handleLockIn = async () => {
-    if (!user || !currentLeague) return
-    setIsLoading(true)
-
-    try {
-      await lockInPicks(user.id, currentLeague.id, selectedWeek, currentYear)
-      setIsLocked(true)
-
-      // Update local picks map to show locked
-      setPicksMap(prev => {
-        const n = new Map(prev)
-        for (const [k, v] of n) n.set(k, { ...v, is_locked: true })
-        return n
-      })
-    } catch (err: any) {
-      alert(err.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleLeagueChange = (league: League) => {
     setCurrentLeague(league)
     setSelectedPicks(new Set())
     setPicksMap(new Map())
-    setIsLocked(false)
   }
 
   if (!authChecked) {
@@ -305,8 +278,6 @@ export default function FourplayApp() {
       />
     )
   }
-
-  const isHistorical = selectedWeek < currentWeek
 
   return (
     <div className="relative max-w-md mx-auto min-h-screen bg-black text-white overflow-x-hidden font-sans">
@@ -350,7 +321,6 @@ export default function FourplayApp() {
                 selectedPicks={selectedPicks}
                 picksMap={picksMap}
                 onTogglePick={handleTogglePick}
-                isLocked={isLocked}
               />
             )}
 
@@ -381,14 +351,6 @@ export default function FourplayApp() {
           </>
         )}
       </main>
-
-      <SelectionSlip
-        selectedCount={selectedPicks.size}
-        maxPicks={4}
-        isLoading={isLoading}
-        isVisible={!isHistorical && selectedPicks.size > 0 && activeTab === 'picks' && !isLocked}
-        onLockIn={handleLockIn}
-      />
 
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 

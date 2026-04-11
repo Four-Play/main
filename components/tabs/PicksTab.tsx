@@ -3,7 +3,7 @@ import React from 'react'
 import { Badge } from "@/components/ui/badge"
 import { GameCard } from '@/components/picks/GameCard'
 import { WeekSwitcher } from '@/components/picks/WeekSwitcher'
-import { CheckCircle2, Lock, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import type { Game, Pick } from '@/types/database'
 import { ACTIVE_SPORT, SPORT_CONFIG, getWeekLabel } from '@/lib/weekUtils'
 import { SEASON_WEEKS, getPlaceholderCount } from '@/config/season'
@@ -20,7 +20,6 @@ interface PicksTabProps {
   selectedPicks: Set<string>      // Set of game IDs
   picksMap: Map<string, Pick>     // gameId -> Pick (has result for historical)
   onTogglePick: (gameId: string, teamSelected: string) => void
-  isLocked: boolean
 }
 
 export function PicksTab({
@@ -32,7 +31,6 @@ export function PicksTab({
   selectedPicks,
   picksMap,
   onTogglePick,
-  isLocked,
 }: PicksTabProps) {
   const isHistorical = selectedWeek < currentWeek
   const isFuture = selectedWeek > currentWeek
@@ -66,21 +64,6 @@ export function PicksTab({
         getLabel={(w) => getWeekLabel(w, ACTIVE_SPORT)}
       />
 
-      {isLocked && !isHistorical && (
-        <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-green-500 rounded-full p-1">
-              <CheckCircle2 className="w-4 h-4 text-black" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-green-500">Picks Confirmed</p>
-              <p className="text-[9px] text-zinc-500 uppercase">{getWeekLabel(selectedWeek, ACTIVE_SPORT)} is locked in</p>
-            </div>
-          </div>
-          <Lock className="w-4 h-4 text-zinc-700" />
-        </div>
-      )}
-
       <div className="flex justify-between items-center px-1">
         <div>
           <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
@@ -97,7 +80,7 @@ export function PicksTab({
             COMPLETED
           </Badge>
         )}
-        {!isHistorical && !isFuture && !isLocked && (
+        {!isHistorical && !isFuture && (
           <Badge className="bg-green-500/10 text-green-500 border-none text-[9px]">
             {selectedPicks.size}/4 SELECTED
           </Badge>
@@ -136,7 +119,6 @@ export function PicksTab({
                 result={result}
                 onSelect={onTogglePick}
                 selectedTeam={selectedTeam}
-                disabled={isLocked}
               />
             )
           })}

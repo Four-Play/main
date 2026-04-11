@@ -33,26 +33,41 @@ export function LeagueTab({
 
   useEffect(() => {
     if (!currentLeague) return
+    let cancelled = false
+    setLoading(true)
+
+    // Safety net — never stay stuck on the spinner even if a request hangs
+    const giveUpTimer = setTimeout(() => {
+      if (!cancelled) {
+        console.warn('League data load timed out')
+        setLoading(false)
+      }
+    }, 8000)
+
     const load = async () => {
-      setLoading(true)
       try {
         const [memberData, weekData] = await Promise.all([
           getLeagueMembers(currentLeague),
           getLeagueWeeklyResults(currentLeague, currentWeek, currentYear),
         ])
-
-        // LOG THIS: Verify what the component received
-        console.log('LeagueTab: Received memberData array:', memberData);
-        
+        if (cancelled) return
         setMembers(memberData)
         setWeekSummary(weekData)
       } catch (err) {
         console.error('Failed to load league data:', err)
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          clearTimeout(giveUpTimer)
+          setLoading(false)
+        }
       }
     }
     load()
+
+    return () => {
+      cancelled = true
+      clearTimeout(giveUpTimer)
+    }
   }, [currentLeague, currentWeek, currentYear])
 
   if (loading) {
