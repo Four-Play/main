@@ -1,6 +1,6 @@
 "use client"
 import { Card, CardContent } from "@/components/ui/card"
-import { CheckCircle2, XCircle, Clock, Lock } from "lucide-react"
+import { Clock, Lock } from "lucide-react"
 import type { Game } from '@/types/database'
 
 const CUSHION = 13
@@ -70,7 +70,7 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
     ? 'bg-red-500/20 text-red-500'
     : 'bg-zinc-500/20 text-zinc-400'
 
-  const halfBase = 'flex-1 rounded-lg p-3 transition-all duration-200 text-left'
+  const halfBase = 'flex-1 rounded-lg p-2 transition-all duration-200 text-left'
   const halfActive = 'bg-green-500/10 border border-green-500'
   const halfDimmed = 'opacity-40'
   const halfIdle = 'border border-zinc-800'
@@ -87,34 +87,23 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
   disabled && !isSelected ? 'opacity-40 grayscale' : 'opacity-100'
 }`}
     >
-      <CardContent className="p-2">
+      <CardContent className="px-2 pt-1.5 pb-2">
         {disabled && isSelected && (
-          <Lock className="absolute top-2 right-10 w-3 h-3 text-green-500/50" />
+          <Lock className="absolute top-1.5 right-2 w-3 h-3 text-green-500/50" />
         )}
 
-        {/* Header row — unchanged */}
-        <div className="flex justify-between items-start mb-2">
-          <span className="text-[9px] font-black text-zinc-500 bg-zinc-800 px-2 py-1 rounded uppercase flex items-center gap-1">
+        {/* Header row */}
+        <div className="flex justify-between items-center mb-1.5">
+          <span className="text-[9px] font-black text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded uppercase flex items-center gap-1">
             {(isHistorical || hasStarted) && <Clock className="w-3 h-3" />}
             {game.time ?? game.status}
           </span>
 
-          <div className="flex items-center gap-2">
-            {isHistorical && isSelected && resultLabel && (
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded ${resultColor}`}>
-                {resultLabel}
-              </span>
-            )}
-            <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
-              isSelected ? 'bg-green-500 border-green-500' : 'border-zinc-700'
-            } ${disabled && isSelected ? 'shadow-[0_0_10px_rgba(34,197,94,0.4)]' : ''}`}>
-              {isSelected && (
-                result === 'loss' && isHistorical
-                  ? <XCircle className="w-3.5 h-3.5 text-black" />
-                  : <CheckCircle2 className="w-3.5 h-3.5 text-black" />
-              )}
-            </div>
-          </div>
+          {isHistorical && isSelected && resultLabel && (
+            <span className={`text-[10px] font-black px-2 py-0.5 rounded ${resultColor}`}>
+              {resultLabel}
+            </span>
+          )}
         </div>
 
         {/* Two-half team selector */}
