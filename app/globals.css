@@ -130,3 +130,51 @@
     --ring: 142 70% 45%;
   }
 }
+
+/* ─── Light Mode Overrides ───────────────────────────────────────────────── */
+
+/* Backgrounds */
+html.light .bg-black           { background-color: #f8fafc !important; }
+html.light .bg-zinc-950        { background-color: #f1f5f9 !important; }
+html.light .bg-zinc-900        { background-color: #e2e8f0 !important; }
+html.light .bg-zinc-800        { background-color: #cbd5e1 !important; }
+html.light .bg-zinc-700        { background-color: #94a3b8 !important; }
+
+/* Opacity-variant backgrounds (Tailwind v4 generates class names with /) */
+html.light .bg-zinc-950\/90    { background-color: rgb(241 245 249 / 0.95) !important; }
+html.light .bg-zinc-950\/80    { background-color: rgb(241 245 249 / 0.8) !important; }
+html.light .bg-zinc-900\/50    { background-color: rgb(226 232 240 / 0.5) !important; }
+html.light .bg-zinc-900\/90    { background-color: rgb(226 232 240 / 0.9) !important; }
+html.light .bg-zinc-800\/50    { background-color: rgb(203 213 225 / 0.5) !important; }
+
+/* Hover backgrounds */
+html.light .hover\:bg-zinc-800:hover { background-color: #cbd5e1 !important; }
+html.light .hover\:bg-zinc-900:hover { background-color: #e2e8f0 !important; }
+
+/* Borders */
+html.light .border-zinc-900    { border-color: #e2e8f0 !important; }
+html.light .border-zinc-800    { border-color: #cbd5e1 !important; }
+html.light .border-zinc-700    { border-color: #94a3b8 !important; }
+
+/* Text */
+html.light .text-white         { color: #0f172a !important; }
+html.light .text-zinc-700      { color: #1e293b !important; }
+html.light .text-zinc-600      { color: #475569 !important; }
+html.light .text-zinc-500      { color: #64748b !important; }
+html.light .text-zinc-400      { color: #94a3b8 !important; }
+html.light .text-zinc-300      { color: #64748b !important; }
+
+/* Hover text */
+html.light .hover\:text-white:hover { color: #0f172a !important; }
+
+/* Separators that use bg-zinc-800 */
+html.light [data-orientation="horizontal"].bg-zinc-800 { background-color: #cbd5e1 !important; }
+
+/* Auth screen card glow — tone down in light */
+html.light .shadow-\[0_0_50px_rgba\(34\,197\,94\,0\.1\)\] {
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.08) !important;
+}
+
+/* ScrollBar (Webkit) */
+html.light ::-webkit-scrollbar-track { background: #f1f5f9; }
+html.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }

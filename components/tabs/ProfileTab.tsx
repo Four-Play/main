@@ -2,8 +2,9 @@
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Users, Crown, Sliders, Loader2 } from "lucide-react"
+import { Users, Crown, Sliders, Loader2, Sun, Moon } from "lucide-react"
 import { updateProfile } from '@/services/authService'
+import { useTheme } from '@/lib/theme'
 import type { Profile } from '@/types/database'
 
 interface ProfileTabProps {
@@ -26,6 +27,7 @@ export function ProfileTab({
   const [username, setUsername] = useState(user.username)
   const [isSaving, setIsSaving] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const { theme, toggleTheme } = useTheme()
 
   const handleSave = async () => {
     if (!username.trim() || username.length < 2) {
@@ -120,6 +122,39 @@ export function ProfileTab({
           </div>
         </div>
       )}
+
+      {/* Theme Toggle */}
+      <div className="w-full mb-4">
+        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1 block mb-2">
+          Appearance
+        </label>
+        <div className="flex rounded-md border border-zinc-700 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => theme === 'light' ? null : toggleTheme()}
+            className={`flex-1 h-11 flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest transition-colors ${
+              theme === 'light'
+                ? 'bg-green-500 text-black'
+                : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800'
+            }`}
+          >
+            <Sun className="w-3.5 h-3.5" />
+            Light
+          </button>
+          <button
+            type="button"
+            onClick={() => theme === 'dark' ? null : toggleTheme()}
+            className={`flex-1 h-11 flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest transition-colors ${
+              theme === 'dark'
+                ? 'bg-green-500 text-black'
+                : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800'
+            }`}
+          >
+            <Moon className="w-3.5 h-3.5" />
+            Dark
+          </button>
+        </div>
+      </div>
 
       <div className="w-full pt-6 border-t border-zinc-900 flex flex-col items-center gap-2">
         {!isEditing && (
