@@ -40,11 +40,21 @@ export async function signUp(email: string, password: string, username: string):
 }
 
 export async function signIn(email: string, password: string): Promise<Profile> {
+  // Clear any stale auth state that could block the new login.
+  // Give signOut 2 seconds max, then proceed regardless.
+  console.log('[auth] clearing stale session...')
+  await Promise.race([
+    supabase.auth.signOut().catch(() => {}),
+    new Promise(resolve => setTimeout(resolve, 2000)),
+  ])
+
+  console.log('[auth] signing in...')
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) throw new Error(error.message)
   if (!data.user) throw new Error('Sign in failed')
 
+  console.log('[auth] fetching profile...')
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
@@ -53,6 +63,7 @@ export async function signIn(email: string, password: string): Promise<Profile> 
 
   if (profileError || !profile) throw new Error('Profile not found')
 
+  console.log('[auth] sign in complete')
   return profile as Profile
 }
 
