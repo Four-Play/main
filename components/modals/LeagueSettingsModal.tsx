@@ -74,7 +74,7 @@ export function LeagueSettingsModal({
     }
     const dollars = parseFloat(payoutDollars)
     if (isNaN(dollars) || dollars < 1) {
-      alert('Payout must be at least $1')
+      alert('Stake must be at least 1 point')
       return
     }
     setIsSaving(true)
@@ -266,30 +266,27 @@ export function LeagueSettingsModal({
             </div>
           )}
 
-          {/* Payout Per Loss */}
+          {/* League Stake */}
           <div className="space-y-2">
             <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">
-              Payout Per Loss ($)
+              League Stake (Points Per Loss)
             </label>
             {isAdmin ? (
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">$</span>
-                <Input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={payoutDollars}
-                  onChange={(e) => setPayoutDollars(e.target.value)}
-                  className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500 font-bold pl-8"
-                />
-              </div>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                value={payoutDollars}
+                onChange={(e) => setPayoutDollars(e.target.value)}
+                className="bg-zinc-900 border-zinc-700 text-white h-12 focus:ring-green-500 font-bold"
+              />
             ) : (
               <div className="bg-zinc-900 border border-zinc-800 rounded-md flex items-center px-4 h-12 font-bold text-white">
-                ${payoutDollars}
+                {payoutDollars} pts
               </div>
             )}
             <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
-              Tracked only — money is not exchanged through the app
+              Points lost per week if you don't go 4-for-4
             </p>
           </div>
 

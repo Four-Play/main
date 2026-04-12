@@ -97,9 +97,8 @@ export interface WeekSummary {
   isFinal: boolean
 }
 
-// Utility: format cents to dollar string
-export function formatCents(cents: number): string {
-  const abs = Math.abs(cents)
-  const str = `$${(abs / 100).toFixed(2)}`
-  return cents < 0 ? `-${str}` : str
+// Utility: format cents value as points string (no dollar signs)
+export function formatPoints(cents: number): string {
+  const points = Math.round(Math.abs(cents) / 100)
+  return `${points} pts`
 }

@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { Trophy, Target, TrendingUp, TrendingDown, DollarSign, CheckCircle2 } from "lucide-react"
+import { Trophy, Target, TrendingUp, TrendingDown, Star, CheckCircle2 } from "lucide-react"
 
 interface HowToPlayModalProps {
   isOpen: boolean
@@ -66,12 +66,12 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
             You need to win <span className="text-white font-black">all 4 picks</span> to be a weekly winner. If any single pick loses, you're in the loser pool for that round. There's no partial credit — it's all or nothing.
           </Rule>
 
-          <Rule icon={DollarSign} title="The Payout">
-            At the end of each round, every player who <span className="text-white font-black">didn't go 4-for-4</span> owes the league's set payout amount. That money is split evenly among all players who <span className="text-white font-black">did go 4-for-4</span>. No winners? The pot carries no rollover — the round is a wash.
+          <Rule icon={Star} title="Points & Scoring">
+            At the end of each round, every player who <span className="text-white font-black">didn't go 4-for-4</span> loses points equal to the league stake. Those points are split evenly among all players who <span className="text-white font-black">did go 4-for-4</span>. No winners? No points change — the round is a wash.
           </Rule>
 
           <Rule icon={Trophy} title="Season Standings">
-            Season points track your total earnings and losses across all rounds. The leaderboard in the League tab shows where everyone stands. Settle up with your league however you see fit — no real money moves through the app.
+            Season points track your total across all rounds. The leaderboard in the League tab shows where everyone stands. The default league stake is 50 points per loss.
           </Rule>
 
           {/* Quick Example */}

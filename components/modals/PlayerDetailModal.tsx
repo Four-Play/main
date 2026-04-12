@@ -14,7 +14,7 @@ import {
 import { Lock, Loader2 } from "lucide-react"
 import { createClient } from '@/lib/supabase/client'
 import type { LeagueMember, Pick, WeeklyResult } from '@/types/database'
-import { formatCents } from '@/types/database'
+import { formatPoints } from '@/types/database'
 
 interface PlayerDetailModalProps {
   player: (LeagueMember & { name: string }) | null
@@ -82,10 +82,10 @@ export function PlayerDetailModal({ player, onClose, currentLeagueId }: PlayerDe
             </div>
             <div className="bg-zinc-900 rounded-xl p-3 text-center">
               <p className={`text-2xl font-black ${totalOwed >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {totalOwed >= 0 ? '+' : ''}{formatCents(totalOwed)}
+                {totalOwed >= 0 ? '+' : '-'}{formatPoints(totalOwed)}
               </p>
               <p className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">
-                {totalOwed >= 0 ? 'Winnings' : 'Owed'}
+                Points
               </p>
             </div>
           </div>
@@ -136,8 +136,8 @@ export function PlayerDetailModal({ player, onClose, currentLeagueId }: PlayerDe
                     </Badge>
                     <span className={`font-black text-xs font-mono ${result.is_winner ? 'text-green-500' : 'text-red-500'}`}>
                       {result.is_winner
-                        ? `+${formatCents(result.amount_won_cents)}`
-                        : `-${formatCents(result.amount_owed_cents)}`
+                        ? `+${formatPoints(result.amount_won_cents)}`
+                        : `-${formatPoints(result.amount_owed_cents)}`
                       }
                     </span>
                   </div>

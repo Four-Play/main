@@ -136,7 +136,7 @@ export function ProfileTab({
             {user.username}
           </h2>
           <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.3em]">
-            Season Points: {user.total_points > 0 ? `+$${(user.total_points / 100).toFixed(0)}` : user.total_points < 0 ? `-$${(Math.abs(user.total_points) / 100).toFixed(0)}` : '$0'}
+            Season Points: {user.total_points > 0 ? `+${(user.total_points / 100).toFixed(0)} pts` : user.total_points < 0 ? `-${(Math.abs(user.total_points) / 100).toFixed(0)} pts` : '0 pts'}
           </p>
           <Button
             onClick={() => setIsEditing(true)}

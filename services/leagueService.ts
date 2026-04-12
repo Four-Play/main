@@ -2,7 +2,6 @@
 // services/leagueService.ts
 import { createClient } from '@/lib/supabase/client'
 import type { League, LeagueMember, WeeklyResult, WeekSummary } from '@/types/database'
-import { formatCents } from '@/types/database'
 
 const supabase = createClient()
 
@@ -93,8 +92,6 @@ export async function getLeagueMembers(leagueId: string): Promise<LeagueMember[]
     .order('league_points', { ascending: false })
 
   if (error) throw new Error(error.message)
-
-  console.log(`Successfully fetched ${data?.length} members:`, data);
 
   return (data ?? []) as LeagueMember[]
 }

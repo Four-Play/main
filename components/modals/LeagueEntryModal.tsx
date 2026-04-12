@@ -115,7 +115,7 @@ export function LeagueEntryModal({
                 onChange={(e) => setNewLeagueName(e.target.value)}
               />
               <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
-                Default payout: $50 per loss. Change in league settings after creation.
+                Default stake: 50 pts per loss. Change in league settings after creation.
               </p>
               <Button
                 disabled={isLoading || !newLeagueName || newLeagueName.length < 3}

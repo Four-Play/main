@@ -7,7 +7,7 @@ import { Sliders, Trophy, TrendingDown, TrendingUp } from "lucide-react"
 import { getLeagueMembers, getLeagueWeeklyResults } from '@/services/leagueService'
 import { getWeekLabel, ACTIVE_SPORT } from '@/lib/weekUtils'
 import type { LeagueMember, WeekSummary } from '@/types/database'
-import { formatCents } from '@/types/database'
+import { formatPoints } from '@/types/database'
 
 interface LeagueTabProps {
   currentLeague: string        // league ID
@@ -128,8 +128,6 @@ export function LeagueTab({
                 const profile = member.profile
                 const name = profile?.username ?? 'Unknown'
                 const points = member.league_points
-                const owed = member.total_owed_cents
-
                 return (
                   <TableRow
                     key={member.id}
@@ -151,7 +149,7 @@ export function LeagueTab({
                       {member.wins}-{member.losses}
                     </TableCell>
                     <TableCell className={`text-right font-mono font-black text-xs ${points >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {points >= 0 ? `+$${(points / 100).toFixed(0)}` : `-$${(Math.abs(points) / 100).toFixed(0)}`}
+                      {points >= 0 ? `+${(points / 100).toFixed(0)} pts` : `-${(Math.abs(points) / 100).toFixed(0)} pts`}
                     </TableCell>
                   </TableRow>
                 )
@@ -168,14 +166,14 @@ export function LeagueTab({
               {weekSummary.winners.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-[10px] font-black uppercase tracking-widest text-green-500 px-1 flex items-center gap-1.5">
-                    <Trophy className="w-3 h-3" /> Winners — each collects {formatCents(weekSummary.prizePerWinner)}
+                    <Trophy className="w-3 h-3" /> Winners — each earns {formatPoints(weekSummary.prizePerWinner)}
                   </p>
                   {weekSummary.winners.map(r => (
                     <div key={r.id} className="flex justify-between items-center p-3 bg-zinc-900 rounded-xl border border-green-500/20">
                       <span className="font-bold uppercase text-white text-xs">{r.profile?.username}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-zinc-500">{r.picks_correct}/4 correct</span>
-                        <span className="text-green-500 font-black text-xs font-mono">+{formatCents(r.amount_won_cents)}</span>
+                        <span className="text-green-500 font-black text-xs font-mono">+{formatPoints(r.amount_won_cents)}</span>
                       </div>
                     </div>
                   ))}
@@ -186,14 +184,14 @@ export function LeagueTab({
               {weekSummary.losers.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-[10px] font-black uppercase tracking-widest text-red-500 px-1 flex items-center gap-1.5">
-                    <TrendingDown className="w-3 h-3" /> Losers — each owes {formatCents(weekSummary.losers[0]?.amount_owed_cents ?? 0)}
+                    <TrendingDown className="w-3 h-3" /> Losers — each loses {formatPoints(weekSummary.losers[0]?.amount_owed_cents ?? 0)}
                   </p>
                   {weekSummary.losers.map(r => (
                     <div key={r.id} className="flex justify-between items-center p-3 bg-zinc-900 rounded-xl border border-red-500/10">
                       <span className="font-bold uppercase text-white text-xs">{r.profile?.username}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-zinc-500">{r.picks_correct}/4 correct</span>
-                        <span className="text-red-500 font-black text-xs font-mono">-{formatCents(r.amount_owed_cents)}</span>
+                        <span className="text-red-500 font-black text-xs font-mono">-{formatPoints(r.amount_owed_cents)}</span>
                       </div>
                     </div>
                   ))}
