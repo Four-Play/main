@@ -4,6 +4,9 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { ACTIVE_SPORT, SPORT_CONFIG, computeWeekFromDate, computeCurrentWeek, toETDateString } from '@/lib/weekUtils'
 import { SEASON_WEEKS } from '@/config/season'
 
+// Prevent Next.js from caching this route — games/scores change frequently
+export const dynamic = 'force-dynamic'
+
 const ODDS_API_KEY = process.env.ODDS_API_KEY!
 const ODDS_BASE = 'https://api.the-odds-api.com/v4'
 
@@ -21,38 +24,38 @@ export async function GET(request: Request) {
 
   const supabase = createServiceClient()
 
-  // 1. Check cache for the requested week
-  const { data: cached } = await supabase
-    .from('games')
-    .select('*')
-    .eq('nfl_week', week)
-    .eq('season_year', year)
-    .order('commence_time', { ascending: true })
+  // 1. Check cache — query by season year, then filter by the week's ET date range
+  //    (avoids relying on nfl_week column which may have stale values)
+  const weekConfig = SEASON_WEEKS.find(w => w.week === week)
 
-  if (cached && cached.length > 0) {
-    // Filter to only games that fall within this week's date window
-    const weekConfig = SEASON_WEEKS.find(w => w.week === week)
-    const filtered = weekConfig
-      ? cached.filter((g: any) => {
-          const gameDate = toETDateString(g.commence_time)
-          return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
-        })
-      : cached
+  if (weekConfig) {
+    const { data: cached } = await supabase
+      .from('games')
+      .select('*')
+      .eq('season_year', year)
+      .gte('commence_time', `${weekConfig.startDate}T00:00:00`)
+      .lte('commence_time', `${weekConfig.endDate}T23:59:59-04:00`)
+      .order('commence_time', { ascending: true })
 
-    // Serve cached games if any exist within the date window
-    if (filtered.length > 0) {
-      return NextResponse.json({ games: filtered, week, currentWeek, year, source: 'cache' })
+    if (cached && cached.length > 0) {
+      // Double-check with ET conversion in case of edge cases
+      const filtered = cached.filter((g: any) => {
+        const gameDate = toETDateString(g.commence_time)
+        return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
+      })
+
+      if (filtered.length > 0) {
+        return NextResponse.json({ games: filtered, week, currentWeek, year, source: 'cache' })
+      }
     }
   }
 
   // 2. Fetch upcoming games (odds) AND completed games (scores) from Odds API
   try {
-    const weekConfig = SEASON_WEEKS.find(w => w.week === week)
-
     // Fetch both endpoints in parallel
     const [oddsRes, scoresRes] = await Promise.all([
-      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american`),
-      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=3`),
+      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american`, { cache: 'no-store' }),
+      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=3`, { cache: 'no-store' }),
     ])
 
     const oddsData = oddsRes.ok ? await oddsRes.json() : []
