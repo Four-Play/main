@@ -1,6 +1,6 @@
 // app/api/cron/score/route.ts
-// Called by Vercel Cron every Tuesday at 3am ET (after Monday Night Football)
-// Add to vercel.json: { "crons": [{ "path": "/api/cron/score", "schedule": "0 8 * * 2" }] }
+// Called by Vercel Cron every 3 hours to fetch final scores and auto-score picks.
+// Weekly results are calculated once all games in a user's slate are final.
 
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
