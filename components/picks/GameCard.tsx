@@ -100,7 +100,7 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
             {game.time ?? game.status}
           </span>
 
-          {isHistorical && isSelected && resultLabel && (
+          {isSelected && resultLabel && (
             <span className={`text-[10px] font-black px-2 py-0.5 rounded ${resultColor}`}>
               {resultLabel}
             </span>
@@ -145,7 +145,7 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
         </div>
 
         {/* Result breakdown for completed picked games */}
-        {isHistorical && isSelected && result && game.status === 'final' && selectedTeam && (() => {
+        {isSelected && result && game.status === 'final' && selectedTeam && (() => {
           const bd = getBreakdown(game, selectedTeam)
           if (!bd) return null
           const color = result === 'win' ? 'text-green-400' : result === 'loss' ? 'text-red-400' : 'text-zinc-400'

@@ -42,7 +42,7 @@ export async function calculateWeeklyResults(
     .from('leagues')
     .select('payout_per_loss_cents, spread_cushion')
     .eq('id', leagueId)
-    .single()
+    .maybeSingle()
 
   if (!league) return
 
