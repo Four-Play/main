@@ -1,6 +1,6 @@
 // app/api/cron/score/route.ts
-// Called by Vercel Cron every 3 hours to fetch final scores and auto-score picks.
-// Weekly results are calculated once all games in a user's slate are final.
+// Called by Vercel Cron daily at 8 AM UTC (4 AM ET) to fetch final scores
+// and auto-score picks. Use "Run Scoring Now" in league settings for immediate scoring.
 
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
