@@ -45,18 +45,26 @@ export async function GET(request: Request) {
     }
   }
 
-  // 2. Fetch all upcoming games from Odds API
+  // 2. Fetch upcoming games (odds) AND completed games (scores) from Odds API
   try {
-    const url = `${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american`
-    const res = await fetch(url, { next: { revalidate: 3600 } })
+    const weekConfig = SEASON_WEEKS.find(w => w.week === week)
 
-    if (!res.ok) {
-      return NextResponse.json({ error: 'Failed to fetch odds' }, { status: 502 })
-    }
+    // Fetch both endpoints in parallel
+    const [oddsRes, scoresRes] = await Promise.all([
+      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american`),
+      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=7`),
+    ])
 
-    const oddsData = await res.json()
+    const oddsData = oddsRes.ok ? await oddsRes.json() : []
+    const scoresData = scoresRes.ok ? await scoresRes.json() : []
 
-    const games = oddsData.map((event: any) => {
+    // Track external_ids we've seen so scores don't duplicate odds entries
+    const seenIds = new Set<string>()
+
+    // Parse upcoming games from odds endpoint (has spread data)
+    const upcomingGames = (Array.isArray(oddsData) ? oddsData : []).map((event: any) => {
+      seenIds.add(event.id)
+
       const spreadMarket = event.bookmakers
         ?.find((b: any) => b.key === 'draftkings' || b.key === 'fanduel' || b.key === 'lowvig')
         ?.markets?.find((m: any) => m.key === 'spreads')
@@ -77,16 +85,11 @@ export async function GET(request: Request) {
         }
       }
 
-      // Derive the correct week number from the game's actual date
       const gameWeek = computeWeekFromDate(event.commence_time, SPORT_KEY)
-
       const gameTime = new Date(event.commence_time)
       const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
       const timeStr = gameTime.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'America/New_York',
+        hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York',
       })
 
       return {
@@ -97,28 +100,60 @@ export async function GET(request: Request) {
         underdog_team: dogTeam,
         spread,
         commence_time: event.commence_time,
-        nfl_week: gameWeek,   // ← each game gets its real week number
+        nfl_week: gameWeek,
         season_year: year,
-        status: 'upcoming',
+        status: 'upcoming' as string,
         fav: favTeam,
         dog: dogTeam,
         time: `${dayNames[gameTime.getDay()]} ${timeStr}`,
       }
     })
 
-    if (games.length === 0) {
+    // Parse completed games from scores endpoint (has final scores)
+    const completedGames = (Array.isArray(scoresData) ? scoresData : [])
+      .filter((s: any) => s.completed && !seenIds.has(s.id))
+      .map((score: any) => {
+        const homeScore = score.scores?.find((s: any) => s.name === score.home_team)?.score
+        const awayScore = score.scores?.find((s: any) => s.name === score.away_team)?.score
+        const gameWeek = computeWeekFromDate(score.commence_time, SPORT_KEY)
+        const gameTime = new Date(score.commence_time)
+        const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+        const timeStr = gameTime.toLocaleTimeString('en-US', {
+          hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York',
+        })
+
+        return {
+          external_id: score.id,
+          home_team: score.home_team,
+          away_team: score.away_team,
+          favorite_team: score.home_team,
+          underdog_team: score.away_team,
+          spread: 0,
+          commence_time: score.commence_time,
+          nfl_week: gameWeek,
+          season_year: year,
+          status: 'final' as string,
+          home_score: homeScore != null ? parseInt(homeScore) : null,
+          away_score: awayScore != null ? parseInt(awayScore) : null,
+          fav: score.home_team,
+          dog: score.away_team,
+          time: `${dayNames[gameTime.getDay()]} ${timeStr}`,
+        }
+      })
+
+    const allGames = [...upcomingGames, ...completedGames]
+
+    if (allGames.length === 0) {
       return NextResponse.json({ games: [], week, currentWeek, year, message: 'No games found' })
     }
 
-    // 3. Upsert all fetched games to cache (all weeks, not just the requested one)
-    const dbRows = games.map(({ fav, dog, time, ...rest }: any) => rest)
+    // 3. Upsert all fetched games to cache
+    const dbRows = allGames.map(({ fav, dog, time, ...rest }: any) => rest)
     await supabase.from('games').upsert(dbRows, { onConflict: 'external_id' })
 
-    // 4. Return only the games for the requested week AND within the date window
-    const weekConfig = SEASON_WEEKS.find(w => w.week === week)
-    const weekGames = games.filter((g: any) => {
-      if (g.nfl_week !== week) return false
-      if (!weekConfig) return true
+    // 4. Return only the games for the requested week within the date window
+    const weekGames = allGames.filter((g: any) => {
+      if (!weekConfig) return g.nfl_week === week
       const gameDate = toETDateString(g.commence_time)
       return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
     })

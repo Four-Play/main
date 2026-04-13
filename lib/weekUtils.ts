@@ -15,8 +15,16 @@ export const ACTIVE_SPORT = 'basketball_nba'
 /** Convert a UTC timestamp to a YYYY-MM-DD string in Eastern Time.
  *  Season config dates are ET-based, so all date comparisons must use ET. */
 export function toETDateString(utcTime: string): string {
-  // en-CA locale gives YYYY-MM-DD format directly
-  return new Date(utcTime).toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(utcTime))
+  const y = parts.find(p => p.type === 'year')!.value
+  const m = parts.find(p => p.type === 'month')!.value
+  const d = parts.find(p => p.type === 'day')!.value
+  return `${y}-${m}-${d}`
 }
 
 interface SportConfig {
