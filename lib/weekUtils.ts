@@ -49,7 +49,6 @@ export const SPORT_CONFIG: Record<string, SportConfig> = {
     // No weekLabels — NFL weeks are self-explanatory as WK 1, WK 2, etc.
   },
   basketball_nba: {
-    // seasonStart is kept in sync with config/season.ts SEASON_WEEKS[0].startDate
     seasonStart: '2026-04-14',
     seasonYear: 2026,
     displayName: '2026 NBA Playoffs',
