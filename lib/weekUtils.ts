@@ -12,6 +12,13 @@ import {
 
 export const ACTIVE_SPORT = 'basketball_nba'
 
+/** Convert a UTC timestamp to a YYYY-MM-DD string in Eastern Time.
+ *  Season config dates are ET-based, so all date comparisons must use ET. */
+export function toETDateString(utcTime: string): string {
+  // en-CA locale gives YYYY-MM-DD format directly
+  return new Date(utcTime).toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+}
+
 interface SportConfig {
   /** ISO date string for the first day of Week 1 */
   seasonStart: string
@@ -58,7 +65,9 @@ export function isPreSeason(sportKey: string = ACTIVE_SPORT): boolean {
  */
 export function computeWeekFromDate(commenceTime: string, sportKey: string = ACTIVE_SPORT): number {
   if (sportKey === 'basketball_nba') {
-    const dateStr = new Date(commenceTime).toISOString().split('T')[0]
+    // Use ET date — season config dates are ET-based, and late ET games
+    // cross midnight in UTC which would assign them to the wrong day/week
+    const dateStr = toETDateString(commenceTime)
     const match = SEASON_WEEKS.find(w => dateStr >= w.startDate && dateStr <= w.endDate)
     if (match) return match.week
     // If outside all date ranges, fall back to current week

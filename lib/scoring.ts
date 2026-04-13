@@ -94,13 +94,16 @@ export async function calculateWeeklyResults(
 
   const winners = results.filter(r => r.is_winner)
   const losers = results.filter(r => !r.is_winner)
-  const totalPot = losers.length * league.payout_per_loss_cents
-  const prizePerWinner = winners.length > 0 ? Math.floor(totalPot / winners.length) : 0
+
+  // If nobody went 4-for-4, the round is a wash — no points change
+  const hasWinners = winners.length > 0
+  const totalPot = hasWinners ? losers.length * league.payout_per_loss_cents : 0
+  const prizePerWinner = hasWinners ? Math.floor(totalPot / winners.length) : 0
 
   for (const result of results) {
     const isWinner = result.is_winner
     const amountWon = isWinner ? prizePerWinner : 0
-    const amountOwed = !isWinner ? league.payout_per_loss_cents : 0
+    const amountOwed = !isWinner && hasWinners ? league.payout_per_loss_cents : 0
 
     await supabase.from('weekly_results').upsert({
       user_id: result.user_id,

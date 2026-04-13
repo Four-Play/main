@@ -1,7 +1,7 @@
 // app/api/games/route.ts
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { ACTIVE_SPORT, SPORT_CONFIG, computeWeekFromDate, computeCurrentWeek } from '@/lib/weekUtils'
+import { ACTIVE_SPORT, SPORT_CONFIG, computeWeekFromDate, computeCurrentWeek, toETDateString } from '@/lib/weekUtils'
 import { SEASON_WEEKS } from '@/config/season'
 
 const ODDS_API_KEY = process.env.ODDS_API_KEY!
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     const weekConfig = SEASON_WEEKS.find(w => w.week === week)
     const filtered = weekConfig
       ? cached.filter((g: any) => {
-          const gameDate = g.commence_time.slice(0, 10) // YYYY-MM-DD
+          const gameDate = toETDateString(g.commence_time)
           return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
         })
       : cached
@@ -119,7 +119,7 @@ export async function GET(request: Request) {
     const weekGames = games.filter((g: any) => {
       if (g.nfl_week !== week) return false
       if (!weekConfig) return true
-      const gameDate = g.commence_time.slice(0, 10)
+      const gameDate = toETDateString(g.commence_time)
       return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
     })
     return NextResponse.json({ games: weekGames, week, currentWeek, year, source: 'api' })
