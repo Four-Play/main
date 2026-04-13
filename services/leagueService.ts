@@ -139,9 +139,10 @@ export async function updateLeague(
     .update(updates)
     .eq('id', leagueId)
     .select()
-    .single()
+    .maybeSingle()
 
   if (error) throw new Error(error.message)
+  if (!data) throw new Error('League not found')
   return data as League
 }
 
