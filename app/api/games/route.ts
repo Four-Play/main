@@ -24,21 +24,17 @@ export async function GET(request: Request) {
 
   const supabase = createServiceClient()
 
-  // 1. Check cache — query by season year, then filter by the week's ET date range
-  //    (avoids relying on nfl_week column which may have stale values)
+  // 1. Check cache — pull all games for this season, filter by ET date range
   const weekConfig = SEASON_WEEKS.find(w => w.week === week)
 
-  if (weekConfig) {
+  {
     const { data: cached } = await supabase
       .from('games')
       .select('*')
       .eq('season_year', year)
-      .gte('commence_time', `${weekConfig.startDate}T00:00:00`)
-      .lte('commence_time', `${weekConfig.endDate}T23:59:59-04:00`)
       .order('commence_time', { ascending: true })
 
-    if (cached && cached.length > 0) {
-      // Double-check with ET conversion in case of edge cases
+    if (cached && cached.length > 0 && weekConfig) {
       const filtered = cached.filter((g: any) => {
         const gameDate = toETDateString(g.commence_time)
         return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
