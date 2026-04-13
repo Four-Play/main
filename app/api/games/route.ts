@@ -52,7 +52,7 @@ export async function GET(request: Request) {
     // Fetch both endpoints in parallel
     const [oddsRes, scoresRes] = await Promise.all([
       fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american`),
-      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=7`),
+      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=3`),
     ])
 
     const oddsData = oddsRes.ok ? await oddsRes.json() : []
