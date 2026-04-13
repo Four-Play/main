@@ -39,12 +39,8 @@ export async function GET(request: Request) {
         })
       : cached
 
-    const now = new Date().toISOString()
-    // Stale if every game is in the past with no score — leftover test data
-    const isStale = filtered.length === 0 || filtered.every(
-      (g: any) => g.commence_time < now && g.status !== 'final' && g.home_score == null
-    )
-    if (!isStale) {
+    // Serve cached games if any exist within the date window
+    if (filtered.length > 0) {
       return NextResponse.json({ games: filtered, week, currentWeek, year, source: 'cache' })
     }
   }
@@ -118,8 +114,14 @@ export async function GET(request: Request) {
     const dbRows = games.map(({ fav, dog, time, ...rest }: any) => rest)
     await supabase.from('games').upsert(dbRows, { onConflict: 'external_id' })
 
-    // 4. Return only the games for the requested week
-    const weekGames = games.filter((g: any) => g.nfl_week === week)
+    // 4. Return only the games for the requested week AND within the date window
+    const weekConfig = SEASON_WEEKS.find(w => w.week === week)
+    const weekGames = games.filter((g: any) => {
+      if (g.nfl_week !== week) return false
+      if (!weekConfig) return true
+      const gameDate = g.commence_time.slice(0, 10)
+      return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
+    })
     return NextResponse.json({ games: weekGames, week, currentWeek, year, source: 'api' })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
