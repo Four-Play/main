@@ -42,27 +42,32 @@ export function LeagueTab({
         console.warn('League data load timed out')
         setLoading(false)
       }
-    }, 8000)
+    }, 9000)
 
-    const load = async () => {
-      try {
-        const [memberData, weekData] = await Promise.all([
-          getLeagueMembers(currentLeague),
-          getLeagueWeeklyResults(currentLeague, currentWeek, currentYear),
-        ])
-        if (cancelled) return
-        setMembers(memberData)
-        setWeekSummary(weekData)
-      } catch (err) {
-        console.error('Failed to load league data:', err)
-      } finally {
-        if (!cancelled) {
-          clearTimeout(giveUpTimer)
-          setLoading(false)
-        }
+    // Load members and weekly results independently so one failure
+    // doesn't blank out the whole tab
+    const loadMembers = getLeagueMembers(currentLeague)
+      .then(data => {
+        if (!cancelled) setMembers(data)
+      })
+      .catch(err => {
+        console.error('getLeagueMembers failed:', err)
+      })
+
+    const loadWeekly = getLeagueWeeklyResults(currentLeague, currentWeek, currentYear)
+      .then(data => {
+        if (!cancelled) setWeekSummary(data)
+      })
+      .catch(err => {
+        console.error('getLeagueWeeklyResults failed:', err)
+      })
+
+    Promise.all([loadMembers, loadWeekly]).finally(() => {
+      if (!cancelled) {
+        clearTimeout(giveUpTimer)
+        setLoading(false)
       }
-    }
-    load()
+    })
 
     return () => {
       cancelled = true

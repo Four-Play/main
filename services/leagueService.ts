@@ -41,33 +41,42 @@ export async function joinLeagueWithCode(
   inviteCode: string,
   userId: string
 ): Promise<League> {
-  const { data: league, error } = await supabase
-    .from('leagues')
-    .select('*')
-    .eq('invite_code', inviteCode.toUpperCase())
-    .single()
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Request timed out — please try again')), 10000)
+  )
 
-  if (error || !league) throw new Error('Invalid invite code')
+  const work = (async () => {
+    const { data: league, error } = await supabase
+      .from('leagues')
+      .select('*')
+      .eq('invite_code', inviteCode.toUpperCase())
+      .maybeSingle()
 
-  if (league.is_locked) throw new Error('This league is not accepting new members')
+    if (error) throw new Error(error.message)
+    if (!league) throw new Error('Invalid invite code')
 
-  // Check if already a member
-  const { data: existing } = await supabase
-    .from('league_members')
-    .select('id')
-    .eq('league_id', league.id)
-    .eq('user_id', userId)
-    .single()
+    if (league.is_locked) throw new Error('This league is not accepting new members')
 
-  if (existing) throw new Error('You are already in this league')
+    // Check if already a member — use maybeSingle so "no row" isn't an error
+    const { data: existing } = await supabase
+      .from('league_members')
+      .select('id')
+      .eq('league_id', league.id)
+      .eq('user_id', userId)
+      .maybeSingle()
 
-  const { error: joinError } = await supabase
-    .from('league_members')
-    .insert({ league_id: league.id, user_id: userId, role: 'member' })
+    if (existing) throw new Error('You are already in this league')
 
-  if (joinError) throw new Error(joinError.message)
+    const { error: joinError } = await supabase
+      .from('league_members')
+      .insert({ league_id: league.id, user_id: userId, role: 'member' })
 
-  return league as League
+    if (joinError) throw new Error(joinError.message)
+
+    return league as League
+  })()
+
+  return Promise.race([work, timeout])
 }
 
 export async function getMyLeagues(userId: string): Promise<League[]> {
@@ -82,18 +91,25 @@ export async function getMyLeagues(userId: string): Promise<League[]> {
 }
 
 export async function getLeagueMembers(leagueId: string): Promise<LeagueMember[]> {
-  const { data, error } = await supabase
-    .from('league_members')
-    .select(`
-      *,
-      profile:profiles(id, username, avatar_url, total_points)
-    `)
-    .eq('league_id', leagueId)
-    .order('league_points', { ascending: false })
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('getLeagueMembers timed out')), 8000)
+  )
 
-  if (error) throw new Error(error.message)
+  const work = (async () => {
+    const { data, error } = await supabase
+      .from('league_members')
+      .select(`
+        *,
+        profile:profiles(id, username, avatar_url, total_points)
+      `)
+      .eq('league_id', leagueId)
+      .order('league_points', { ascending: false })
 
-  return (data ?? []) as LeagueMember[]
+    if (error) throw new Error(error.message)
+    return (data ?? []) as LeagueMember[]
+  })()
+
+  return Promise.race([work, timeout])
 }
 
 export async function getLeagueWeeklyResults(
