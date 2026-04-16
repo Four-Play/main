@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Sliders, Trophy, TrendingDown, TrendingUp } from "lucide-react"
-import { getLeagueMembers, getLeagueWeeklyResults } from '@/services/leagueService'
+import { getLeagueMembers, getAllLeagueWeeklyResults } from '@/services/leagueService'
 import { getWeekLabel, ACTIVE_SPORT } from '@/lib/weekUtils'
 import type { LeagueMember, WeekSummary } from '@/types/database'
 import { formatPoints } from '@/types/database'
@@ -27,7 +27,7 @@ export function LeagueTab({
   currentYear,
 }: LeagueTabProps) {
   const [members, setMembers] = useState<LeagueMember[]>([])
-  const [weekSummary, setWeekSummary] = useState<WeekSummary | null>(null)
+  const [weekSummaries, setWeekSummaries] = useState<WeekSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [activeView, setActiveView] = useState<'standings' | 'week'>('standings')
 
@@ -54,12 +54,12 @@ export function LeagueTab({
         console.error('getLeagueMembers failed:', err)
       })
 
-    const loadWeekly = getLeagueWeeklyResults(currentLeague, currentWeek, currentYear)
+    const loadWeekly = getAllLeagueWeeklyResults(currentLeague, currentYear)
       .then(data => {
-        if (!cancelled) setWeekSummary(data)
+        if (!cancelled) setWeekSummaries(data)
       })
       .catch(err => {
-        console.error('getLeagueWeeklyResults failed:', err)
+        console.error('getAllLeagueWeeklyResults failed:', err)
       })
 
     Promise.all([loadMembers, loadWeekly]).finally(() => {
@@ -120,7 +120,7 @@ export function LeagueTab({
               : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
           }`}
         >
-          {getWeekLabel(currentWeek, ACTIVE_SPORT).toUpperCase()}
+          RESULTS
         </button>
       </div>
 
@@ -163,52 +163,58 @@ export function LeagueTab({
           </Table>
         </Card>
       ) : (
-        /* WEEK SUMMARY */
-        <div className="space-y-3">
-          {weekSummary && weekSummary.isFinal ? (
-            <>
-              {/* Winners */}
-              {weekSummary.winners.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-green-500 px-1 flex items-center gap-1.5">
-                    <Trophy className="w-3 h-3" /> Winners — each earns {formatPoints(weekSummary.prizePerWinner)}
-                  </p>
-                  {weekSummary.winners.map(r => (
-                    <div key={r.id} className="flex justify-between items-center p-3 bg-zinc-900 rounded-xl border border-green-500/20">
-                      <span className="font-bold uppercase text-white text-xs">{r.profile?.username}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-zinc-500">{r.picks_correct}/4 correct</span>
-                        <span className="text-green-500 font-black text-xs font-mono">+{formatPoints(r.amount_won_cents)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Losers */}
-              {weekSummary.losers.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-red-500 px-1 flex items-center gap-1.5">
-                    <TrendingDown className="w-3 h-3" /> Losers — each loses {formatPoints(weekSummary.losers[0]?.amount_owed_cents ?? 0)}
-                  </p>
-                  {weekSummary.losers.map(r => (
-                    <div key={r.id} className="flex justify-between items-center p-3 bg-zinc-900 rounded-xl border border-red-500/10">
-                      <span className="font-bold uppercase text-white text-xs">{r.profile?.username}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-zinc-500">{r.picks_correct}/4 correct</span>
-                        <span className="text-red-500 font-black text-xs font-mono">-{formatPoints(r.amount_owed_cents)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
+        /* WEEK SUMMARIES — one section per completed week, newest first */
+        <div className="space-y-6">
+          {weekSummaries.filter(s => s.isFinal).length === 0 ? (
             <div className="flex flex-col items-center py-12 gap-3 text-zinc-600">
               <TrendingUp className="w-8 h-8" />
               <p className="text-[10px] font-black uppercase tracking-widest">{getWeekLabel(currentWeek, ACTIVE_SPORT)} in progress</p>
               <p className="text-[9px] text-zinc-700 uppercase">Results calculated after all games final</p>
             </div>
+          ) : (
+            weekSummaries
+              .filter(s => s.isFinal)
+              .map(summary => (
+                <div key={summary.week} className="space-y-3">
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-300 px-1 pb-1 border-b border-zinc-800">
+                    {getWeekLabel(summary.week, ACTIVE_SPORT)}
+                  </h3>
+
+                  {summary.winners.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-green-500 px-1 flex items-center gap-1.5">
+                        <Trophy className="w-3 h-3" /> Winners — each earns {formatPoints(summary.prizePerWinner)}
+                      </p>
+                      {summary.winners.map(r => (
+                        <div key={r.id} className="flex justify-between items-center p-3 bg-zinc-900 rounded-xl border border-green-500/20">
+                          <span className="font-bold uppercase text-white text-xs">{r.profile?.username}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-zinc-500">{r.picks_correct}/4 correct</span>
+                            <span className="text-green-500 font-black text-xs font-mono">+{formatPoints(r.amount_won_cents)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {summary.losers.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-red-500 px-1 flex items-center gap-1.5">
+                        <TrendingDown className="w-3 h-3" /> Losers — each loses {formatPoints(summary.losers[0]?.amount_owed_cents ?? 0)}
+                      </p>
+                      {summary.losers.map(r => (
+                        <div key={r.id} className="flex justify-between items-center p-3 bg-zinc-900 rounded-xl border border-red-500/10">
+                          <span className="font-bold uppercase text-white text-xs">{r.profile?.username}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-zinc-500">{r.picks_correct}/4 correct</span>
+                            <span className="text-red-500 font-black text-xs font-mono">-{formatPoints(r.amount_owed_cents)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
           )}
         </div>
       )}

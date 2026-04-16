@@ -191,7 +191,7 @@ export default function FourplayApp() {
     setIsAuthLoading(true)
 
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out — please check your connection and try again.')), 10000)
+      setTimeout(() => reject(new Error('Request timed out — please check your connection and try again.')), 20000)
     )
 
     try {

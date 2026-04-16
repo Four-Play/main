@@ -150,6 +150,49 @@ export async function getLeagueWeeklyResults(
   }
 }
 
+/** Fetch every week's summary for the season in a single query, grouped by week. */
+export async function getAllLeagueWeeklyResults(
+  leagueId: string,
+  year: number
+): Promise<WeekSummary[]> {
+  const supabase = createClient()
+  const { data: results, error } = await supabase
+    .from('weekly_results')
+    .select(`
+      *,
+      profile:profiles(id, username)
+    `)
+    .eq('league_id', leagueId)
+    .eq('season_year', year)
+    .order('nfl_week', { ascending: false })
+
+  if (error) throw new Error(error.message)
+
+  const typed = (results ?? []) as WeeklyResult[]
+  const byWeek = new Map<number, WeeklyResult[]>()
+  for (const r of typed) {
+    const arr = byWeek.get(r.nfl_week) ?? []
+    arr.push(r)
+    byWeek.set(r.nfl_week, arr)
+  }
+
+  return [...byWeek.entries()].map(([week, rows]) => {
+    const winners = rows.filter(r => r.is_winner)
+    const losers = rows.filter(r => !r.is_winner)
+    const prizePerWinner = losers.length > 0 && winners.length > 0
+      ? Math.floor((losers.reduce((s, l) => s + l.amount_owed_cents, 0)) / winners.length)
+      : 0
+    return {
+      week,
+      year,
+      winners,
+      losers,
+      prizePerWinner,
+      isFinal: rows.some(r => r.calculated_at != null),
+    }
+  })
+}
+
 export async function updateLeague(
   leagueId: string,
   updates: Partial<Pick<League, 'name' | 'payout_per_loss_cents' | 'spread_cushion' | 'is_locked'>>
