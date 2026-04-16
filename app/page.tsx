@@ -441,7 +441,16 @@ export default function FourplayApp() {
           !isHistorical &&
           activeTab === 'picks' &&
           savedPickKeys.size > 0 &&
-          pickDiff.total === 0
+          pickDiff.total === 0 &&
+          // Hide if every picked game has already started — nothing left to edit
+          (() => {
+            const now = new Date()
+            const pickedGameIds = new Set([...picksMap.values()].map(p => p.game_id))
+            return [...pickedGameIds].some(gid => {
+              const game = games.find(g => g.id === gid)
+              return !game?.commence_time || new Date(game.commence_time) > now
+            })
+          })()
         }
       />
 
