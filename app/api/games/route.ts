@@ -48,11 +48,15 @@ export async function GET(request: Request) {
 
   // 2. Fetch upcoming games (odds) AND completed games (scores) from Odds API
   try {
-    // Fetch both endpoints in parallel
+    // Fetch both endpoints in parallel with a 10s timeout so a slow
+    // Odds API doesn't hang the entire route (the client would spin forever).
+    const controller = new AbortController()
+    const apiTimeout = setTimeout(() => controller.abort(), 10000)
+
     const [oddsRes, scoresRes] = await Promise.all([
-      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american`, { cache: 'no-store' }),
-      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=3`, { cache: 'no-store' }),
-    ])
+      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american`, { cache: 'no-store', signal: controller.signal }),
+      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=3`, { cache: 'no-store', signal: controller.signal }),
+    ]).finally(() => clearTimeout(apiTimeout))
 
     const oddsData = oddsRes.ok ? await oddsRes.json() : []
     const scoresData = scoresRes.ok ? await scoresRes.json() : []

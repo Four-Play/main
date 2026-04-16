@@ -1,11 +1,9 @@
-// src/services/authService.ts
 // services/authService.ts
 import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types/database'
 
-const supabase = createClient()
-
 export async function signUp(email: string, password: string, username: string): Promise<Profile> {
+  const supabase = createClient()
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -40,6 +38,7 @@ export async function signUp(email: string, password: string, username: string):
 }
 
 export async function signIn(email: string, password: string): Promise<Profile> {
+  const supabase = createClient()
   // Clear any stale auth state that could block the new login.
   // Give signOut 2 seconds max, then proceed regardless.
   console.log('[auth] clearing stale session...')
@@ -68,16 +67,19 @@ export async function signIn(email: string, password: string): Promise<Profile> 
 }
 
 export async function signOut(): Promise<void> {
+  const supabase = createClient()
   const { error } = await supabase.auth.signOut()
   if (error) throw new Error(error.message)
 }
 
 export async function getSession() {
+  const supabase = createClient()
   const { data: { session } } = await supabase.auth.getSession()
   return session
 }
 
 export async function getProfile(userId: string): Promise<Profile | null> {
+  const supabase = createClient()
   const { data } = await supabase
     .from('profiles')
     .select('*')
@@ -88,6 +90,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 }
 
 export async function updateProfile(userId: string, updates: Partial<Profile>): Promise<Profile> {
+  const supabase = createClient()
   const { data, error } = await supabase
     .from('profiles')
     .update(updates)
@@ -100,6 +103,7 @@ export async function updateProfile(userId: string, updates: Partial<Profile>): 
 }
 
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
+  const supabase = createClient()
   const ext = file.name.split('.').pop() ?? 'jpg'
   const path = `${userId}/avatar.${ext}`
 

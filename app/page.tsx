@@ -131,8 +131,10 @@ export default function FourplayApp() {
   // Load games for current week
   const loadGames = useCallback(async (week: number, year: number) => {
     setGamesLoading(true)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
     try {
-      const res = await fetch(`/api/games?week=${week}&year=${year}`)
+      const res = await fetch(`/api/games?week=${week}&year=${year}`, { signal: controller.signal })
       const data = await res.json()
       if (data.games) {
         const mapped = data.games.map((g: any) => ({
@@ -148,6 +150,7 @@ export default function FourplayApp() {
     } catch (err) {
       console.error('Failed to load games:', err)
     } finally {
+      clearTimeout(timeout)
       setGamesLoading(false)
     }
   }, [])
