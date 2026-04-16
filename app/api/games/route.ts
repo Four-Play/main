@@ -108,10 +108,25 @@ export async function GET(request: Request) {
       }
     })
 
-    // Parse completed games from scores endpoint (has final scores)
-    const completedGames = (Array.isArray(scoresData) ? scoresData : [])
+    // Parse completed games from scores endpoint (has final scores).
+    // The scores endpoint doesn't carry spread data, so we preserve
+    // the spread / favorite_team / underdog_team already cached in the DB.
+    const completedRaw = (Array.isArray(scoresData) ? scoresData : [])
       .filter((s: any) => s.completed && !seenIds.has(s.id))
-      .map((score: any) => {
+
+    const completedIds = completedRaw.map((s: any) => s.id)
+    let existingByExtId = new Map<string, any>()
+    if (completedIds.length > 0) {
+      const { data: existing } = await supabase
+        .from('games')
+        .select('external_id, spread, favorite_team, underdog_team')
+        .in('external_id', completedIds)
+      for (const row of existing ?? []) {
+        existingByExtId.set(row.external_id, row)
+      }
+    }
+
+    const completedGames = completedRaw.map((score: any) => {
         const homeScore = score.scores?.find((s: any) => s.name === score.home_team)?.score
         const awayScore = score.scores?.find((s: any) => s.name === score.away_team)?.score
         const gameWeek = computeWeekFromDate(score.commence_time, SPORT_KEY)
@@ -121,21 +136,26 @@ export async function GET(request: Request) {
           hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York',
         })
 
+        const cached = existingByExtId.get(score.id)
+        const favTeam = cached?.favorite_team ?? score.home_team
+        const dogTeam = cached?.underdog_team ?? score.away_team
+        const spread = cached?.spread ?? 0
+
         return {
           external_id: score.id,
           home_team: score.home_team,
           away_team: score.away_team,
-          favorite_team: score.home_team,
-          underdog_team: score.away_team,
-          spread: 0,
+          favorite_team: favTeam,
+          underdog_team: dogTeam,
+          spread,
           commence_time: score.commence_time,
           nfl_week: gameWeek,
           season_year: year,
           status: 'final' as string,
           home_score: homeScore != null ? parseInt(homeScore) : null,
           away_score: awayScore != null ? parseInt(awayScore) : null,
-          fav: score.home_team,
-          dog: score.away_team,
+          fav: favTeam,
+          dog: dogTeam,
           time: `${dayNames[gameTime.getDay()]} ${timeStr}`,
         }
       })

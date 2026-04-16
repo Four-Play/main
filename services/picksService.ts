@@ -43,7 +43,7 @@ export async function savePick(
       nfl_week: week,
       season_year: year,
       is_locked: false,
-    }, { onConflict: 'user_id,league_id,game_id' })
+    }, { onConflict: 'user_id,league_id,game_id,team_selected' })
     .select()
     .single()
 
@@ -54,7 +54,8 @@ export async function savePick(
 export async function deletePick(
   userId: string,
   leagueId: string,
-  gameId: string
+  gameId: string,
+  teamSelected: string
 ): Promise<void> {
   const { error } = await supabase
     .from('picks')
@@ -62,6 +63,7 @@ export async function deletePick(
     .eq('user_id', userId)
     .eq('league_id', leagueId)
     .eq('game_id', gameId)
+    .eq('team_selected', teamSelected)
 
   if (error) throw new Error(error.message)
 }

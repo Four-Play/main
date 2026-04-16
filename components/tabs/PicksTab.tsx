@@ -17,9 +17,9 @@ interface PicksTabProps {
   currentWeek: number
   games: Game[]
   gamesLoading: boolean
-  selectedPicks: Set<string>      // Set of game IDs
-  picksMap: Map<string, Pick>     // gameId -> Pick (has result for historical)
+  picksMap: Map<string, Pick>     // `${gameId}|${team}` -> Pick
   onTogglePick: (gameId: string, teamSelected: string) => void
+  disableInteraction?: boolean
 }
 
 export function PicksTab({
@@ -28,9 +28,9 @@ export function PicksTab({
   currentWeek,
   games,
   gamesLoading,
-  selectedPicks,
   picksMap,
   onTogglePick,
+  disableInteraction = false,
 }: PicksTabProps) {
   const isHistorical = selectedWeek < currentWeek
   const isFuture = selectedWeek > currentWeek
@@ -82,7 +82,7 @@ export function PicksTab({
         )}
         {!isHistorical && !isFuture && (
           <Badge className="bg-green-500/10 text-green-500 border-none text-[9px]">
-            {selectedPicks.size}/4 SELECTED
+            {picksMap.size}/4 SELECTED
           </Badge>
         )}
       </div>
@@ -104,21 +104,20 @@ export function PicksTab({
       ) : (
         <div className="space-y-1">
           {games.map((game) => {
-            const pick = picksMap.get(game.id)
-            const isSelected = selectedPicks.has(game.id)
-            const result = pick?.result
-
-            const selectedTeam = picksMap.get(game.id)?.team_selected
+            const favTeam = game.fav ?? game.favorite_team
+            const dogTeam = game.dog ?? game.underdog_team
+            const favPick = favTeam ? picksMap.get(`${game.id}|${favTeam}`) : undefined
+            const dogPick = dogTeam ? picksMap.get(`${game.id}|${dogTeam}`) : undefined
 
             return (
               <GameCard
                 key={game.id}
                 game={game}
-                isSelected={isSelected}
+                favPick={favPick}
+                dogPick={dogPick}
                 isHistorical={isHistorical}
-                result={result}
                 onSelect={onTogglePick}
-                selectedTeam={selectedTeam}
+                disableInteraction={disableInteraction}
               />
             )
           })}

@@ -1,7 +1,7 @@
 "use client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Clock, Lock } from "lucide-react"
-import type { Game } from '@/types/database'
+import type { Game, Pick } from '@/types/database'
 
 const CUSHION = 13
 
@@ -44,52 +44,53 @@ function getBreakdown(game: Game, selectedTeam: string) {
 
 interface GameCardProps {
   game: Game
-  isSelected: boolean
+  favPick?: Pick
+  dogPick?: Pick
   isHistorical: boolean
-  result?: 'win' | 'loss' | 'push' | null
   onSelect: (id: string, teamSelected: string) => void
-  selectedTeam?: string
+  disableInteraction?: boolean
 }
 
-export function GameCard({ game, isSelected, isHistorical, result, onSelect, selectedTeam }: GameCardProps) {
+export function GameCard({ game, favPick, dogPick, isHistorical, onSelect, disableInteraction = false }: GameCardProps) {
   const favTeam = game.fav ?? game.favorite_team
   const dogTeam = game.dog ?? game.underdog_team
   const favCushion = game.spread + 13
   const dogCushion = Math.abs(game.spread) + 13
   const hasStarted = game.commence_time ? new Date(game.commence_time) < new Date() : false
+
+  const favSelected = !!favPick
+  const dogSelected = !!dogPick
+  const anySelected = favSelected || dogSelected
+
   // A pick becomes locked once its individual game has started
   const isLocked = hasStarted && !isHistorical
-  const isInteractionDisabled = isHistorical || hasStarted
-
-  const favSelected = isSelected && selectedTeam === favTeam
-  const dogSelected = isSelected && selectedTeam === dogTeam
-
-  const resultLabel = result ? result.toUpperCase() : null
-  const resultColor = result === 'win'
-    ? 'bg-green-500/20 text-green-500'
-    : result === 'loss'
-    ? 'bg-red-500/20 text-red-500'
-    : 'bg-zinc-500/20 text-zinc-400'
+  const isInteractionDisabled = isHistorical || hasStarted || disableInteraction
 
   const halfBase = 'flex-1 rounded-lg p-2 transition-all duration-200 text-left'
   const halfActive = 'bg-green-500/10 border border-green-500'
-  const halfDimmed = 'opacity-40'
   const halfIdle = 'border border-zinc-800'
 
   function halfClass(isThisSelected: boolean) {
     if (isThisSelected) return `${halfBase} ${halfActive}`
-    if (isSelected) return `${halfBase} ${halfDimmed} ${halfIdle}`
     return `${halfBase} ${halfIdle}`
+  }
+
+  function resultBadgeClass(r?: 'win' | 'loss' | 'push' | null) {
+    return r === 'win'
+      ? 'bg-green-500/20 text-green-500'
+      : r === 'loss'
+      ? 'bg-red-500/20 text-red-500'
+      : 'bg-zinc-500/20 text-zinc-400'
   }
 
   return (
     <Card
       className={`transition-all duration-300 bg-zinc-900 border-zinc-800 relative ${
-  isLocked && !isSelected ? 'opacity-50' : 'opacity-100'
+  isLocked && !anySelected ? 'opacity-50' : 'opacity-100'
 }`}
     >
       <CardContent className="px-2 pt-1.5 pb-2">
-        {isLocked && isSelected && (
+        {isLocked && anySelected && (
           <Lock className="absolute top-1.5 right-2 w-3 h-3 text-green-500/60" />
         )}
 
@@ -100,11 +101,18 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
             {game.time ?? game.status}
           </span>
 
-          {isSelected && resultLabel && (
-            <span className={`text-[10px] font-black px-2 py-0.5 rounded ${resultColor}`}>
-              {resultLabel}
-            </span>
-          )}
+          <div className="flex gap-1">
+            {favPick?.result && (
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded ${resultBadgeClass(favPick.result)}`}>
+                {favTeam}: {favPick.result.toUpperCase()}
+              </span>
+            )}
+            {dogPick?.result && (
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded ${resultBadgeClass(dogPick.result)}`}>
+                {dogTeam}: {dogPick.result.toUpperCase()}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Two-half team selector */}
@@ -144,31 +152,56 @@ export function GameCard({ game, isSelected, isHistorical, result, onSelect, sel
           </button>
         </div>
 
-        {/* Result breakdown for completed picked games */}
-        {isSelected && result && game.status === 'final' && selectedTeam && (() => {
-          const bd = getBreakdown(game, selectedTeam)
-          if (!bd) return null
-          const color = result === 'win' ? 'text-green-400' : result === 'loss' ? 'text-red-400' : 'text-zinc-400'
+        {/* "Needed to win" summary for selected picks on non-final games */}
+        {game.status !== 'final' && [favPick, dogPick].map(pick => {
+          if (!pick) return null
+          const pickedFavorite = pick.team_selected === favTeam
+          const absSpread = Math.abs(game.spread)
+          const effectiveLine = pickedFavorite ? CUSHION - absSpread : absSpread + CUSHION
+          const neededDesc = pickedFavorite
+            ? effectiveLine > 0
+              ? `Can lose by up to ${effectiveLine}, or win`
+              : effectiveLine === 0
+              ? `Must not lose`
+              : `Must win by ${Math.abs(effectiveLine)}+`
+            : `Can lose by up to ${effectiveLine - 1}, or win`
+          const role = pickedFavorite ? 'FAV' : 'DOG'
           return (
-            <div className="mt-3 pt-3 border-t border-zinc-800 space-y-1">
+            <div key={pick.team_selected} className="mt-2 px-1 flex justify-between items-center">
+              <span className="text-[9px] font-black uppercase tracking-widest text-green-500/70">
+                {pick.team_selected} <span className="text-zinc-700">·</span> {role}
+              </span>
+              <span className="text-[9px] text-zinc-400">{neededDesc}</span>
+            </div>
+          )
+        })}
+
+        {/* Result breakdown for completed picked games — one per selected side */}
+        {game.status === 'final' && [favPick, dogPick].map(pick => {
+          if (!pick?.result) return null
+          const bd = getBreakdown(game, pick.team_selected)
+          if (!bd) return null
+          const color = pick.result === 'win' ? 'text-green-400' : pick.result === 'loss' ? 'text-red-400' : 'text-zinc-400'
+          return (
+            <div key={pick.team_selected} className="mt-3 pt-3 border-t border-zinc-800 space-y-1">
               <div className="flex justify-between items-center">
                 <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
-                  {selectedTeam} <span className="text-zinc-700">·</span> {bd.role}
+                  {pick.team_selected} <span className="text-zinc-700">·</span> {bd.role}
                 </span>
                 <span className="text-[9px] text-zinc-600">Needed: {bd.neededDesc}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[9px] font-mono text-zinc-500">{bd.score}</span>
                 <span className={`text-[9px] font-black uppercase ${color}`}>
-                  {bd.marginDesc} → {result.toUpperCase()}
+                  {bd.marginDesc} → {pick.result.toUpperCase()}
                 </span>
               </div>
             </div>
           )
-        })()}
+        })}
 
         {/* Scores only (no pick) for non-selected final games */}
-        {game.status === 'final' && game.home_score != null && (!isSelected || !result) && (
+        {game.status === 'final' && game.home_score != null && !anySelected && (
           <div className="mt-2 text-[10px] font-mono text-zinc-500">
             {game.home_team} {game.home_score} — {game.away_team} {game.away_score}
           </div>

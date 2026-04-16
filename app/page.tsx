@@ -8,6 +8,7 @@ import { ModalManager } from '@/components/modals/ModalManager'
 import { Header } from '@/components/layout/Header'
 import { Navbar } from '@/components/layout/Navbar'
 import { SubmitBar } from '@/components/layout/SubmitBar'
+import { EditPicksBar } from '@/components/layout/EditPicksBar'
 import { signIn, signUp, signOut, getProfile } from '@/services/authService'
 import { getMyLeagues } from '@/services/leagueService'
 import { getMyPicks, savePick, deletePick } from '@/services/picksService'
@@ -40,10 +41,12 @@ export default function FourplayApp() {
   // Games + Picks state
   const [games, setGames] = useState<Game[]>([])
   const [gamesLoading, setGamesLoading] = useState(false)
-  const [selectedPicks, setSelectedPicks] = useState<Set<string>>(new Set()) // Set of game IDs
-  const [picksMap, setPicksMap] = useState<Map<string, Pick>>(new Map()) // gameId -> Pick (current UI state, may include unsaved drafts)
-  const [savedPicksMap, setSavedPicksMap] = useState<Map<string, string>>(new Map()) // gameId -> team_selected (last-known DB state, for diffing)
+  // A pick is keyed by `${gameId}|${team_selected}` so a user can hold picks
+  // on both sides of the same game (each side counts as one of the 4 weekly picks).
+  const [picksMap, setPicksMap] = useState<Map<string, Pick>>(new Map()) // current UI state, may include unsaved drafts
+  const [savedPickKeys, setSavedPickKeys] = useState<Set<string>>(new Set()) // composite keys known to exist in DB
   const [isSubmittingPicks, setIsSubmittingPicks] = useState(false)
+  const [isEditingPicks, setIsEditingPicks] = useState(false)
   const [currentWeek, setCurrentWeek] = useState(() => computeCurrentWeek(ACTIVE_SPORT))
   const [currentYear, setCurrentYear] = useState(SEASON_YEAR)
   const [selectedWeek, setSelectedWeek] = useState(() => computeCurrentWeek(ACTIVE_SPORT))
@@ -159,18 +162,18 @@ export default function FourplayApp() {
     try {
       const picks = await getMyPicks(user.id, currentLeague.id, selectedWeek, currentYear)
       const map = new Map<string, Pick>()
-      const saved = new Map<string, string>()
-      const selected = new Set<string>()
+      const saved = new Set<string>()
 
       for (const pick of picks) {
-        map.set(pick.game_id, pick)
-        saved.set(pick.game_id, pick.team_selected)
-        selected.add(pick.game_id)
+        const key = pickKey(pick.game_id, pick.team_selected)
+        map.set(key, pick)
+        saved.add(key)
       }
 
       setPicksMap(map)
-      setSavedPicksMap(saved)
-      setSelectedPicks(selected)
+      setSavedPickKeys(saved)
+      // Freshly-loaded picks are the committed state — exit any edit session
+      setIsEditingPicks(false)
     } catch (err) {
       console.error('Failed to load picks:', err)
     }
@@ -209,8 +212,13 @@ export default function FourplayApp() {
     }
   }
 
+  // Once the user has submitted picks, further edits are disabled until they
+  // explicitly tap "Edit Picks". This prevents accidental changes.
+  const picksLocked = savedPickKeys.size > 0 && !isEditingPicks
+
   const handleTogglePick = (gameId: string, teamSelected: string) => {
     if (!user || !currentLeague) return
+    if (picksLocked) return
 
     const game = games.find(g => g.id === gameId)
     if (!game) return
@@ -221,53 +229,48 @@ export default function FourplayApp() {
       return
     }
 
-    const existingPick = picksMap.get(gameId)
+    const key = pickKey(gameId, teamSelected)
 
-    // Unselect: clicking the already-selected team
-    if (existingPick && existingPick.team_selected === teamSelected) {
-      setSelectedPicks(prev => { const n = new Set(prev); n.delete(gameId); return n })
-      setPicksMap(prev => { const n = new Map(prev); n.delete(gameId); return n })
+    // Unselect: clicking an already-selected side removes that pick
+    if (picksMap.has(key)) {
+      setPicksMap(prev => { const n = new Map(prev); n.delete(key); return n })
       return
     }
 
-    // Max 4 picks — ignore additional new selections
-    if (!existingPick && selectedPicks.size >= 4) return
+    // Max 4 picks — each side is its own pick, both sides of a game cost 2
+    if (picksMap.size >= 4) return
 
-    // Switch or new pick: upsert in local state
-    const nextPick: Pick = existingPick
-      ? { ...existingPick, team_selected: teamSelected }
-      : {
-          id: `draft-${gameId}`,
-          user_id: user.id,
-          league_id: currentLeague.id,
-          game_id: gameId,
-          team_selected: teamSelected,
-          is_locked: false,
-          nfl_week: selectedWeek,
-          season_year: currentYear,
-        }
-    setSelectedPicks(prev => new Set(prev).add(gameId))
-    setPicksMap(prev => new Map(prev).set(gameId, nextPick))
+    const nextPick: Pick = {
+      id: `draft-${key}`,
+      user_id: user.id,
+      league_id: currentLeague.id,
+      game_id: gameId,
+      team_selected: teamSelected,
+      is_locked: false,
+      nfl_week: selectedWeek,
+      season_year: currentYear,
+    }
+    setPicksMap(prev => new Map(prev).set(key, nextPick))
   }
 
   // Compute the diff between local state and last-known DB state
   const pickDiff = useMemo(() => {
     const toSave: Array<{ gameId: string; team: string }> = []
-    const toDelete: string[] = []
+    const toDelete: Array<{ gameId: string; team: string }> = []
 
-    for (const [gameId, pick] of picksMap) {
-      const savedTeam = savedPicksMap.get(gameId)
-      if (savedTeam !== pick.team_selected) {
-        toSave.push({ gameId, team: pick.team_selected })
+    for (const [key, pick] of picksMap) {
+      if (!savedPickKeys.has(key)) {
+        toSave.push({ gameId: pick.game_id, team: pick.team_selected })
       }
     }
-    for (const gameId of savedPicksMap.keys()) {
-      if (!picksMap.has(gameId)) {
-        toDelete.push(gameId)
+    for (const key of savedPickKeys) {
+      if (!picksMap.has(key)) {
+        const [gameId, team] = splitPickKey(key)
+        toDelete.push({ gameId, team })
       }
     }
     return { toSave, toDelete, total: toSave.length + toDelete.length }
-  }, [picksMap, savedPicksMap])
+  }, [picksMap, savedPickKeys])
 
   const handleSubmitPicks = async () => {
     if (!user || !currentLeague) return
@@ -276,7 +279,7 @@ export default function FourplayApp() {
 
     // Hard timeout — never leave the spinner hanging forever
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Submission timed out — please try again')), 12000)
+      setTimeout(() => reject(new Error('Submission timed out — please try again')), 20000)
     )
 
     try {
@@ -288,29 +291,26 @@ export default function FourplayApp() {
       }
 
       const savesToMake = pickDiff.toSave.filter(({ gameId }) => canEdit(gameId))
-      const deletesToMake = pickDiff.toDelete.filter(canEdit)
+      const deletesToMake = pickDiff.toDelete.filter(({ gameId }) => canEdit(gameId))
 
       console.log('[submit] saving:', savesToMake, 'deleting:', deletesToMake)
 
-      const work = (async () => {
-        // Run sequentially so one failing save gives us a clear error location
-        for (const { gameId, team } of savesToMake) {
-          try {
-            await savePick(user.id, currentLeague.id, gameId, team, selectedWeek, currentYear)
-          } catch (err: any) {
-            console.error(`[submit] savePick failed for ${gameId}:`, err)
-            throw new Error(`Failed to save pick: ${err?.message ?? 'unknown error'}`)
-          }
-        }
-        for (const gameId of deletesToMake) {
-          try {
-            await deletePick(user.id, currentLeague.id, gameId)
-          } catch (err: any) {
-            console.error(`[submit] deletePick failed for ${gameId}:`, err)
-            throw new Error(`Failed to remove pick: ${err?.message ?? 'unknown error'}`)
-          }
-        }
-      })()
+      const work = Promise.all([
+        ...savesToMake.map(({ gameId, team }) =>
+          savePick(user.id, currentLeague!.id, gameId, team, selectedWeek, currentYear)
+            .catch((err: any) => {
+              console.error(`[submit] savePick failed for ${gameId}:`, err)
+              throw new Error(`Failed to save pick: ${err?.message ?? 'unknown error'}`)
+            })
+        ),
+        ...deletesToMake.map(({ gameId, team }) =>
+          deletePick(user.id, currentLeague!.id, gameId, team)
+            .catch((err: any) => {
+              console.error(`[submit] deletePick failed for ${gameId}:`, err)
+              throw new Error(`Failed to remove pick: ${err?.message ?? 'unknown error'}`)
+            })
+        ),
+      ])
 
       await Promise.race([work, timeout])
 
@@ -326,9 +326,8 @@ export default function FourplayApp() {
 
   const handleLeagueChange = (league: League) => {
     setCurrentLeague(league)
-    setSelectedPicks(new Set())
     setPicksMap(new Map())
-    setSavedPicksMap(new Map())
+    setSavedPickKeys(new Set())
   }
 
   if (!authChecked) {
@@ -391,9 +390,9 @@ export default function FourplayApp() {
                 currentWeek={currentWeek}
                 games={games}
                 gamesLoading={gamesLoading}
-                selectedPicks={selectedPicks}
                 picksMap={picksMap}
                 onTogglePick={handleTogglePick}
+                disableInteraction={picksLocked}
               />
             )}
 
@@ -432,6 +431,17 @@ export default function FourplayApp() {
         isVisible={!isHistorical && activeTab === 'picks' && pickDiff.total > 0}
       />
 
+      <EditPicksBar
+        mode={picksLocked ? 'locked' : 'editing'}
+        onClick={() => setIsEditingPicks(v => !v)}
+        isVisible={
+          !isHistorical &&
+          activeTab === 'picks' &&
+          savedPickKeys.size > 0 &&
+          pickDiff.total === 0
+        }
+      />
+
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <ModalManager
@@ -466,6 +476,15 @@ export default function FourplayApp() {
       />
     </div>
   )
+}
+
+function pickKey(gameId: string, team: string): string {
+  return `${gameId}|${team}`
+}
+
+function splitPickKey(key: string): [string, string] {
+  const idx = key.indexOf('|')
+  return [key.slice(0, idx), key.slice(idx + 1)]
 }
 
 function formatGameTime(commenceTime: string, status: string): string {
