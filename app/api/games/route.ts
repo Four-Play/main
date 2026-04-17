@@ -64,9 +64,8 @@ export async function GET(request: Request) {
     // Track external_ids we've seen so scores don't duplicate odds entries
     const seenIds = new Set<string>()
 
-    // Look up existing games so we never overwrite a locked-in spread.
-    // Once a spread is saved to the DB, we keep it — the odds API returns
-    // live lines that shift during/after the game.
+    // Lock in spreads only for games that have already started — live lines
+    // shift during/after the game, but pre-game line movement is useful to show.
     const allApiIds = [
       ...(Array.isArray(oddsData) ? oddsData : []).map((e: any) => e.id),
       ...(Array.isArray(scoresData) ? scoresData : []).filter((s: any) => s.completed).map((s: any) => s.id),
@@ -75,9 +74,10 @@ export async function GET(request: Request) {
     if (allApiIds.length > 0) {
       const { data: existing } = await supabase
         .from('games')
-        .select('external_id, spread, favorite_team, underdog_team')
+        .select('external_id, spread, favorite_team, underdog_team, commence_time')
         .in('external_id', allApiIds)
         .neq('spread', 0)
+        .lt('commence_time', new Date().toISOString())
       for (const row of existing ?? []) {
         lockedSpreads.set(row.external_id, row)
       }
