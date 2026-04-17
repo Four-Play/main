@@ -65,27 +65,22 @@ export default function FourplayApp() {
 
       try {
         const supabase = createClient()
-        const { data: { session }, error } = await supabase.auth.getSession()
 
-        if (error || !session) {
-          await supabase.auth.signOut().catch(() => {})
+        // getUser() validates the session server-side and auto-refreshes
+        // the access token if it's expired but the refresh token is still
+        // valid. getSession() only reads local storage and doesn't refresh.
+        const { data: { user: authUser }, error } = await supabase.auth.getUser()
+
+        if (error || !authUser) {
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
           return
         }
 
-        // Invalid / revoked refresh token — common after a new deployment
-        const isStaleToken =
-          (error as any)?.code === 'refresh_token_not_found' ||
-          (error as any)?.message?.includes('Refresh Token')
-        if (isStaleToken) {
-          await supabase.auth.signOut().catch(() => {})
-          return
-        }
-
-        const profile = await getProfile(session.user.id)
+        const profile = await getProfile(authUser.id)
         if (profile) setUser(profile)
       } catch (err: any) {
         console.error('Session check failed:', err)
-        try { await createClient().auth.signOut() } catch {}
+        try { await createClient().auth.signOut({ scope: 'local' }) } catch {}
       } finally {
         clearTimeout(giveUpTimer)
         setAuthChecked(true)

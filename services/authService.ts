@@ -39,13 +39,9 @@ export async function signUp(email: string, password: string, username: string):
 
 export async function signIn(email: string, password: string): Promise<Profile> {
   const supabase = createClient()
-  // Clear any stale auth state that could block the new login.
-  // Give signOut 2 seconds max, then proceed regardless.
-  console.log('[auth] clearing stale session...')
-  await Promise.race([
-    supabase.auth.signOut().catch(() => {}),
-    new Promise(resolve => setTimeout(resolve, 2000)),
-  ])
+  // Clear any stale local auth state so the new login starts clean.
+  // scope: 'local' only clears browser storage — no server call, can't hang.
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
 
   console.log('[auth] signing in...')
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })

@@ -64,26 +64,54 @@ export async function GET(request: Request) {
     // Track external_ids we've seen so scores don't duplicate odds entries
     const seenIds = new Set<string>()
 
+    // Look up existing games so we never overwrite a locked-in spread.
+    // Once a spread is saved to the DB, we keep it — the odds API returns
+    // live lines that shift during/after the game.
+    const allApiIds = [
+      ...(Array.isArray(oddsData) ? oddsData : []).map((e: any) => e.id),
+      ...(Array.isArray(scoresData) ? scoresData : []).filter((s: any) => s.completed).map((s: any) => s.id),
+    ]
+    const lockedSpreads = new Map<string, { spread: number; favorite_team: string; underdog_team: string }>()
+    if (allApiIds.length > 0) {
+      const { data: existing } = await supabase
+        .from('games')
+        .select('external_id, spread, favorite_team, underdog_team')
+        .in('external_id', allApiIds)
+        .neq('spread', 0)
+      for (const row of existing ?? []) {
+        lockedSpreads.set(row.external_id, row)
+      }
+    }
+
     // Parse upcoming games from odds endpoint (has spread data)
     const upcomingGames = (Array.isArray(oddsData) ? oddsData : []).map((event: any) => {
       seenIds.add(event.id)
 
-      const spreadMarket = event.bookmakers
-        ?.find((b: any) => b.key === 'draftkings' || b.key === 'fanduel' || b.key === 'lowvig')
-        ?.markets?.find((m: any) => m.key === 'spreads')
+      // If this game already has a spread in the DB, keep it
+      const locked = lockedSpreads.get(event.id)
 
       let favTeam = event.home_team
       let dogTeam = event.away_team
       let spread = 0
 
-      if (spreadMarket) {
-        const homeOutcome = spreadMarket.outcomes?.find((o: any) => o.name === event.home_team)
-        if (homeOutcome) {
-          spread = homeOutcome.point
-          if (spread > 0) {
-            favTeam = event.away_team
-            dogTeam = event.home_team
-            spread = Math.abs(spread) * -1
+      if (locked) {
+        favTeam = locked.favorite_team
+        dogTeam = locked.underdog_team
+        spread = locked.spread
+      } else {
+        const spreadMarket = event.bookmakers
+          ?.find((b: any) => b.key === 'draftkings' || b.key === 'fanduel' || b.key === 'lowvig')
+          ?.markets?.find((m: any) => m.key === 'spreads')
+
+        if (spreadMarket) {
+          const homeOutcome = spreadMarket.outcomes?.find((o: any) => o.name === event.home_team)
+          if (homeOutcome) {
+            spread = homeOutcome.point
+            if (spread > 0) {
+              favTeam = event.away_team
+              dogTeam = event.home_team
+              spread = Math.abs(spread) * -1
+            }
           }
         }
       }
@@ -113,24 +141,10 @@ export async function GET(request: Request) {
     })
 
     // Parse completed games from scores endpoint (has final scores).
-    // The scores endpoint doesn't carry spread data, so we preserve
-    // the spread / favorite_team / underdog_team already cached in the DB.
-    const completedRaw = (Array.isArray(scoresData) ? scoresData : [])
+    // Spread data comes from the shared lockedSpreads lookup above.
+    const completedGames = (Array.isArray(scoresData) ? scoresData : [])
       .filter((s: any) => s.completed && !seenIds.has(s.id))
-
-    const completedIds = completedRaw.map((s: any) => s.id)
-    let existingByExtId = new Map<string, any>()
-    if (completedIds.length > 0) {
-      const { data: existing } = await supabase
-        .from('games')
-        .select('external_id, spread, favorite_team, underdog_team')
-        .in('external_id', completedIds)
-      for (const row of existing ?? []) {
-        existingByExtId.set(row.external_id, row)
-      }
-    }
-
-    const completedGames = completedRaw.map((score: any) => {
+      .map((score: any) => {
         const homeScore = score.scores?.find((s: any) => s.name === score.home_team)?.score
         const awayScore = score.scores?.find((s: any) => s.name === score.away_team)?.score
         const gameWeek = computeWeekFromDate(score.commence_time, SPORT_KEY)
@@ -140,10 +154,10 @@ export async function GET(request: Request) {
           hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York',
         })
 
-        const cached = existingByExtId.get(score.id)
-        const favTeam = cached?.favorite_team ?? score.home_team
-        const dogTeam = cached?.underdog_team ?? score.away_team
-        const spread = cached?.spread ?? 0
+        const locked = lockedSpreads.get(score.id)
+        const favTeam = locked?.favorite_team ?? score.home_team
+        const dogTeam = locked?.underdog_team ?? score.away_team
+        const spread = locked?.spread ?? 0
 
         return {
           external_id: score.id,
