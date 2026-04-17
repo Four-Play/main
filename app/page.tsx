@@ -12,7 +12,7 @@ import { EditPicksBar } from '@/components/layout/EditPicksBar'
 import { signIn, signUp, signOut, getProfile } from '@/services/authService'
 import { getMyLeagues } from '@/services/leagueService'
 import { getMyPicks, savePick, deletePick } from '@/services/picksService'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, resetClient } from '@/lib/supabase/client'
 import type { Profile, League, Game, Pick } from '@/types/database'
 import { computeCurrentWeek, ACTIVE_SPORT } from '@/lib/weekUtils'
 import { SEASON_YEAR } from '@/config/season'
@@ -58,8 +58,9 @@ export default function FourplayApp() {
       // If anything hangs (stale token, network blip, bad cache after a deploy)
       // we force the auth check to complete and show the login screen.
       const giveUpTimer = setTimeout(() => {
-        console.warn('Auth check timed out — clearing session')
-        createClient().auth.signOut().catch(() => {})
+        console.warn('Auth check timed out — resetting client')
+        resetClient()
+        createClient().auth.signOut({ scope: 'local' }).catch(() => {})
         setAuthChecked(true)
       }, 6000)
 
@@ -80,6 +81,7 @@ export default function FourplayApp() {
         if (profile) setUser(profile)
       } catch (err: any) {
         console.error('Session check failed:', err)
+        resetClient()
         try { await createClient().auth.signOut({ scope: 'local' }) } catch {}
       } finally {
         clearTimeout(giveUpTimer)

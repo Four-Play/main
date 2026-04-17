@@ -1,5 +1,5 @@
 // services/authService.ts
-import { createClient } from '@/lib/supabase/client'
+import { createClient, resetClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types/database'
 
 export async function signUp(email: string, password: string, username: string): Promise<Profile> {
@@ -38,9 +38,10 @@ export async function signUp(email: string, password: string, username: string):
 }
 
 export async function signIn(email: string, password: string): Promise<Profile> {
+  // Nuke the singleton and start fresh — if the old client's internal auth
+  // state is stuck (e.g. pending token refresh loop), reusing it will hang.
+  resetClient()
   const supabase = createClient()
-  // Clear any stale local auth state so the new login starts clean.
-  // scope: 'local' only clears browser storage — no server call, can't hang.
   await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
 
   console.log('[auth] signing in...')
