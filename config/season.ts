@@ -15,11 +15,12 @@ export interface SeasonWeek {
 
 // ─── NBA PLAYOFFS 2026 ───────────────────────────────────────────────────────
 export const SEASON_WEEKS: SeasonWeek[] = [
-  { week: 1, name: 'Play-In',      startDate: '2026-04-14', endDate: '2026-04-17', placeholderCount: 4  },
-  { week: 2, name: 'First Round',  startDate: '2026-04-18', endDate: '2026-04-28', placeholderCount: 8  },
-  { week: 3, name: 'Conf. Semis',  startDate: '2026-04-29', endDate: '2026-05-12', placeholderCount: 4  },
-  { week: 4, name: 'Conf. Finals', startDate: '2026-05-13', endDate: '2026-05-26', placeholderCount: 2  },
-  { week: 5, name: 'NBA Finals',   startDate: '2026-05-29', endDate: '2026-06-22', placeholderCount: 4  },
+  { week: 1, name: 'Play-In',         startDate: '2026-04-14', endDate: '2026-04-17', placeholderCount: 4  },
+  { week: 2, name: 'First Round',     startDate: '2026-04-18', endDate: '2026-04-23', placeholderCount: 8  },
+  { week: 3, name: 'First Round Pt 2', startDate: '2026-04-24', endDate: '2026-04-28', placeholderCount: 8  },
+  { week: 4, name: 'Conf. Semis',     startDate: '2026-04-29', endDate: '2026-05-12', placeholderCount: 4  },
+  { week: 5, name: 'Conf. Finals',    startDate: '2026-05-13', endDate: '2026-05-26', placeholderCount: 2  },
+  { week: 6, name: 'NBA Finals',      startDate: '2026-05-29', endDate: '2026-06-22', placeholderCount: 4  },
 ]
 
 // Switch to 'americanfootball_nfl' in September when the NFL season begins
