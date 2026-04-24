@@ -138,14 +138,17 @@ export function LeagueSettingsModal({
   const handleRunScoring = async () => {
     setIsScoring(true)
     setDevMessage('')
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 30000)
     try {
-      const res = await fetch('/api/admin/score', { method: 'POST' })
+      const res = await fetch('/api/admin/score', { method: 'POST', signal: controller.signal })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setDevMessage(`✓ Scored ${data.picksScored} picks across ${data.weeksCalculated} week(s)`)
     } catch (err: any) {
-      setDevMessage(`✗ ${err.message}`)
+      setDevMessage(`✗ ${err.name === 'AbortError' ? 'Request timed out' : err.message}`)
     } finally {
+      clearTimeout(timeout)
       setIsScoring(false)
     }
   }

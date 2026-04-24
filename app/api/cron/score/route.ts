@@ -23,7 +23,9 @@ export async function GET(request: Request) {
   try {
     // 1. Fetch scores from Odds API for recently completed games
     const scoresUrl = `https://api.the-odds-api.com/v4/sports/${SPORT_KEY}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=3`
-    const scoresRes = await fetch(scoresUrl)
+    const controller = new AbortController()
+    const apiTimeout = setTimeout(() => controller.abort(), 10000)
+    const scoresRes = await fetch(scoresUrl, { signal: controller.signal }).finally(() => clearTimeout(apiTimeout))
     const scoresData = await scoresRes.json()
 
     if (!scoresData || !Array.isArray(scoresData)) {
