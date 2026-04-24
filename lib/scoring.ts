@@ -53,18 +53,6 @@ export async function calculateWeeklyResults(
 
   if (!members) return
 
-  // Snapshot which users already have a scored weekly_result row.
-  // We'll only call update_member_totals for newly inserted rows,
-  // preventing double-counting when the cron re-runs.
-  const { data: existingRows } = await supabase
-    .from('weekly_results')
-    .select('user_id')
-    .eq('league_id', leagueId)
-    .eq('nfl_week', week)
-    .eq('season_year', year)
-
-  const alreadyScored = new Set((existingRows ?? []).map((r: any) => r.user_id))
-
   const results: any[] = []
 
   for (const member of members) {
@@ -102,8 +90,8 @@ export async function calculateWeeklyResults(
 
   for (const result of results) {
     const isWinner = result.is_winner
-    const amountWon = isWinner ? prizePerWinner : 0
-    const amountOwed = !isWinner && hasWinners ? league.payout_per_loss_cents : 0
+    const newWon = isWinner ? prizePerWinner : 0
+    const newOwed = !isWinner && hasWinners ? league.payout_per_loss_cents : 0
 
     await supabase.from('weekly_results').upsert({
       user_id: result.user_id,
@@ -112,20 +100,33 @@ export async function calculateWeeklyResults(
       season_year: year,
       picks_correct: result.picks_correct,
       is_winner: isWinner,
-      amount_won_cents: amountWon,
-      amount_owed_cents: amountOwed,
+      amount_won_cents: newWon,
+      amount_owed_cents: newOwed,
       calculated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,league_id,nfl_week,season_year' })
+  }
 
-    // Only increment member totals for weeks that weren't already finalized
-    if (!alreadyScored.has(result.user_id)) {
-      await supabase.rpc('update_member_totals', {
-        p_user_id: result.user_id,
-        p_league_id: leagueId,
-        p_won: isWinner,
-        p_amount_change: isWinner ? amountWon : -amountOwed,
-      })
-    }
+  // Recalculate every member's totals from the full set of weekly_results.
+  // This is idempotent — safe to re-run any number of times, and self-corrects
+  // when the set of scored players changes between cron runs.
+  for (const member of members) {
+    const { data: allResults } = await supabase
+      .from('weekly_results')
+      .select('is_winner, amount_won_cents, amount_owed_cents')
+      .eq('user_id', member.user_id)
+      .eq('league_id', leagueId)
+
+    const rows = allResults ?? []
+    const wins = rows.filter((r: any) => r.is_winner).length
+    const losses = rows.filter((r: any) => !r.is_winner).length
+    const points = rows.reduce((sum: number, r: any) =>
+      sum + (r.amount_won_cents ?? 0) - (r.amount_owed_cents ?? 0), 0)
+
+    await supabase
+      .from('league_members')
+      .update({ wins, losses, league_points: points })
+      .eq('user_id', member.user_id)
+      .eq('league_id', leagueId)
   }
 }
 
