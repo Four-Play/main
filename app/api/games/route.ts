@@ -188,8 +188,16 @@ export async function GET(request: Request) {
     const dbRows = allGames.map(({ fav, dog, time, ...rest }: any) => rest)
     await supabase.from('games').upsert(dbRows, { onConflict: 'external_id' })
 
-    // 4. Return only the games for the requested week within the date window
-    const weekGames = allGames.filter((g: any) => {
+    // 4. Re-query so we return rows with their assigned database `id` —
+    //    the in-memory `allGames` objects only have `external_id`, and the
+    //    client uses `game.id` as the foreign key when saving picks.
+    const { data: refreshed } = await supabase
+      .from('games')
+      .select('*')
+      .eq('season_year', year)
+      .order('commence_time', { ascending: true })
+
+    const weekGames = (refreshed ?? []).filter((g: any) => {
       if (!weekConfig) return g.nfl_week === week
       const gameDate = toETDateString(g.commence_time)
       return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
