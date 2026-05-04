@@ -1,9 +1,10 @@
 "use client"
 import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Sliders, Trophy, TrendingDown, TrendingUp } from "lucide-react"
+import { Sliders, Trophy, TrendingDown, TrendingUp, Users } from "lucide-react"
 import { getLeagueMembers, getAllLeagueWeeklyResults } from '@/services/leagueService'
 import { getWeekLabel, ACTIVE_SPORT } from '@/lib/weekUtils'
 import type { LeagueMember, WeekSummary } from '@/types/database'
@@ -133,6 +134,7 @@ export function LeagueTab({
                 const profile = member.profile
                 const name = profile?.username ?? 'Unknown'
                 const points = member.league_points
+                const avatarUrl = profile?.avatar_url
                 return (
                   <TableRow
                     key={member.id}
@@ -144,7 +146,23 @@ export function LeagueTab({
                     </TableCell>
                     <TableCell className="font-bold uppercase text-white text-xs tracking-tight">
                       <div className="flex items-center gap-2">
-                        {name}
+                        <div className="relative w-7 h-7 rounded-full overflow-hidden bg-zinc-900 border border-zinc-800 flex-shrink-0">
+                          {avatarUrl ? (
+                            <Image
+                              src={avatarUrl}
+                              alt=""
+                              fill
+                              sizes="28px"
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Users className="w-3.5 h-3.5 text-zinc-600" />
+                            </div>
+                          )}
+                        </div>
+                        <span>{name}</span>
                         {member.role === 'admin' && (
                           <span className="text-[8px] bg-zinc-800 text-zinc-400 px-1 rounded">ADM</span>
                         )}
