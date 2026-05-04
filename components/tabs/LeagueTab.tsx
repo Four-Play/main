@@ -74,7 +74,11 @@ export function LeagueTab({
       cancelled = true
       clearTimeout(giveUpTimer)
     }
-  }, [currentLeague, currentWeek, currentYear])
+    // currentWeek is only used for a render-only label; it doesn't affect
+    // what we fetch (members + every week's results), so excluding it
+    // avoids unnecessary refetches when the parent recomputes the week.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLeague, currentYear])
 
   if (loading) {
     return (

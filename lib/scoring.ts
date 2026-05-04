@@ -51,26 +51,31 @@ export async function calculateWeeklyResults(
     .select('user_id')
     .eq('league_id', leagueId)
 
-  if (!members) return
+  if (!members || members.length === 0) return
+
+  // Single batched fetch of every member's picks for this week.
+  // Replaces the per-member query loop (was O(members) round-trips).
+  const { data: allPicks } = await supabase
+    .from('picks')
+    .select('user_id, result, game:games(status)')
+    .eq('league_id', leagueId)
+    .eq('nfl_week', week)
+    .eq('season_year', year)
+
+  const picksByUser = new Map<string, any[]>()
+  for (const p of allPicks ?? []) {
+    const arr = picksByUser.get(p.user_id) ?? []
+    arr.push(p)
+    picksByUser.set(p.user_id, arr)
+  }
 
   const results: any[] = []
-
   for (const member of members) {
-    const { data: picks } = await supabase
-      .from('picks')
-      .select('result, game:games(status)')
-      .eq('user_id', member.user_id)
-      .eq('league_id', leagueId)
-      .eq('nfl_week', week)
-      .eq('season_year', year)
-
-    if (!picks || picks.length < 4) continue
-
+    const picks = picksByUser.get(member.user_id) ?? []
+    if (picks.length < 4) continue
     const allFinal = picks.every((p: any) => p.game?.status === 'final')
     if (!allFinal) continue
-
     const allWon = picks.every((p: any) => p.result === 'win')
-
     results.push({
       user_id: member.user_id,
       is_winner: allWon,
@@ -88,46 +93,55 @@ export async function calculateWeeklyResults(
   const totalPot = hasWinners ? losers.length * league.payout_per_loss_cents : 0
   const prizePerWinner = hasWinners ? Math.floor(totalPot / winners.length) : 0
 
-  for (const result of results) {
+  // Batch upsert all weekly_results in one round-trip
+  const calculatedAt = new Date().toISOString()
+  const upsertRows = results.map(result => {
     const isWinner = result.is_winner
-    const newWon = isWinner ? prizePerWinner : 0
-    const newOwed = !isWinner && hasWinners ? league.payout_per_loss_cents : 0
-
-    await supabase.from('weekly_results').upsert({
+    return {
       user_id: result.user_id,
       league_id: leagueId,
       nfl_week: week,
       season_year: year,
       picks_correct: result.picks_correct,
       is_winner: isWinner,
-      amount_won_cents: newWon,
-      amount_owed_cents: newOwed,
-      calculated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,league_id,nfl_week,season_year' })
-  }
+      amount_won_cents: isWinner ? prizePerWinner : 0,
+      amount_owed_cents: !isWinner && hasWinners ? league.payout_per_loss_cents : 0,
+      calculated_at: calculatedAt,
+    }
+  })
+
+  await supabase
+    .from('weekly_results')
+    .upsert(upsertRows, { onConflict: 'user_id,league_id,nfl_week,season_year' })
 
   // Recalculate every member's totals from the full set of weekly_results.
-  // This is idempotent — safe to re-run any number of times, and self-corrects
-  // when the set of scored players changes between cron runs.
-  for (const member of members) {
-    const { data: allResults } = await supabase
-      .from('weekly_results')
-      .select('is_winner, amount_won_cents, amount_owed_cents')
-      .eq('user_id', member.user_id)
-      .eq('league_id', leagueId)
+  // Idempotent — safe to re-run, self-corrects when the scored set changes.
+  // Fetch all rows for this league once, group in memory, update in parallel.
+  const { data: allResults } = await supabase
+    .from('weekly_results')
+    .select('user_id, is_winner, amount_won_cents, amount_owed_cents')
+    .eq('league_id', leagueId)
 
-    const rows = allResults ?? []
+  const resultsByUser = new Map<string, any[]>()
+  for (const r of allResults ?? []) {
+    const arr = resultsByUser.get(r.user_id) ?? []
+    arr.push(r)
+    resultsByUser.set(r.user_id, arr)
+  }
+
+  await Promise.all(members.map((member: any) => {
+    const rows = resultsByUser.get(member.user_id) ?? []
     const wins = rows.filter((r: any) => r.is_winner).length
     const losses = rows.filter((r: any) => !r.is_winner).length
     const points = rows.reduce((sum: number, r: any) =>
       sum + (r.amount_won_cents ?? 0) - (r.amount_owed_cents ?? 0), 0)
 
-    await supabase
+    return supabase
       .from('league_members')
       .update({ wins, losses, league_points: points })
       .eq('user_id', member.user_id)
       .eq('league_id', leagueId)
-  }
+  }))
 }
 
 /**
@@ -142,26 +156,44 @@ export async function scoreExistingGames(supabase: any) {
     .not('home_score', 'is', null)
     .not('away_score', 'is', null)
 
-  if (!scoredGames) return { picksScored: 0, weeksCalculated: 0 }
+  if (!scoredGames || scoredGames.length === 0) {
+    return { picksScored: 0, weeksCalculated: 0 }
+  }
+
+  const gameIds = scoredGames.map((g: any) => g.id)
+  const gamesById = new Map<string, any>(scoredGames.map((g: any) => [g.id, g]))
+
+  // Single batched fetch of every unscored pick across all final games.
+  // Replaces the per-game query loop.
+  const { data: picks } = await supabase
+    .from('picks')
+    .select('*, league:leagues(spread_cushion)')
+    .in('game_id', gameIds)
+    .is('result', null)
 
   let picksScored = 0
-
-  for (const game of scoredGames) {
-    // Join league data to get the correct cushion per pick
-    const { data: picks } = await supabase
-      .from('picks')
-      .select('*, league:leagues(spread_cushion)')
-      .eq('game_id', game.id)
-      .is('result', null)
-
-    if (!picks || picks.length === 0) continue
-
+  if (picks && picks.length > 0) {
+    // Score in memory, then batch updates by result type so we issue at most
+    // 3 update calls instead of one per pick.
+    const winIds: string[] = []
+    const lossIds: string[] = []
+    const pushIds: string[] = []
     for (const pick of picks) {
+      const game = gamesById.get(pick.game_id)
+      if (!game) continue
       const cushion = pick.league?.spread_cushion ?? 13
       const result = scorePick(pick, game, cushion)
-      await supabase.from('picks').update({ result }).eq('id', pick.id)
+      if (result === 'win') winIds.push(pick.id)
+      else if (result === 'loss') lossIds.push(pick.id)
+      else pushIds.push(pick.id)
       picksScored++
     }
+
+    const updates: Promise<any>[] = []
+    if (winIds.length > 0) updates.push(supabase.from('picks').update({ result: 'win' }).in('id', winIds))
+    if (lossIds.length > 0) updates.push(supabase.from('picks').update({ result: 'loss' }).in('id', lossIds))
+    if (pushIds.length > 0) updates.push(supabase.from('picks').update({ result: 'push' }).in('id', pushIds))
+    await Promise.all(updates)
   }
 
   // Find all league/week combos with scored picks and calculate results
