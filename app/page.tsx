@@ -439,14 +439,12 @@ export default function FourplayApp() {
           activeTab === 'picks' &&
           savedPickKeys.size > 0 &&
           pickDiff.total === 0 &&
-          // Hide if every picked game has already started — nothing left to edit
+          // Show as long as any game in the week is still pickable — even if the
+          // user's existing picks have all started, they may still want to add
+          // picks for later games (up to the 4-pick cap).
           (() => {
             const now = new Date()
-            const pickedGameIds = new Set([...picksMap.values()].map(p => p.game_id))
-            return [...pickedGameIds].some(gid => {
-              const game = games.find(g => g.id === gid)
-              return !game?.commence_time || new Date(game.commence_time) > now
-            })
+            return games.some(g => !g.commence_time || new Date(g.commence_time) > now)
           })()
         }
       />

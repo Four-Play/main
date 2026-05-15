@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls .git/rebase-merge/)",
+      "Bash(cat .git/rebase-merge/head-name)",
+      "Bash(cat .git/rebase-merge/onto)",
+      "Bash(node -e ':*)",
+      "Bash(node:*)",
+      "Bash(npx tsc *)",
+      "Bash(findstr /s /n \"update_member_totals\" *.ts)",
+      "Bash(find *)",
+      "Bash(xargs grep *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\mic71\\\\OneDrive\\\\Documents\\\\main-main\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Format-Table)"
+    ]
+  }
+}
