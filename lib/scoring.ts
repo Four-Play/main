@@ -72,15 +72,22 @@ export async function calculateWeeklyResults(
   const results: any[] = []
   for (const member of members) {
     const picks = picksByUser.get(member.user_id) ?? []
+    const wins = picks.filter((p: any) => p.result === 'win').length
+
+    // Any wrong pick = loss for the week, regardless of how many picks were made.
+    // A push counts as a wrong pick (was already the rule for full 4-pick weeks).
+    const hasWrong = picks.some((p: any) => p.result === 'loss' || p.result === 'push')
+    if (hasWrong) {
+      results.push({ user_id: member.user_id, is_winner: false, picks_correct: wins })
+      continue
+    }
+
+    // No wrong picks. Only a win if they made all 4 picks and every one is final.
+    // Otherwise (fewer than 4 picks, or some still pending) → no result yet.
     if (picks.length < 4) continue
     const allFinal = picks.every((p: any) => p.game?.status === 'final')
     if (!allFinal) continue
-    const allWon = picks.every((p: any) => p.result === 'win')
-    results.push({
-      user_id: member.user_id,
-      is_winner: allWon,
-      picks_correct: picks.filter((p: any) => p.result === 'win').length,
-    })
+    results.push({ user_id: member.user_id, is_winner: true, picks_correct: wins })
   }
 
   if (results.length === 0) return

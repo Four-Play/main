@@ -38,11 +38,10 @@ export async function signUp(email: string, password: string, username: string):
 }
 
 export async function signIn(email: string, password: string): Promise<Profile> {
-  // Nuke the singleton and start fresh — if the old client's internal auth
-  // state is stuck (e.g. pending token refresh loop), reusing it will hang.
+  // Nuke the singleton and any stored session so the new client starts clean.
+  // resetClient() also clears localStorage + cookies, so no extra signOut needed.
   resetClient()
   const supabase = createClient()
-  await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
 
   console.log('[auth] signing in...')
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -51,16 +50,32 @@ export async function signIn(email: string, password: string): Promise<Profile> 
   if (!data.user) throw new Error('Sign in failed')
 
   console.log('[auth] fetching profile...')
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', data.user.id)
-    .single()
+  // Don't let a slow/hung profile query block sign-in. The user is already
+  // authenticated at this point; if the profile fetch stalls we fall back to
+  // auth metadata so they can use the app and the row syncs on next load.
+  const profileTimeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 5000))
+  const profileQuery: Promise<Profile | null> = (async () => {
+    try {
+      const r = await supabase.from('profiles').select('*').eq('id', data.user!.id).single()
+      return r.error ? null : (r.data as Profile)
+    } catch {
+      return null
+    }
+  })()
 
-  if (profileError || !profile) throw new Error('Profile not found')
+  const profile = await Promise.race([profileQuery, profileTimeout])
+  if (profile) {
+    console.log('[auth] sign in complete')
+    return profile
+  }
 
-  console.log('[auth] sign in complete')
-  return profile as Profile
+  console.warn('[auth] profile fetch slow/failed — using auth metadata fallback')
+  const meta = (data.user.user_metadata ?? {}) as { username?: string }
+  return {
+    id: data.user.id,
+    username: meta.username ?? data.user.email?.split('@')[0] ?? 'Player',
+    total_points: 0,
+  }
 }
 
 export async function signOut(): Promise<void> {

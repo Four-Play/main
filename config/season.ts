@@ -19,7 +19,7 @@ export const SEASON_WEEKS: SeasonWeek[] = [
   { week: 2, name: 'First Round',     startDate: '2026-04-18', endDate: '2026-04-23', placeholderCount: 8  },
   { week: 3, name: 'First Round Pt 2', startDate: '2026-04-24', endDate: '2026-05-03', placeholderCount: 8  },
   { week: 4, name: 'Conf. Semis',     startDate: '2026-05-04', endDate: '2026-05-17', placeholderCount: 4  },
-  { week: 5, name: 'Conf. Finals',    startDate: '2026-05-18', endDate: '2026-05-31', placeholderCount: 2  },
+  { week: 5, name: 'Conf. Finals',    startDate: '2026-05-18', endDate: '2026-06-01', placeholderCount: 2  },
   { week: 6, name: 'NBA Finals',      startDate: '2026-06-04', endDate: '2026-06-22', placeholderCount: 4  },
 ]
 

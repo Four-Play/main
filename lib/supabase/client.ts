@@ -16,14 +16,15 @@ export function createClient() {
  *  createClient() call starts completely clean. */
 export function resetClient() {
   client = null
-  // Clear Supabase session from all storage backends.
-  // @supabase/ssr may use cookies or localStorage depending on config.
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-    const projectRef = new URL(url).hostname.split('.')[0]
-    const storageKey = `sb-${projectRef}-auth-token`
-    localStorage.removeItem(storageKey)
-    // Also clear any cookie-based session by setting expired cookies
+    // Clear ALL Supabase keys from localStorage. Auth stores several
+    // (main token, code-verifier for PKCE, etc.) — leaving stragglers
+    // can wedge the next sign-in in an inconsistent state.
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith('sb-')) localStorage.removeItem(key)
+    }
+    // Same for cookies — @supabase/ssr chunks sessions across sb-*.0, .1, etc.
     document.cookie.split(';').forEach(c => {
       const name = c.trim().split('=')[0]
       if (name.startsWith('sb-')) {
