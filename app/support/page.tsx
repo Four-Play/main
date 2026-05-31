@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   description: "Contact support for Fourplay Picks",
 }
 
+export const dynamic = "force-dynamic"
+
 export default function SupportPage() {
   return (
     <div className="flex items-center justify-center min-h-screen p-6 bg-black text-white font-sans">
