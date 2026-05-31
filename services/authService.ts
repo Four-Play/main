@@ -79,9 +79,19 @@ export async function signIn(email: string, password: string): Promise<Profile> 
 }
 
 export async function signOut(): Promise<void> {
+  // Always clear local session first — guarantees the UI flips even if the
+  // server-side revocation hangs (e.g. Supabase slow/unreachable).
   const supabase = createClient()
-  const { error } = await supabase.auth.signOut()
-  if (error) throw new Error(error.message)
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+
+  // Fire the global revoke too, but don't let it block. Race against a short
+  // timeout so we never leave the sign-out button stuck spinning.
+  const globalSignOut = createClient().auth.signOut().catch(() => {})
+  const timeout = new Promise<void>(resolve => setTimeout(resolve, 3000))
+  await Promise.race([globalSignOut, timeout])
+
+  // Nuke the singleton + storage so the next sign-in starts completely clean.
+  resetClient()
 }
 
 export async function getSession() {
