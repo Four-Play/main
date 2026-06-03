@@ -3,8 +3,8 @@ import React, { useState, useRef } from 'react'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Users, Crown, Sliders, Loader2, Sun, Moon, Camera, HelpCircle } from "lucide-react"
-import { updateProfile, uploadAvatar } from '@/services/authService'
+import { Users, Crown, Sliders, Loader2, Sun, Moon, Camera, HelpCircle, Trash2, AlertTriangle } from "lucide-react"
+import { updateProfile, uploadAvatar, deleteAccount } from '@/services/authService'
 import { useTheme } from '@/lib/theme'
 import { HowToPlayModal } from '@/components/modals/HowToPlayModal'
 import type { Profile } from '@/types/database'
@@ -16,6 +16,7 @@ interface ProfileTabProps {
   setIsEditing: (val: boolean) => void
   setLeagueSettingsOpen: (val: boolean) => void
   onSignOut: () => Promise<void>
+  onAccountDeleted?: () => void
 }
 
 export function ProfileTab({
@@ -25,6 +26,7 @@ export function ProfileTab({
   setIsEditing,
   setLeagueSettingsOpen,
   onSignOut,
+  onAccountDeleted,
 }: ProfileTabProps) {
   const [username, setUsername] = useState(user.username)
   const [isSaving, setIsSaving] = useState(false)
@@ -32,6 +34,7 @@ export function ProfileTab({
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState(user.avatar_url ?? null)
   const [howToPlayOpen, setHowToPlayOpen] = useState(false)
+  const [deleteState, setDeleteState] = useState<'idle' | 'confirming' | 'deleting'>('idle')
   const { theme, toggleTheme } = useTheme()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -66,6 +69,18 @@ export function ProfileTab({
   const handleCancel = () => {
     setUsername(user.username)
     setIsEditing(false)
+    setDeleteState('idle')
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleteState('deleting')
+    try {
+      await deleteAccount()
+      onAccountDeleted?.()
+    } catch (err: any) {
+      alert(err.message ?? 'Failed to delete account')
+      setDeleteState('idle')
+    }
   }
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,6 +190,59 @@ export function ProfileTab({
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Profile'}
             </Button>
+          </div>
+
+          {/* Danger zone — account deletion with a two-step confirmation. */}
+          <div className="pt-8 mt-2 border-t border-zinc-900">
+            <label className="text-[9px] font-black text-red-500/70 uppercase tracking-[0.2em] ml-1">
+              Danger Zone
+            </label>
+            {deleteState === 'idle' && (
+              <Button
+                variant="outline"
+                onClick={() => setDeleteState('confirming')}
+                className="mt-2 w-full border-red-500/30 bg-transparent text-red-500 font-black uppercase text-[10px] tracking-widest h-11 hover:bg-red-500/10 flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete Account
+              </Button>
+            )}
+            {deleteState !== 'idle' && (
+              <div className="mt-2 rounded-md border border-red-500/40 bg-red-500/5 p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                  <div className="text-[11px] leading-relaxed text-zinc-300">
+                    <p className="font-bold text-white uppercase tracking-wider mb-1">
+                      Delete your account?
+                    </p>
+                    <p>
+                      This permanently removes your profile, picks, league memberships,
+                      and history. <span className="text-red-400 font-semibold">This cannot be undone.</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setDeleteState('idle')}
+                    disabled={deleteState === 'deleting'}
+                    className="flex-1 border-zinc-700 bg-transparent text-zinc-300 font-black uppercase text-[10px] h-11"
+                  >
+                    Keep Account
+                  </Button>
+                  <Button
+                    onClick={handleDeleteAccount}
+                    disabled={deleteState === 'deleting'}
+                    className="flex-1 bg-red-600 text-white font-black uppercase text-[10px] h-11 hover:bg-red-500"
+                  >
+                    {deleteState === 'deleting'
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : 'Permanently Delete'
+                    }
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

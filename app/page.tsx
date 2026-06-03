@@ -73,7 +73,10 @@ export default function FourplayApp() {
         const { data: { user: authUser }, error } = await supabase.auth.getUser()
 
         if (error || !authUser) {
-          await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+          // Wedged/expired session — nuke ALL stored auth state, not just
+          // the main token. PKCE or chunked-token leftovers from a prior
+          // crash (e.g. iOS camera permission) can otherwise resurrect.
+          resetClient()
           return
         }
 
@@ -417,6 +420,13 @@ export default function FourplayApp() {
                 onSignOut={async () => {
                   await signOut()
                   setUser(null)
+                }}
+                onAccountDeleted={() => {
+                  setUser(null)
+                  setLeagues([])
+                  setCurrentLeague(null)
+                  setActiveTab('picks')
+                  setIsEditing(false)
                 }}
               />
             )}

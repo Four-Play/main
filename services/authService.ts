@@ -124,6 +124,19 @@ export async function updateProfile(userId: string, updates: Partial<Profile>): 
   return data as Profile
 }
 
+export async function deleteAccount(): Promise<void> {
+  const res = await fetch('/api/account/delete', { method: 'POST' })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error ?? 'Failed to delete account')
+  }
+  // Clear the local session so the UI flips immediately. Skip the global
+  // signOut — the auth user is already gone, so revoking is a no-op.
+  const supabase = createClient()
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+  resetClient()
+}
+
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
   const supabase = createClient()
   const ext = file.name.split('.').pop() ?? 'jpg'

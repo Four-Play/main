@@ -47,5 +47,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Fourplay uses the camera so you can take a photo for your profile picture.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Fourplay needs access to your photo library so you can choose a photo for your profile picture.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Fourplay may save photos you take in-app to your photo library.</string>
 </dict>
 </plist>

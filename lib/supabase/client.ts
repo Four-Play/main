@@ -24,6 +24,13 @@ export function resetClient() {
       const key = localStorage.key(i)
       if (key && key.startsWith('sb-')) localStorage.removeItem(key)
     }
+    // Also clear sessionStorage — PKCE state can land here too, and
+    // an iOS WebView that crashed mid-permission-flow may have left
+    // partial keys behind.
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i)
+      if (key && key.startsWith('sb-')) sessionStorage.removeItem(key)
+    }
     // Same for cookies — @supabase/ssr chunks sessions across sb-*.0, .1, etc.
     document.cookie.split(';').forEach(c => {
       const name = c.trim().split('=')[0]
