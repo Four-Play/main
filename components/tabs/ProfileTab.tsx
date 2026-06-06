@@ -1,6 +1,8 @@
 "use client"
 import React, { useState, useRef } from 'react'
 import Image from 'next/image'
+import { Capacitor } from '@capacitor/core'
+import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Users, Crown, Sliders, Loader2, Sun, Moon, Camera, HelpCircle, Trash2, AlertTriangle } from "lucide-react"
@@ -83,9 +85,7 @@ export function ProfileTab({
     }
   }
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const uploadAndSetAvatar = async (file: File) => {
     setIsUploadingAvatar(true)
     try {
       const url = await uploadAvatar(user.id, file)
@@ -96,8 +96,49 @@ export function ProfileTab({
       alert(err.message)
     } finally {
       setIsUploadingAvatar(false)
-      // Reset so the same file can be re-selected if needed
-      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) await uploadAndSetAvatar(file)
+    // Reset so the same file can be re-selected if needed
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleAvatarPress = async () => {
+    if (isUploadingAvatar) return
+
+    // On web, fall back to a plain file input. On iOS/Android we use the
+    // Capacitor Camera plugin so the user gets a native "Photo Library /
+    // Take Photo" action sheet with proper permission handling — the bare
+    // <input type="file"> camera path crashed the app under WKWebView.
+    if (!Capacitor.isNativePlatform()) {
+      fileInputRef.current?.click()
+      return
+    }
+
+    try {
+      const image = await CapacitorCamera.getPhoto({
+        quality: 80,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Prompt,
+        promptLabelHeader: 'Profile Photo',
+        promptLabelPhoto: 'Choose from Library',
+        promptLabelPicture: 'Take Photo',
+      })
+
+      if (!image.dataUrl) return
+      const ext = image.format || 'jpeg'
+      const blob = await (await fetch(image.dataUrl)).blob()
+      const file = new File([blob], `avatar.${ext}`, { type: `image/${ext}` })
+      await uploadAndSetAvatar(file)
+    } catch (err: any) {
+      // Plugin throws on user cancel — swallow that case, only alert real failures.
+      const msg = String(err?.message ?? err ?? '').toLowerCase()
+      if (msg.includes('cancel') || msg.includes('denied')) return
+      alert(err?.message ?? 'Failed to open camera')
     }
   }
 
@@ -107,7 +148,7 @@ export function ProfileTab({
       <div className="relative mb-6">
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={handleAvatarPress}
           disabled={isUploadingAvatar}
           className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.15)] group focus:outline-none"
           aria-label="Upload profile picture"
