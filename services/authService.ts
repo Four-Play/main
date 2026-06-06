@@ -142,9 +142,16 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
   const ext = file.name.split('.').pop() ?? 'jpg'
   const path = `${userId}/avatar.${ext}`
 
-  const { error: uploadError } = await supabase.storage
+  // Hard timeout so a stuck Supabase Storage call doesn't leave the avatar
+  // button spinning forever (which the user has been experiencing as a
+  // "crash after changing the profile picture").
+  const upload = supabase.storage
     .from('avatars')
     .upload(path, file, { upsert: true, contentType: file.type })
+  const timeout = new Promise<{ error: Error }>((resolve) =>
+    setTimeout(() => resolve({ error: new Error('Upload timed out — please try again') }), 20000)
+  )
+  const { error: uploadError } = (await Promise.race([upload, timeout])) as { error: Error | null }
 
   if (uploadError) throw new Error(uploadError.message)
 

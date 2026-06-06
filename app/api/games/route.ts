@@ -24,10 +24,16 @@ export async function GET(request: Request) {
 
   const supabase = createServiceClient()
 
-  // 1. Check cache — pull all games for this season, filter by ET date range
+  // 1. Cache short-circuit — but ONLY for weeks that have fully wrapped up.
+  // For current/future weeks we always re-hit the Odds API because the
+  // matchups themselves can change (a Conference Finals placeholder game
+  // becomes a different team's Finals game once the prior round resolves,
+  // and the stale placeholder needs to be evicted, not served).
   const weekConfig = SEASON_WEEKS.find(w => w.week === week)
+  const todayStr = toETDateString(new Date().toISOString())
+  const weekIsOver = weekConfig ? weekConfig.endDate < todayStr : false
 
-  {
+  if (weekIsOver) {
     const { data: cached } = await supabase
       .from('games')
       .select('*')
@@ -40,7 +46,10 @@ export async function GET(request: Request) {
         return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
       })
 
-      if (filtered.length > 0) {
+      // Only trust the cache if every game has finalized — otherwise an
+      // unfinished game (rare for a past week, but possible) should still
+      // get a fresh fetch.
+      if (filtered.length > 0 && filtered.every((g: any) => g.status === 'final')) {
         return NextResponse.json({ games: filtered, week, currentWeek, year, source: 'cache' })
       }
     }
@@ -184,11 +193,43 @@ export async function GET(request: Request) {
       return NextResponse.json({ games: [], week, currentWeek, year, message: 'No games found' })
     }
 
-    // 3. Upsert all fetched games to cache
+    // 3. Evict stale placeholder games for this week — i.e. non-final cached
+    // games whose external_id is no longer returned by the Odds API. When a
+    // matchup gets re-scheduled (e.g. a Finals placeholder originally listed
+    // as Thunder/Knicks becomes Spurs/Knicks once the prior round ends), the
+    // old event disappears from the API under its old external_id and a new
+    // one takes its place. Without this cleanup the stale row sticks around
+    // forever and gets returned alongside (or instead of) the real game.
+    if (weekConfig) {
+      const apiIdSet = new Set(allGames.map(g => g.external_id))
+      const { data: cachedThisWeek } = await supabase
+        .from('games')
+        .select('id, external_id, commence_time, status')
+        .eq('season_year', year)
+        .neq('status', 'final')
+
+      const stale = (cachedThisWeek ?? []).filter((g: any) => {
+        const gameDate = toETDateString(g.commence_time)
+        return (
+          gameDate >= weekConfig.startDate &&
+          gameDate <= weekConfig.endDate &&
+          !apiIdSet.has(g.external_id)
+        )
+      })
+
+      if (stale.length > 0) {
+        const staleIds = stale.map((g: any) => g.id)
+        // Drop picks tied to stale games first so the FK delete doesn't fail.
+        await supabase.from('picks').delete().in('game_id', staleIds)
+        await supabase.from('games').delete().in('id', staleIds)
+      }
+    }
+
+    // 4. Upsert all fetched games to cache
     const dbRows = allGames.map(({ fav, dog, time, ...rest }: any) => rest)
     await supabase.from('games').upsert(dbRows, { onConflict: 'external_id' })
 
-    // 4. Re-query so we return rows with their assigned database `id` —
+    // 5. Re-query so we return rows with their assigned database `id` —
     //    the in-memory `allGames` objects only have `external_id`, and the
     //    client uses `game.id` as the foreign key when saving picks.
     const { data: refreshed } = await supabase

@@ -111,6 +111,54 @@ export default function FourplayApp() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // When the tab comes back into the foreground after a long idle, validate
+  // the session before any other request fires. Without this, returning to
+  // a backgrounded Safari tab after a few hours triggers requests against
+  // a client whose token expired while the tab was suspended — and the
+  // refresh can hang indefinitely, leaving every UI action stuck loading.
+  useEffect(() => {
+    if (!user) return
+
+    let hiddenAt: number | null = null
+
+    const onVisibilityChange = async () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now()
+        return
+      }
+
+      if (document.visibilityState !== 'visible' || hiddenAt == null) return
+      const hiddenForMs = Date.now() - hiddenAt
+      hiddenAt = null
+      if (hiddenForMs < 10 * 60 * 1000) return // ignore brief tab switches
+
+      try {
+        const supabase = createClient()
+        const result = await Promise.race([
+          supabase.auth.getUser(),
+          new Promise<{ data: { user: null }; error: Error }>((resolve) =>
+            setTimeout(() => resolve({ data: { user: null }, error: new Error('timeout') }), 5000)
+          ),
+        ])
+        if (result.error || !result.data.user) {
+          // Session is gone or unreachable — bounce to login cleanly.
+          resetClient()
+          setUser(null)
+          setLeagues([])
+          setCurrentLeague(null)
+        }
+      } catch {
+        resetClient()
+        setUser(null)
+        setLeagues([])
+        setCurrentLeague(null)
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [user])
+
   // Load leagues when user is set
   useEffect(() => {
     if (!user) return
