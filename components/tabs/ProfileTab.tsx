@@ -119,11 +119,28 @@ export function ProfileTab({
     }
 
     try {
+      // Pre-request permissions so a denied state surfaces as a real,
+      // readable error rather than a hang or a stale bridge message on
+      // iPad (Apple's review device is an iPad Air M3 on iPadOS 26.5).
+      const perms = await CapacitorCamera.checkPermissions()
+      if (perms.camera !== 'granted' || perms.photos !== 'granted') {
+        const requested = await CapacitorCamera.requestPermissions({
+          permissions: ['camera', 'photos'],
+        })
+        if (requested.camera === 'denied' && requested.photos === 'denied') {
+          alert('To set a profile photo, allow camera or photo library access in Settings.')
+          return
+        }
+      }
+
       const image = await CapacitorCamera.getPhoto({
         quality: 80,
         allowEditing: false,
         resultType: CameraResultType.DataUrl,
         source: CameraSource.Prompt,
+        // 'popover' is the iPad-friendly presentation; on iPhone it falls
+        // back to a full-screen sheet automatically.
+        presentationStyle: 'popover',
         promptLabelHeader: 'Profile Photo',
         promptLabelPhoto: 'Choose from Library',
         promptLabelPicture: 'Take Photo',
