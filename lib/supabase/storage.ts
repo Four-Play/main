@@ -21,8 +21,28 @@ export interface SupabaseAuthStorage {
   removeItem(key: string): Promise<void>
 }
 
+/**
+ * True only when we're running inside a Capacitor native binary that
+ * was *also* compiled with the @capacitor/preferences plugin linked in.
+ * The JS bundle and the native binary update independently: Vercel can
+ * ship a new bundle that calls Preferences.get() before the corresponding
+ * native binary is on the App Store, and on that intermediate binary the
+ * call fails with "Preferences plugin is not implemented on iOS". Guard
+ * against that here so the JS gracefully falls back to localStorage
+ * until the user's binary catches up.
+ */
+export function isPreferencesAvailable(): boolean {
+  if (typeof window === 'undefined') return false
+  if (!Capacitor.isNativePlatform()) return false
+  try {
+    return Capacitor.isPluginAvailable('Preferences')
+  } catch {
+    return false
+  }
+}
+
 export const supabaseAuthStorage: SupabaseAuthStorage | undefined =
-  typeof window !== 'undefined' && Capacitor.isNativePlatform()
+  isPreferencesAvailable()
     ? {
         async getItem(key) {
           const { value } = await Preferences.get({ key })

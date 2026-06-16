@@ -1,8 +1,7 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js'
-import { Capacitor } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
-import { supabaseAuthStorage } from './storage'
+import { isPreferencesAvailable, supabaseAuthStorage } from './storage'
 
 let client: SupabaseClient | null = null
 
@@ -12,10 +11,11 @@ const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 export function createClient(): SupabaseClient {
   if (client) return client
 
-  // On native (Capacitor iOS/Android) the @supabase/ssr cookie storage is
-  // unreliable across cold-starts — see lib/supabase/storage.ts for why.
-  // Route the session through Capacitor Preferences instead.
-  if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+  // Only switch to the supabase-js + Preferences path when the Preferences
+  // plugin is *actually* available on this binary. Without that guard,
+  // an iOS binary built before the Preferences pod was added will hit
+  // "Preferences plugin is not implemented on iOS" on every getItem.
+  if (isPreferencesAvailable()) {
     client = createSupabaseClient(URL, KEY, {
       auth: {
         storage: supabaseAuthStorage,
@@ -28,8 +28,9 @@ export function createClient(): SupabaseClient {
     return client
   }
 
-  // Web: keep @supabase/ssr's cookie-based storage so SSR/middleware
-  // (if/when we add any) continues to see the session.
+  // Web (and pre-Preferences iOS binaries) — keep @supabase/ssr's
+  // cookie-based storage. Less durable on iOS but already shipped,
+  // and matches the behavior users had before this update.
   client = createBrowserClient(URL, KEY) as unknown as SupabaseClient
   return client
 }
@@ -73,9 +74,9 @@ export function resetClient() {
         }
       }).catch(() => {})
     }
-    // Capacitor Preferences — primary storage on native, must be cleared
-    // too or the wedged session resurrects on the next createClient().
-    if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+    // Capacitor Preferences — primary storage on native (when the
+    // plugin is linked into this binary). Skip silently otherwise.
+    if (isPreferencesAvailable()) {
       Preferences.keys().then(({ keys }) => {
         for (const k of keys) {
           if (shouldWipeKey(k)) {
