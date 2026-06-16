@@ -26,7 +26,10 @@ export function Header({ currentLeague, leagues, setCurrentLeague, setModalOpen 
   );
 
   return (
-    <header className="p-4 bg-zinc-950 border-b border-zinc-800 sticky top-0 z-50 flex justify-between items-center backdrop-blur-md bg-zinc-950/90">
+    <header
+      className="px-4 pb-4 bg-zinc-950 border-b border-zinc-800 sticky top-0 z-50 flex justify-between items-center backdrop-blur-md bg-zinc-950/90"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
+    >
       <div className="flex flex-col">
         <span className="text-[10px] font-bold text-green-500 tracking-tighter uppercase">Active League</span>
         <DropdownMenu>

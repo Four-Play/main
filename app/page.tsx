@@ -53,39 +53,97 @@ export default function FourplayApp() {
 
   // Check session on mount
   useEffect(() => {
+    const FAIL_COUNT_KEY = 'fp_auth_fail_count'
+
+    const recordFailure = () => {
+      try {
+        const n = parseInt(localStorage.getItem(FAIL_COUNT_KEY) ?? '0', 10) + 1
+        localStorage.setItem(FAIL_COUNT_KEY, String(n))
+        return n
+      } catch { return 1 }
+    }
+
+    const clearFailures = () => {
+      try { localStorage.removeItem(FAIL_COUNT_KEY) } catch {}
+    }
+
+    const hardReset = () => {
+      resetClient()
+      clearFailures()
+      // window.location.reload bypasses BFCache and any in-memory zombie
+      // SDK timers from a crashed previous launch. After a second
+      // consecutive failure this is the only reliable escape.
+      try { window.location.reload() } catch {}
+    }
+
     const checkSession = async () => {
-      // Safety net: never stay stuck on the loading screen.
-      // If anything hangs (stale token, network blip, bad cache after a deploy)
-      // we force the auth check to complete and show the login screen.
+      // Safety net — should rarely fire now that we use getSession()
+      // (which is synchronous-feeling, no network), but kept as a
+      // last-resort escape if something we haven't anticipated hangs.
       const giveUpTimer = setTimeout(() => {
-        console.warn('Auth check timed out — resetting client')
-        resetClient()
-        createClient().auth.signOut({ scope: 'local' }).catch(() => {})
-        setAuthChecked(true)
-      }, 6000)
+        console.warn('Auth check timed out — recovering')
+        const fails = recordFailure()
+        if (fails >= 2) {
+          hardReset()
+        } else {
+          resetClient()
+          setAuthChecked(true)
+        }
+      }, 4000)
 
       try {
         const supabase = createClient()
 
-        // getUser() validates the session server-side and auto-refreshes
-        // the access token if it's expired but the refresh token is still
-        // valid. getSession() only reads local storage and doesn't refresh.
-        const { data: { user: authUser }, error } = await supabase.auth.getUser()
+        // Read the cached session straight from localStorage. No network
+        // call — so this can't hang, can't deadlock on a slow Supabase,
+        // and can't bury the user in a relaunch loop on a flaky network.
+        // Server-side validation will happen lazily on the first real
+        // API call (Supabase auto-refreshes the access token at that
+        // point if needed).
+        const { data: { session } } = await supabase.auth.getSession()
 
-        if (error || !authUser) {
-          // Wedged/expired session — nuke ALL stored auth state, not just
-          // the main token. PKCE or chunked-token leftovers from a prior
-          // crash (e.g. iOS camera permission) can otherwise resurrect.
-          resetClient()
+        if (!session?.user) {
+          // No local session — not an error, just means "not signed in".
+          clearFailures()
           return
         }
 
-        const profile = await getProfile(authUser.id)
-        if (profile) setUser(profile)
+        // We have a usable session. Load the profile, but tolerate a
+        // slow/failing profile fetch — fall back to auth metadata so a
+        // database hiccup can't wedge the user out of the app.
+        try {
+          const profile = await Promise.race([
+            getProfile(session.user.id),
+            new Promise<null>(resolve => setTimeout(() => resolve(null), 3000)),
+          ])
+          if (profile) {
+            setUser(profile)
+          } else {
+            const meta = (session.user.user_metadata ?? {}) as { username?: string }
+            setUser({
+              id: session.user.id,
+              username: meta.username ?? session.user.email?.split('@')[0] ?? 'Player',
+              total_points: 0,
+            } as Profile)
+          }
+        } catch {
+          const meta = (session.user.user_metadata ?? {}) as { username?: string }
+          setUser({
+            id: session.user.id,
+            username: meta.username ?? session.user.email?.split('@')[0] ?? 'Player',
+            total_points: 0,
+          } as Profile)
+        }
+
+        clearFailures()
       } catch (err: any) {
         console.error('Session check failed:', err)
+        const fails = recordFailure()
+        if (fails >= 2) {
+          hardReset()
+          return
+        }
         resetClient()
-        try { await createClient().auth.signOut({ scope: 'local' }) } catch {}
       } finally {
         clearTimeout(giveUpTimer)
         setAuthChecked(true)

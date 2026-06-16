@@ -12,31 +12,44 @@ export function createClient() {
   return client
 }
 
+const AUTH_KEY_PREFIXES = ['sb-', 'supabase.', 'supabase-']
+
+function shouldWipeKey(key: string | null): boolean {
+  if (!key) return false
+  return AUTH_KEY_PREFIXES.some(p => key.startsWith(p))
+}
+
 /** Nuke the singleton AND any stored session data so the next
- *  createClient() call starts completely clean. */
+ *  createClient() call starts completely clean. Covers localStorage,
+ *  sessionStorage, cookies, and IndexedDB — every place we've seen
+ *  Supabase persist auth state in production. */
 export function resetClient() {
   client = null
   try {
-    // Clear ALL Supabase keys from localStorage. Auth stores several
-    // (main token, code-verifier for PKCE, etc.) — leaving stragglers
-    // can wedge the next sign-in in an inconsistent state.
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i)
-      if (key && key.startsWith('sb-')) localStorage.removeItem(key)
+      if (shouldWipeKey(key)) localStorage.removeItem(key!)
     }
-    // Also clear sessionStorage — PKCE state can land here too, and
-    // an iOS WebView that crashed mid-permission-flow may have left
-    // partial keys behind.
     for (let i = sessionStorage.length - 1; i >= 0; i--) {
       const key = sessionStorage.key(i)
-      if (key && key.startsWith('sb-')) sessionStorage.removeItem(key)
+      if (shouldWipeKey(key)) sessionStorage.removeItem(key!)
     }
-    // Same for cookies — @supabase/ssr chunks sessions across sb-*.0, .1, etc.
     document.cookie.split(';').forEach(c => {
       const name = c.trim().split('=')[0]
-      if (name.startsWith('sb-')) {
+      if (shouldWipeKey(name)) {
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
       }
     })
+    // IndexedDB: newer Supabase clients may stash session state here.
+    // Best-effort — older browsers don't expose .databases().
+    if (typeof indexedDB !== 'undefined' && typeof indexedDB.databases === 'function') {
+      indexedDB.databases().then(dbs => {
+        for (const db of dbs) {
+          if (db.name && shouldWipeKey(db.name)) {
+            try { indexedDB.deleteDatabase(db.name) } catch {}
+          }
+        }
+      }).catch(() => {})
+    }
   } catch {}
 }

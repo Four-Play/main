@@ -9,7 +9,10 @@ interface NavbarProps {
 
 export function Navbar({ activeTab, setActiveTab }: NavbarProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-zinc-950/90 backdrop-blur-xl border-t border-zinc-800 flex justify-around p-3 pb-8 max-w-md mx-auto z-50">
+    <nav
+      className="fixed bottom-0 left-0 right-0 bg-zinc-950/90 backdrop-blur-xl border-t border-zinc-800 flex justify-around px-3 pt-3 max-w-md mx-auto z-50"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+    >
       <NavButton active={activeTab === 'picks'} onClick={() => setActiveTab('picks')} icon={Ticket} label="PICKS" />
       <NavButton active={activeTab === 'league'} onClick={() => setActiveTab('league')} icon={Trophy} label="LEAGUE" />
       <NavButton active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={Settings} label="SETTINGS" />
