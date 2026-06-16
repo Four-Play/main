@@ -3,16 +3,15 @@
 // updates game rows, then scores all picks and calculates weekly results.
 
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient, getAuthenticatedUser } from '@/lib/supabase/server'
 import { scoreExistingGames } from '@/lib/scoring'
 import { getCurrentSportKey } from '@/config/season'
 
 const ODDS_API_KEY = process.env.ODDS_API_KEY!
 const SPORT_KEY = getCurrentSportKey()
 
-export async function POST() {
-  const authClient = await createServerSupabaseClient()
-  const { data: { user } } = await authClient.auth.getUser()
+export async function POST(request: Request) {
+  const user = await getAuthenticatedUser(request)
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

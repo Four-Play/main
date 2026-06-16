@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Crown, Copy, Check, Trash2, Loader2, FlaskConical, Play, Lock, Unlock } from "lucide-react"
 import { updateLeague, deleteLeague } from '@/services/leagueService'
+import { authFetch } from '@/lib/api'
 import type { League } from '@/types/database'
 
 interface LeagueSettingsModalProps {
@@ -120,7 +121,7 @@ export function LeagueSettingsModal({
     if (!confirmed) return
     setIsResetting(true)
     try {
-      const res = await fetch('/api/admin/reset-league', {
+      const res = await authFetch('/api/admin/reset-league', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leagueId: currentLeague.id, clearGames: true }),
@@ -141,7 +142,7 @@ export function LeagueSettingsModal({
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 30000)
     try {
-      const res = await fetch('/api/admin/score', { method: 'POST', signal: controller.signal })
+      const res = await authFetch('/api/admin/score', { method: 'POST', signal: controller.signal })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setDevMessage(`✓ Scored ${data.picksScored} picks across ${data.weeksCalculated} week(s)`)
@@ -157,7 +158,7 @@ export function LeagueSettingsModal({
     setIsSimulating(true)
     setDevMessage('')
     try {
-      const res = await fetch('/api/admin/simulate-week', {
+      const res = await authFetch('/api/admin/simulate-week', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ week: simWeek, year: currentYear }),

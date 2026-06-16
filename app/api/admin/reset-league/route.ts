@@ -4,12 +4,11 @@
 // Requires a valid logged-in Supabase session.
 
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient, getAuthenticatedUser } from '@/lib/supabase/server'
 import { SPORT_CONFIG, ACTIVE_SPORT } from '@/lib/weekUtils'
 
 export async function POST(request: Request) {
-  const authClient = await createServerSupabaseClient()
-  const { data: { user } } = await authClient.auth.getUser()
+  const user = await getAuthenticatedUser(request)
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -22,7 +21,8 @@ export async function POST(request: Request) {
   }
 
   // Verify the requesting user is an admin of this league
-  const { data: membership } = await authClient
+  const supabaseAdminCheck = createServiceClient()
+  const { data: membership } = await supabaseAdminCheck
     .from('league_members')
     .select('role')
     .eq('league_id', leagueId)

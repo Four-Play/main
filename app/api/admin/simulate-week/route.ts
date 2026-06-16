@@ -3,12 +3,11 @@
 // then runs the scoring pipeline. Used for testing multi-week standings.
 
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient, getAuthenticatedUser } from '@/lib/supabase/server'
 import { scoreExistingGames } from '@/lib/scoring'
 
 export async function POST(request: Request) {
-  const authClient = await createServerSupabaseClient()
-  const { data: { user } } = await authClient.auth.getUser()
+  const user = await getAuthenticatedUser(request)
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

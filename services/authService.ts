@@ -125,7 +125,8 @@ export async function updateProfile(userId: string, updates: Partial<Profile>): 
 }
 
 export async function deleteAccount(): Promise<void> {
-  const res = await fetch('/api/account/delete', { method: 'POST' })
+  const { authFetch } = await import('@/lib/api')
+  const res = await authFetch('/api/account/delete', { method: 'POST' })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.error ?? 'Failed to delete account')
