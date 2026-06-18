@@ -14,6 +14,8 @@ import { signIn, signUp, signOut, getProfile, requestPasswordReset, updatePasswo
 import { getMyLeagues } from '@/services/leagueService'
 import { getMyPicks, savePick, deletePick } from '@/services/picksService'
 import { createClient, resetClient } from '@/lib/supabase/client'
+import { Preferences } from '@capacitor/preferences'
+import { isPreferencesAvailable } from '@/lib/supabase/storage'
 import type { Profile, League, Game, Pick } from '@/types/database'
 import { computeCurrentWeek, ACTIVE_SPORT } from '@/lib/weekUtils'
 import { SEASON_YEAR } from '@/config/season'
@@ -84,33 +86,61 @@ export default function FourplayApp() {
     }
 
     const checkSession = async () => {
-      // Safety net — should rarely fire now that we use getSession()
-      // (which is synchronous-feeling, no network), but kept as a
-      // last-resort escape if something we haven't anticipated hangs.
+      // Safety net: if getSession() blocks for too long (e.g. the Supabase token
+      // refresh network call hangs on cold start), unblock the UI. We intentionally
+      // do NOT call resetClient() in the non-hardReset branch — that would wipe
+      // Preferences and orphan the subscription client, which is what was causing
+      // the "session lost on cold restart" bug.
       const giveUpTimer = setTimeout(() => {
         console.warn('Auth check timed out — recovering')
         const fails = recordFailure()
         if (fails >= 2) {
           hardReset()
         } else {
-          resetClient()
           setAuthChecked(true)
         }
-      }, 4000)
+      }, 15000)
 
       try {
         const supabase = createClient()
 
-        // Read the cached session straight from localStorage. No network
-        // call — so this can't hang, can't deadlock on a slow Supabase,
-        // and can't bury the user in a relaunch loop on a flaky network.
-        // Server-side validation will happen lazily on the first real
-        // API call (Supabase auto-refreshes the access token at that
-        // point if needed).
-        const { data: { session } } = await supabase.auth.getSession()
+        // getSession() reads the session from storage (Preferences on native).
+        // IMPORTANT: when the access token is expired (> ~90 seconds past expiry),
+        // Supabase internally makes a network call to refresh it. On cold start
+        // this network call can take 5-10 s while iOS initialises the network stack.
+        // If refresh fails due to a transient network error (retryable), Supabase
+        // returns { session: null, error } but PRESERVES the data in Preferences
+        // (only a 4xx "invalid token" response clears storage and fires SIGNED_OUT).
+        // We handle that case below by reading Preferences directly.
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
         if (!session?.user) {
-          // No local session — not an error, just means "not signed in".
+          if (sessionError && isPreferencesAvailable()) {
+            // Transient network failure during token refresh — the session is still
+            // in Preferences. Restore the user from raw stored data so the app is
+            // immediately usable; autoRefreshToken will complete the refresh in the
+            // background and fire TOKEN_REFRESHED when the network recovers.
+            try {
+              const projectRef = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname.split('.')[0]
+              const { value } = await Preferences.get({ key: `sb-${projectRef}-auth-token` })
+              if (value) {
+                const stored = JSON.parse(value) as {
+                  user?: { id: string; email?: string; user_metadata?: Record<string, string> }
+                  refresh_token?: string
+                }
+                if (stored?.user?.id && stored?.refresh_token) {
+                  const meta = stored.user.user_metadata ?? {}
+                  setUser({
+                    id: stored.user.id,
+                    username: meta.username ?? stored.user.email?.split('@')[0] ?? 'Player',
+                    total_points: 0,
+                  } as Profile)
+                  clearFailures()
+                  return
+                }
+              }
+            } catch {}
+          }
           clearFailures()
           return
         }
@@ -150,7 +180,8 @@ export default function FourplayApp() {
           hardReset()
           return
         }
-        resetClient()
+        // Don't resetClient() — wiping storage here would prevent the user
+        // from logging in on the same client the subscription is attached to.
       } finally {
         clearTimeout(giveUpTimer)
         setAuthChecked(true)
@@ -174,7 +205,12 @@ export default function FourplayApp() {
         setLeagues([])
         setCurrentLeague(null)
       }
-      if (event === 'SIGNED_IN' && session?.user) {
+      // Handle both SIGNED_IN (fresh login or recovered non-expired session) and
+      // TOKEN_REFRESHED (background refresh completed after a cold-start delay).
+      // TOKEN_REFRESHED is critical: if checkSession() restored the user from raw
+      // Preferences data before the refresh finished, this ensures the full profile
+      // (including total_points) is loaded once the network call completes.
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
         const profile = await getProfile(session.user.id)
         if (profile) setUser(profile)
       }
