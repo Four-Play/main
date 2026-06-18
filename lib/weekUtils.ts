@@ -30,7 +30,7 @@ interface SportConfig {
 
 export const SPORT_CONFIG: Record<string, SportConfig> = {
   americanfootball_nfl: {
-    seasonStart: '2026-09-04',
+    seasonStart: '2026-09-09',
     seasonYear: 2026,
     displayName: '2026 NFL Season',
     tagline: 'Pick 4 games against the spread and outlast your league.',
