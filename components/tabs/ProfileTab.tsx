@@ -64,6 +64,7 @@ export function ProfileTab({
       await onSignOut()
     } catch (err: any) {
       alert(err.message)
+    } finally {
       setIsSigningOut(false)
     }
   }
