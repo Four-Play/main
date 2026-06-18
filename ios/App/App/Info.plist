@@ -53,5 +53,7 @@
 	<string>Fourplay needs access to your photo library so you can choose a photo for your profile picture.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Fourplay may save photos you take in-app to your photo library.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
