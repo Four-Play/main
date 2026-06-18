@@ -45,19 +45,7 @@ export function PicksTab({
         <p className="text-[9px] text-zinc-500 mt-0.5">{activeSport.tagline}</p>
       </div>
 
-      {ACTIVE_SPORT === 'basketball_nba' && (
-        <div className="rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">2026 NFL Season</p>
-            <p className="text-[9px] text-zinc-600 mt-0.5">September 9th — coming soon</p>
-          </div>
-          <span className="text-[8px] font-black uppercase tracking-widest bg-zinc-800 text-zinc-500 px-2 py-1 rounded">
-            Soon
-          </span>
-        </div>
-      )}
-
-      <WeekSwitcher
+<WeekSwitcher
         selectedWeek={selectedWeek}
         onSelectWeek={setSelectedWeek}
         weeks={weeks}

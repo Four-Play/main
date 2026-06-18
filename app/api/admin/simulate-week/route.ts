@@ -37,10 +37,10 @@ export async function POST(request: Request) {
       )
     }
 
-    // Generate random but spread-aware scores (NBA range: 85–130 pts)
+    // Generate random but spread-aware scores (NFL range: 7–45 pts)
     for (const game of games) {
-      const homeScore = Math.floor(Math.random() * 46) + 85
-      const awayScore = Math.floor(Math.random() * 46) + 85
+      const homeScore = Math.floor(Math.random() * 39) + 7
+      const awayScore = Math.floor(Math.random() * 39) + 7
 
       await supabase
         .from('games')
