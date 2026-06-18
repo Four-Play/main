@@ -1,25 +1,14 @@
-// Custom Supabase storage adapter for Capacitor.
+// Custom Supabase storage adapter using IndexedDB.
 //
-// iOS WKWebView's localStorage and cookies are NOT reliably persistent
-// across app cold-starts (the system data store can be evicted under
-// memory pressure, cleared by iOS storage management, or simply fail to
-// rehydrate after a crash). Users on the native iOS build were getting
-// logged out on every relaunch as a result.
+// localStorage is NOT reliably persistent across iOS WKWebView cold-starts —
+// the OS can evict it under memory pressure. Capacitor Preferences (NSUserDefaults)
+// was the previous solution but it depends on the Capacitor bridge being ready
+// at module-load time, which is a race condition we can't win reliably.
 //
-// On native we route the session to Capacitor Preferences instead, which
-// is backed by `NSUserDefaults` on iOS — the platform's most durable
-// per-app key-value store. On web we leave storage undefined so the
-// supabase-js client falls back to its default localStorage adapter,
-// which is fine in real browsers.
-
-import { Capacitor } from '@capacitor/core'
-import { Preferences } from '@capacitor/preferences'
+// IndexedDB IS persistent across cold-starts in iOS WKWebView (iOS 16+) and
+// requires no native plugin. It's async, which matches Supabase's storage interface.
 
 export const AUTH_KEY_PREFIXES = ['sb-', 'supabase.', 'supabase-']
-
-function isAuthKey(key: string): boolean {
-  return AUTH_KEY_PREFIXES.some(p => key.startsWith(p))
-}
 
 export interface SupabaseAuthStorage {
   getItem(key: string): Promise<string | null>
@@ -27,81 +16,81 @@ export interface SupabaseAuthStorage {
   removeItem(key: string): Promise<void>
 }
 
-/**
- * True only when we're running inside a Capacitor native binary that
- * was *also* compiled with the @capacitor/preferences plugin linked in.
- * The JS bundle and the native binary update independently: Vercel can
- * ship a new bundle that calls Preferences.get() before the corresponding
- * native binary is on the App Store, and on that intermediate binary the
- * call fails with "Preferences plugin is not implemented on iOS". Guard
- * against that here so the JS gracefully falls back to localStorage
- * until the user's binary catches up.
- */
-export function isPreferencesAvailable(): boolean {
-  if (typeof window === 'undefined') return false
-  if (!Capacitor.isNativePlatform()) return false
-  try {
-    return Capacitor.isPluginAvailable('Preferences')
-  } catch {
-    return false
+const IDB_DB_NAME = 'fp_auth'
+const IDB_STORE = 'kv'
+
+class IndexedDBStorage implements SupabaseAuthStorage {
+  private dbPromise: Promise<IDBDatabase> | null = null
+
+  private openDB(): Promise<IDBDatabase> {
+    if (this.dbPromise) return this.dbPromise
+    this.dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open(IDB_DB_NAME, 1)
+      req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE)
+      req.onsuccess = () => resolve(req.result)
+      req.onerror = () => {
+        this.dbPromise = null // allow retry
+        reject(req.error)
+      }
+    })
+    return this.dbPromise
+  }
+
+  async getItem(key: string): Promise<string | null> {
+    try {
+      const db = await this.openDB()
+      return await new Promise<string | null>((resolve, reject) => {
+        const req = db.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).get(key)
+        req.onsuccess = () => resolve(req.result ?? null)
+        req.onerror = () => reject(req.error)
+      })
+    } catch {
+      try { return localStorage.getItem(key) } catch { return null }
+    }
+  }
+
+  async setItem(key: string, value: string): Promise<void> {
+    try {
+      const db = await this.openDB()
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite')
+        tx.objectStore(IDB_STORE).put(value, key)
+        tx.oncomplete = () => resolve()
+        tx.onerror = () => reject(tx.error)
+      })
+    } catch {
+      try { localStorage.setItem(key, value) } catch {}
+    }
+  }
+
+  async removeItem(key: string): Promise<void> {
+    try {
+      const db = await this.openDB()
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite')
+        tx.objectStore(IDB_STORE).delete(key)
+        tx.oncomplete = () => resolve()
+        tx.onerror = () => reject(tx.error)
+      })
+    } catch {
+      try { localStorage.removeItem(key) } catch {}
+    }
+  }
+
+  // Wipes all entries — called by resetClient on sign-out
+  clearAll(): void {
+    this.dbPromise = null
+    try { indexedDB.deleteDatabase(IDB_DB_NAME) } catch {}
   }
 }
 
-export const supabaseAuthStorage: SupabaseAuthStorage | undefined =
-  isPreferencesAvailable()
-    ? {
-        async getItem(key) {
-          const { value } = await Preferences.get({ key })
-          return value
-        },
-        async setItem(key, value) {
-          await Preferences.set({ key, value })
-        },
-        async removeItem(key) {
-          await Preferences.remove({ key })
-        },
-      }
-    : undefined
+// Only instantiate client-side. IndexedDB doesn't exist in Node (SSR).
+const idbStorage = typeof window !== 'undefined' && typeof indexedDB !== 'undefined'
+  ? new IndexedDBStorage()
+  : null
 
-/**
- * Called once on cold-start before the Supabase client reads storage.
- * Copies Supabase session keys from Preferences → localStorage so that
- * the localStorage fallback path (used when isPreferencesAvailable()
- * returned false at module-load time) can still find a saved session.
- * No-op on web or when Preferences plugin is unavailable.
- */
-export async function restoreSessionFromPreferences(): Promise<void> {
-  if (!isPreferencesAvailable()) return
-  try {
-    const { keys } = await Preferences.keys()
-    for (const key of keys) {
-      if (!isAuthKey(key)) continue
-      const { value } = await Preferences.get({ key })
-      if (value != null) {
-        try { localStorage.setItem(key, value) } catch {}
-      }
-    }
-  } catch {}
-}
+export const supabaseAuthStorage: SupabaseAuthStorage | undefined = idbStorage ?? undefined
 
-/**
- * Called after SIGNED_IN / TOKEN_REFRESHED.
- * Copies current Supabase session keys from localStorage → Preferences
- * so they survive iOS WKWebView clearing localStorage between cold starts.
- * No-op on web or when Preferences plugin is unavailable.
- */
-export async function backupSessionToPreferences(): Promise<void> {
-  if (!isPreferencesAvailable()) return
-  try {
-    const writes: Promise<void>[] = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (!key || !isAuthKey(key)) continue
-      const value = localStorage.getItem(key)
-      if (value != null) {
-        writes.push(Preferences.set({ key, value }).catch(() => {}))
-      }
-    }
-    await Promise.all(writes)
-  } catch {}
+export function clearAuthStorage(): void {
+  idbStorage?.clearAll()
 }

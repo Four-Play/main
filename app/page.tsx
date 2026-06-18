@@ -14,12 +14,16 @@ import { signIn, signUp, signOut, getProfile, requestPasswordReset, updatePasswo
 import { getMyLeagues } from '@/services/leagueService'
 import { getMyPicks, savePick, deletePick } from '@/services/picksService'
 import { createClient, resetClient } from '@/lib/supabase/client'
-import { restoreSessionFromPreferences, backupSessionToPreferences } from '@/lib/supabase/storage'
 import type { Profile, League, Game, Pick } from '@/types/database'
 import { computeCurrentWeek, ACTIVE_SPORT } from '@/lib/weekUtils'
 import { SEASON_YEAR } from '@/config/season'
 
 export default function FourplayApp() {
+  // Tracks when a sign-in is in-flight so stray SIGNED_OUT events (e.g. from
+  // the Supabase client delivering an initial "no session" notification while
+  // a new signInWithPassword is completing) don't wipe the incoming user.
+  const signingInRef = React.useRef(false)
+
   // Auth state
   const [user, setUser] = useState<Profile | null>(null)
   const [isSignUp, setIsSignUp] = useState(false)
@@ -95,11 +99,6 @@ export default function FourplayApp() {
       }, 4000)
 
       try {
-        // On iOS cold-start, WKWebView may have cleared localStorage. Restore
-        // any Supabase session keys we previously backed up to Capacitor
-        // Preferences so the client finds a valid session without a network call.
-        await restoreSessionFromPreferences()
-
         const supabase = createClient()
 
         // Read the cached session straight from localStorage. No network
@@ -167,20 +166,17 @@ export default function FourplayApp() {
         setPasswordRecovery(true)
         return
       }
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
+      // Ignore SIGNED_OUT while a login is actively in-flight. The Supabase
+      // client sometimes delivers a stale "no session" notification that races
+      // with a concurrent signInWithPassword completing successfully.
+      if ((event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) && !signingInRef.current) {
         setUser(null)
         setLeagues([])
         setCurrentLeague(null)
       }
       if (event === 'SIGNED_IN' && session?.user) {
-        // Back up the new session to Preferences so it survives cold restarts.
-        backupSessionToPreferences()
         const profile = await getProfile(session.user.id)
         if (profile) setUser(profile)
-      }
-      if (event === 'TOKEN_REFRESHED' && session) {
-        // Refreshed tokens need to be persisted too.
-        backupSessionToPreferences()
       }
     })
 
@@ -313,6 +309,7 @@ export default function FourplayApp() {
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsAuthLoading(true)
+    signingInRef.current = true
 
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Request timed out — please check your connection and try again.')), 20000)
@@ -335,6 +332,7 @@ export default function FourplayApp() {
     } catch (error: any) {
       alert(error.message || 'Authentication failed. Please try again.')
     } finally {
+      signingInRef.current = false
       setIsAuthLoading(false)
     }
   }
