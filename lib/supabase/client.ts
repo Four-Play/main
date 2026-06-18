@@ -22,7 +22,11 @@ export function createClient(): SupabaseClient {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: false,
-        flowType: 'pkce',
+        // implicit: recovery emails embed tokens directly in the URL hash so
+        // any browser client can handle them without a PKCE code verifier.
+        // pkce requires the same client session that generated the code challenge,
+        // which breaks when the email link opens in Safari (new client, no verifier).
+        flowType: 'implicit',
       },
     })
     return client
