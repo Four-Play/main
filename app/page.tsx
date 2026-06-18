@@ -14,6 +14,7 @@ import { signIn, signUp, signOut, getProfile, requestPasswordReset, updatePasswo
 import { getMyLeagues } from '@/services/leagueService'
 import { getMyPicks, savePick, deletePick } from '@/services/picksService'
 import { createClient, resetClient } from '@/lib/supabase/client'
+import { restoreSessionFromPreferences, backupSessionToPreferences } from '@/lib/supabase/storage'
 import type { Profile, League, Game, Pick } from '@/types/database'
 import { computeCurrentWeek, ACTIVE_SPORT } from '@/lib/weekUtils'
 import { SEASON_YEAR } from '@/config/season'
@@ -94,6 +95,11 @@ export default function FourplayApp() {
       }, 4000)
 
       try {
+        // On iOS cold-start, WKWebView may have cleared localStorage. Restore
+        // any Supabase session keys we previously backed up to Capacitor
+        // Preferences so the client finds a valid session without a network call.
+        await restoreSessionFromPreferences()
+
         const supabase = createClient()
 
         // Read the cached session straight from localStorage. No network
@@ -167,8 +173,14 @@ export default function FourplayApp() {
         setCurrentLeague(null)
       }
       if (event === 'SIGNED_IN' && session?.user) {
+        // Back up the new session to Preferences so it survives cold restarts.
+        backupSessionToPreferences()
         const profile = await getProfile(session.user.id)
         if (profile) setUser(profile)
+      }
+      if (event === 'TOKEN_REFRESHED' && session) {
+        // Refreshed tokens need to be persisted too.
+        backupSessionToPreferences()
       }
     })
 

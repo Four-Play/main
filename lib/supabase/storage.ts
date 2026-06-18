@@ -15,6 +15,12 @@
 import { Capacitor } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
 
+export const AUTH_KEY_PREFIXES = ['sb-', 'supabase.', 'supabase-']
+
+function isAuthKey(key: string): boolean {
+  return AUTH_KEY_PREFIXES.some(p => key.startsWith(p))
+}
+
 export interface SupabaseAuthStorage {
   getItem(key: string): Promise<string | null>
   setItem(key: string, value: string): Promise<void>
@@ -56,3 +62,46 @@ export const supabaseAuthStorage: SupabaseAuthStorage | undefined =
         },
       }
     : undefined
+
+/**
+ * Called once on cold-start before the Supabase client reads storage.
+ * Copies Supabase session keys from Preferences → localStorage so that
+ * the localStorage fallback path (used when isPreferencesAvailable()
+ * returned false at module-load time) can still find a saved session.
+ * No-op on web or when Preferences plugin is unavailable.
+ */
+export async function restoreSessionFromPreferences(): Promise<void> {
+  if (!isPreferencesAvailable()) return
+  try {
+    const { keys } = await Preferences.keys()
+    for (const key of keys) {
+      if (!isAuthKey(key)) continue
+      const { value } = await Preferences.get({ key })
+      if (value != null) {
+        try { localStorage.setItem(key, value) } catch {}
+      }
+    }
+  } catch {}
+}
+
+/**
+ * Called after SIGNED_IN / TOKEN_REFRESHED.
+ * Copies current Supabase session keys from localStorage → Preferences
+ * so they survive iOS WKWebView clearing localStorage between cold starts.
+ * No-op on web or when Preferences plugin is unavailable.
+ */
+export async function backupSessionToPreferences(): Promise<void> {
+  if (!isPreferencesAvailable()) return
+  try {
+    const writes: Promise<void>[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key || !isAuthKey(key)) continue
+      const value = localStorage.getItem(key)
+      if (value != null) {
+        writes.push(Preferences.set({ key, value }).catch(() => {}))
+      }
+    }
+    await Promise.all(writes)
+  } catch {}
+}

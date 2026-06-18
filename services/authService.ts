@@ -38,9 +38,10 @@ export async function signUp(email: string, password: string, username: string):
 }
 
 export async function signIn(email: string, password: string): Promise<Profile> {
-  // Nuke the singleton and any stored session so the new client starts clean.
-  // resetClient() also clears localStorage + cookies, so no extra signOut needed.
-  resetClient()
+  // Do NOT call resetClient() here. Doing so orphans the singleton that
+  // onAuthStateChange is subscribed to; the old client then fires SIGNED_OUT
+  // and wipes user state immediately after the new login succeeds — which is
+  // why the "first login fails, second succeeds" symptom appeared.
   const supabase = createClient()
 
   console.log('[auth] signing in...')
