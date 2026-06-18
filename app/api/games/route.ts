@@ -190,6 +190,28 @@ export async function GET(request: Request) {
     const allGames = [...upcomingGames, ...completedGames]
 
     if (allGames.length === 0) {
+      // Odds API returned nothing (off-season, market closed, etc.).
+      // Fall back to whatever is already in the database for this week so
+      // games that were previously fetched continue to display.
+      const { data: fallback } = await supabase
+        .from('games')
+        .select('*')
+        .eq('season_year', year)
+        .order('commence_time', { ascending: true })
+
+      if (fallback && fallback.length > 0) {
+        const filtered = weekConfig
+          ? fallback.filter((g: any) => {
+              const gameDate = toETDateString(g.commence_time)
+              return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
+            })
+          : fallback.filter((g: any) => g.nfl_week === week)
+
+        if (filtered.length > 0) {
+          return NextResponse.json({ games: filtered, week, currentWeek, year, source: 'cache-fallback' })
+        }
+      }
+
       return NextResponse.json({ games: [], week, currentWeek, year, message: 'No games found' })
     }
 
