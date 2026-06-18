@@ -13,19 +13,14 @@ import { EditPicksBar } from '@/components/layout/EditPicksBar'
 import { signIn, signUp, signOut, getProfile, requestPasswordReset, updatePassword } from '@/services/authService'
 import { getMyLeagues } from '@/services/leagueService'
 import { getMyPicks, savePick, deletePick } from '@/services/picksService'
-import { createClient, resetClient } from '@/lib/supabase/client'
-import { Preferences } from '@capacitor/preferences'
-import { isPreferencesAvailable } from '@/lib/supabase/storage'
+import { supabase } from '@/lib/supabase/client'
+import { readStoredUser } from '@/lib/supabase/storage'
+import { Capacitor } from '@capacitor/core'
 import type { Profile, League, Game, Pick } from '@/types/database'
 import { computeCurrentWeek, ACTIVE_SPORT } from '@/lib/weekUtils'
 import { SEASON_YEAR } from '@/config/season'
 
 export default function FourplayApp() {
-  // Tracks when a sign-in is in-flight so stray SIGNED_OUT events (e.g. from
-  // the Supabase client delivering an initial "no session" notification while
-  // a new signInWithPassword is completing) don't wipe the incoming user.
-  const signingInRef = React.useRef(false)
-
   // Auth state
   const [user, setUser] = useState<Profile | null>(null)
   const [isSignUp, setIsSignUp] = useState(false)
@@ -60,212 +55,83 @@ export default function FourplayApp() {
   const [currentYear, setCurrentYear] = useState(SEASON_YEAR)
   const [selectedWeek, setSelectedWeek] = useState(() => computeCurrentWeek(ACTIVE_SPORT))
 
-  // Check session on mount
+  // Auth bootstrap + state change listener
   useEffect(() => {
-    const FAIL_COUNT_KEY = 'fp_auth_fail_count'
+    const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform()
 
-    const recordFailure = () => {
-      try {
-        const n = parseInt(localStorage.getItem(FAIL_COUNT_KEY) ?? '0', 10) + 1
-        localStorage.setItem(FAIL_COUNT_KEY, String(n))
-        return n
-      } catch { return 1 }
-    }
-
-    const clearFailures = () => {
-      try { localStorage.removeItem(FAIL_COUNT_KEY) } catch {}
-    }
-
-    const hardReset = () => {
-      resetClient()
-      clearFailures()
-      // window.location.reload bypasses BFCache and any in-memory zombie
-      // SDK timers from a crashed previous launch. After a second
-      // consecutive failure this is the only reliable escape.
-      try { window.location.reload() } catch {}
-    }
-
-    const checkSession = async () => {
-      // Safety net: if getSession() blocks for too long (e.g. the Supabase token
-      // refresh network call hangs on cold start), unblock the UI. We intentionally
-      // do NOT call resetClient() in the non-hardReset branch — that would wipe
-      // Preferences and orphan the subscription client, which is what was causing
-      // the "session lost on cold restart" bug.
-      const giveUpTimer = setTimeout(() => {
-        console.warn('Auth check timed out — recovering')
-        const fails = recordFailure()
-        if (fails >= 2) {
-          hardReset()
-        } else {
-          setAuthChecked(true)
-        }
-      }, 15000)
-
-      try {
-        const supabase = createClient()
-
-        // getSession() reads the session from storage (Preferences on native).
-        // IMPORTANT: when the access token is expired (> ~90 seconds past expiry),
-        // Supabase internally makes a network call to refresh it. On cold start
-        // this network call can take 5-10 s while iOS initialises the network stack.
-        // If refresh fails due to a transient network error (retryable), Supabase
-        // returns { session: null, error } but PRESERVES the data in Preferences
-        // (only a 4xx "invalid token" response clears storage and fires SIGNED_OUT).
-        // We handle that case below by reading Preferences directly.
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-        if (!session?.user) {
-          if (sessionError && isPreferencesAvailable()) {
-            // Transient network failure during token refresh — the session is still
-            // in Preferences. Restore the user from raw stored data so the app is
-            // immediately usable; autoRefreshToken will complete the refresh in the
-            // background and fire TOKEN_REFRESHED when the network recovers.
-            try {
-              const projectRef = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname.split('.')[0]
-              const { value } = await Preferences.get({ key: `sb-${projectRef}-auth-token` })
-              if (value) {
-                const stored = JSON.parse(value) as {
-                  user?: { id: string; email?: string; user_metadata?: Record<string, string> }
-                  refresh_token?: string
-                }
-                if (stored?.user?.id && stored?.refresh_token) {
-                  const meta = stored.user.user_metadata ?? {}
-                  setUser({
-                    id: stored.user.id,
-                    username: meta.username ?? stored.user.email?.split('@')[0] ?? 'Player',
-                    total_points: 0,
-                  } as Profile)
-                  clearFailures()
-                  return
-                }
-              }
-            } catch {}
-          }
-          clearFailures()
-          return
-        }
-
-        // We have a usable session. Load the profile, but tolerate a
-        // slow/failing profile fetch — fall back to auth metadata so a
-        // database hiccup can't wedge the user out of the app.
-        try {
-          const profile = await Promise.race([
-            getProfile(session.user.id),
-            new Promise<null>(resolve => setTimeout(() => resolve(null), 3000)),
-          ])
-          if (profile) {
-            setUser(profile)
-          } else {
-            const meta = (session.user.user_metadata ?? {}) as { username?: string }
-            setUser({
-              id: session.user.id,
-              username: meta.username ?? session.user.email?.split('@')[0] ?? 'Player',
-              total_points: 0,
-            } as Profile)
-          }
-        } catch {
-          const meta = (session.user.user_metadata ?? {}) as { username?: string }
-          setUser({
-            id: session.user.id,
-            username: meta.username ?? session.user.email?.split('@')[0] ?? 'Player',
-            total_points: 0,
-          } as Profile)
-        }
-
-        clearFailures()
-      } catch (err: any) {
-        console.error('Session check failed:', err)
-        const fails = recordFailure()
-        if (fails >= 2) {
-          hardReset()
-          return
-        }
-        // Don't resetClient() — wiping storage here would prevent the user
-        // from logging in on the same client the subscription is attached to.
-      } finally {
-        clearTimeout(giveUpTimer)
-        setAuthChecked(true)
+    // On iOS: read the raw stored session from NSUserDefaults immediately so
+    // the app is visible before any network call happens. This is the key to
+    // Instagram-style "always logged in" behavior: read local storage first,
+    // show the app, let token refresh happen in the background.
+    // On web: wait for INITIAL_SESSION (localStorage is synchronous, fires in <50ms).
+    async function bootstrap() {
+      if (!isNative) return
+      const stored = await readStoredUser()
+      if (stored?.id) {
+        const meta = stored.user_metadata ?? {}
+        setUser({
+          id: stored.id,
+          username: meta.username ?? stored.email?.split('@')[0] ?? 'Player',
+          total_points: 0,
+        } as Profile)
       }
+      setAuthChecked(true)
     }
 
-    checkSession()
+    bootstrap()
 
-    // Listen for auth changes
-    const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         setPasswordRecovery(true)
         return
       }
-      // Ignore SIGNED_OUT while a login is actively in-flight. The Supabase
-      // client sometimes delivers a stale "no session" notification that races
-      // with a concurrent signInWithPassword completing successfully.
-      if ((event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) && !signingInRef.current) {
+
+      if (event === 'SIGNED_OUT') {
         setUser(null)
         setLeagues([])
         setCurrentLeague(null)
+        return
       }
-      // Handle both SIGNED_IN (fresh login or recovered non-expired session) and
-      // TOKEN_REFRESHED (background refresh completed after a cold-start delay).
-      // TOKEN_REFRESHED is critical: if checkSession() restored the user from raw
-      // Preferences data before the refresh finished, this ensures the full profile
-      // (including total_points) is loaded once the network call completes.
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-        const profile = await getProfile(session.user.id)
+
+      // On web, INITIAL_SESSION is the definitive first auth state signal.
+      if (event === 'INITIAL_SESSION' && !isNative) {
+        if (session?.user) {
+          const profile = await getProfile(session.user.id).catch(() => null)
+          if (profile) setUser(profile)
+        }
+        setAuthChecked(true)
+        return
+      }
+
+      // On native, INITIAL_SESSION fires after Supabase's internal refresh attempt.
+      // If the network was available, session is valid and we update the profile.
+      // If the network was unavailable, session is null — bootstrap already showed
+      // the app; TOKEN_REFRESHED will fire when the network recovers.
+      if (session?.user && (
+        event === 'SIGNED_IN' ||
+        event === 'TOKEN_REFRESHED' ||
+        (event === 'INITIAL_SESSION' && isNative)
+      )) {
+        let profile = await getProfile(session.user.id).catch(() => null)
+
+        // For new signups the DB trigger may not have fired yet — create the profile row.
+        if (!profile && event === 'SIGNED_IN') {
+          const meta = session.user.user_metadata ?? {}
+          const username = meta.username ?? session.user.email?.split('@')[0] ?? 'Player'
+          const { data } = await supabase
+            .from('profiles')
+            .insert({ id: session.user.id, username })
+            .select()
+            .single()
+          profile = data as Profile | null
+        }
+
         if (profile) setUser(profile)
       }
     })
 
     return () => subscription.unsubscribe()
   }, [])
-
-  // When the tab comes back into the foreground after a long idle, validate
-  // the session before any other request fires. Without this, returning to
-  // a backgrounded Safari tab after a few hours triggers requests against
-  // a client whose token expired while the tab was suspended — and the
-  // refresh can hang indefinitely, leaving every UI action stuck loading.
-  useEffect(() => {
-    if (!user) return
-
-    let hiddenAt: number | null = null
-
-    const onVisibilityChange = async () => {
-      if (document.visibilityState === 'hidden') {
-        hiddenAt = Date.now()
-        return
-      }
-
-      if (document.visibilityState !== 'visible' || hiddenAt == null) return
-      const hiddenForMs = Date.now() - hiddenAt
-      hiddenAt = null
-      if (hiddenForMs < 10 * 60 * 1000) return // ignore brief tab switches
-
-      try {
-        const supabase = createClient()
-        const result = await Promise.race([
-          supabase.auth.getUser(),
-          new Promise<{ data: { user: null }; error: Error }>((resolve) =>
-            setTimeout(() => resolve({ data: { user: null }, error: new Error('timeout') }), 5000)
-          ),
-        ])
-        if (result.error || !result.data.user) {
-          // Session is gone or unreachable — bounce to login cleanly.
-          resetClient()
-          setUser(null)
-          setLeagues([])
-          setCurrentLeague(null)
-        }
-      } catch {
-        resetClient()
-        setUser(null)
-        setLeagues([])
-        setCurrentLeague(null)
-      }
-    }
-
-    document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
-  }, [user])
 
   // Load leagues when user is set
   useEffect(() => {
@@ -345,30 +211,23 @@ export default function FourplayApp() {
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsAuthLoading(true)
-    signingInRef.current = true
-
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out — please check your connection and try again.')), 20000)
-    )
-
     try {
       const formData = new FormData(e.currentTarget)
       const email = formData.get('email') as string
       const password = formData.get('password') as string
-
       let profile: Profile
       if (isSignUp) {
         const username = formData.get('name') as string
-        profile = await Promise.race([signUp(email, password, username), timeout])
+        profile = await signUp(email, password, username)
       } else {
-        profile = await Promise.race([signIn(email, password), timeout])
+        profile = await signIn(email, password)
       }
-
+      // Show the app immediately with auth metadata.
+      // onAuthStateChange's SIGNED_IN listener loads the full profile from DB.
       setUser(profile)
     } catch (error: any) {
       alert(error.message || 'Authentication failed. Please try again.')
     } finally {
-      signingInRef.current = false
       setIsAuthLoading(false)
     }
   }
@@ -589,7 +448,7 @@ export default function FourplayApp() {
                 setLeagueSettingsOpen={setLeagueSettingsOpen}
                 onSignOut={async () => {
                   await signOut()
-                  setUser(null)
+                  // SIGNED_OUT event from onAuthStateChange clears user/leagues
                 }}
                 onAccountDeleted={() => {
                   setUser(null)

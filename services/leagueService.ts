@@ -1,6 +1,6 @@
 // src/services/leagueService.ts
 // services/leagueService.ts
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 import type { League, LeagueMember, WeeklyResult, WeekSummary } from '@/types/database'
 
 
@@ -9,7 +9,7 @@ export async function createLeague(
   adminId: string,
   payoutPerLossCents: number = 5000
 ): Promise<League> {
-  const supabase = createClient()
+
   // Generate invite code via DB function
   const { data: codeData } = await supabase.rpc('generate_invite_code')
   const invite_code = codeData as string
@@ -46,7 +46,7 @@ export async function joinLeagueWithCode(
   )
 
   const work = (async () => {
-    const supabase = createClient()
+  
     const { data: league, error } = await supabase
       .from('leagues')
       .select('*')
@@ -81,7 +81,7 @@ export async function joinLeagueWithCode(
 }
 
 export async function getMyLeagues(userId: string): Promise<League[]> {
-  const supabase = createClient()
+
   const { data, error } = await supabase
     .from('league_members')
     .select('league_id, leagues(*)')
@@ -98,7 +98,7 @@ export async function getLeagueMembers(leagueId: string): Promise<LeagueMember[]
   )
 
   const work = (async () => {
-    const supabase = createClient()
+  
     const { data, error } = await supabase
       .from('league_members')
       .select(`
@@ -120,7 +120,7 @@ export async function getLeagueWeeklyResults(
   week: number,
   year: number
 ): Promise<WeekSummary> {
-  const supabase = createClient()
+
   const { data: results, error } = await supabase
     .from('weekly_results')
     .select(`
@@ -155,7 +155,7 @@ export async function getAllLeagueWeeklyResults(
   leagueId: string,
   year: number
 ): Promise<WeekSummary[]> {
-  const supabase = createClient()
+
   const { data: results, error } = await supabase
     .from('weekly_results')
     .select(`
@@ -197,7 +197,7 @@ export async function updateLeague(
   leagueId: string,
   updates: Partial<Pick<League, 'name' | 'payout_per_loss_cents' | 'spread_cushion' | 'is_locked'>>
 ): Promise<League> {
-  const supabase = createClient()
+
   const { data, error } = await supabase
     .from('leagues')
     .update(updates)
@@ -211,7 +211,7 @@ export async function updateLeague(
 }
 
 export async function deleteLeague(leagueId: string): Promise<void> {
-  const supabase = createClient()
+
   const { error } = await supabase
     .from('leagues')
     .delete()

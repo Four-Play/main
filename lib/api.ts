@@ -7,10 +7,9 @@
 // On web the cookie is still attached automatically, but sending the
 // header too is harmless and lets the server prefer one source of truth.
 
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 
 export async function authFetch(url: string, init: RequestInit = {}): Promise<Response> {
-  const supabase = createClient()
   const { data: { session } } = await supabase.auth.getSession()
   const headers = new Headers(init.headers)
   if (session?.access_token) {

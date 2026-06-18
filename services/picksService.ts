@@ -1,5 +1,5 @@
 // services/picksService.ts
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 import type { Pick, Game } from '@/types/database'
 
 export async function getMyPicks(
@@ -8,7 +8,7 @@ export async function getMyPicks(
   week: number,
   year: number
 ): Promise<Pick[]> {
-  const supabase = createClient()
+
   const { data, error } = await supabase
     .from('picks')
     .select(`
@@ -32,7 +32,7 @@ export async function savePick(
   week: number,
   year: number
 ): Promise<Pick> {
-  const supabase = createClient()
+
   const { data, error } = await supabase
     .from('picks')
     .upsert({
@@ -57,7 +57,7 @@ export async function deletePick(
   gameId: string,
   teamSelected: string
 ): Promise<void> {
-  const supabase = createClient()
+
   const { error } = await supabase
     .from('picks')
     .delete()
@@ -77,7 +77,7 @@ export async function getLeaguePicks(
   year: number,
   currentUserId: string
 ): Promise<Pick[]> {
-  const supabase = createClient()
+
   const { data, error } = await supabase
     .from('picks')
     .select(`

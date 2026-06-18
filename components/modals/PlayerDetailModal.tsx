@@ -13,7 +13,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog"
 import { Lock, Loader2, ChevronDown, ChevronUp, Users } from "lucide-react"
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 import type { LeagueMember, Pick, WeeklyResult } from '@/types/database'
 import { formatPoints } from '@/types/database'
 import { getWeekLabel, ACTIVE_SPORT } from '@/lib/weekUtils'
@@ -37,7 +37,6 @@ export function PlayerDetailModal({ player, onClose, currentLeagueId }: PlayerDe
       setLoading(true)
       setExpandedWeeks(new Set())
       try {
-        const supabase = createClient()
         const [historyRes, picksRes] = await Promise.all([
           supabase
             .from('weekly_results')

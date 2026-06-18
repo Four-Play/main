@@ -1,73 +1,48 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { Capacitor } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
-import { isPreferencesAvailable, createPreferencesAdapter, AUTH_KEY_PREFIXES } from './storage'
 
-let client: SupabaseClient | null = null
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+function buildClient() {
+  if (typeof window === 'undefined') {
+    // Server-side render pass — no auth state here; API routes use server.ts
+    return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  }
 
-export function createClient(): SupabaseClient {
-  if (client) return client
-
-  // isPreferencesAvailable() is safe to call here: createClient() is only
-  // ever called from useEffect or event handlers, never at module-load time,
-  // so the Capacitor bridge is guaranteed to be fully initialised by now.
-  if (isPreferencesAvailable()) {
-    // createPreferencesAdapter() is called inline (not at module load) for the
-    // same reason: the adapter must be created after the bridge is ready.
-    client = createSupabaseClient(URL, KEY, {
+  if (Capacitor.isNativePlatform()) {
+    // iOS: store the session in NSUserDefaults via Capacitor Preferences.
+    // NSUserDefaults survives force-kills so sessions persist across cold restarts.
+    return createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
-        storage: createPreferencesAdapter(),
+        storage: {
+          getItem: async (key: string) => {
+            const { value } = await Preferences.get({ key })
+            return value
+          },
+          setItem: async (key: string, value: string) => {
+            await Preferences.set({ key, value })
+          },
+          removeItem: async (key: string) => {
+            await Preferences.remove({ key })
+          },
+        },
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: false,
         flowType: 'implicit',
       },
     })
-    return client
   }
 
-  // Web fallback (Safari, desktop browser). detectSessionInUrl:true lets the
-  // browser client pick up the password-recovery hash from email links.
-  client = createBrowserClient(URL, KEY) as unknown as SupabaseClient
-  return client
+  // Web: Supabase's default localStorage-backed client.
+  return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 }
 
-function shouldWipeKey(key: string | null): boolean {
-  if (!key) return false
-  return AUTH_KEY_PREFIXES.some(p => key.startsWith(p))
-}
+// Single client instance — created once, never destroyed.
+export const supabase = buildClient()
 
-export function resetClient() {
-  client = null
-
-  try {
-    // Clear localStorage / sessionStorage / cookies (belt-and-suspenders for
-    // any session data that landed outside Preferences via the SSR fallback).
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i)
-      if (shouldWipeKey(key)) localStorage.removeItem(key!)
-    }
-    for (let i = sessionStorage.length - 1; i >= 0; i--) {
-      const key = sessionStorage.key(i)
-      if (shouldWipeKey(key)) sessionStorage.removeItem(key!)
-    }
-    document.cookie.split(';').forEach(c => {
-      const name = c.trim().split('=')[0]
-      if (shouldWipeKey(name)) {
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
-      }
-    })
-  } catch {}
-
-  // Clear Capacitor Preferences (primary storage on native).
-  if (isPreferencesAvailable()) {
-    Preferences.keys().then(({ keys }) => {
-      for (const k of keys) {
-        if (shouldWipeKey(k)) Preferences.remove({ key: k }).catch(() => {})
-      }
-    }).catch(() => {})
-  }
-}
+// The key Supabase uses to store the auth session in Preferences / localStorage.
+export const AUTH_STORAGE_KEY = `sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`
