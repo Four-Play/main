@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { AuthScreen } from '@/components/auth/AuthScreen'
+import { ResetPasswordScreen } from '@/components/auth/ResetPasswordScreen'
 import { PicksTab } from '@/components/tabs/PicksTab'
 import { LeagueTab } from '@/components/tabs/LeagueTab'
 import { ProfileTab } from '@/components/tabs/ProfileTab'
@@ -9,7 +10,7 @@ import { Header } from '@/components/layout/Header'
 import { Navbar } from '@/components/layout/Navbar'
 import { SubmitBar } from '@/components/layout/SubmitBar'
 import { EditPicksBar } from '@/components/layout/EditPicksBar'
-import { signIn, signUp, signOut, getProfile } from '@/services/authService'
+import { signIn, signUp, signOut, getProfile, requestPasswordReset, updatePassword } from '@/services/authService'
 import { getMyLeagues } from '@/services/leagueService'
 import { getMyPicks, savePick, deletePick } from '@/services/picksService'
 import { createClient, resetClient } from '@/lib/supabase/client'
@@ -23,6 +24,7 @@ export default function FourplayApp() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   // App state
   const [activeTab, setActiveTab] = useState('picks')
@@ -155,6 +157,10 @@ export default function FourplayApp() {
     // Listen for auth changes
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecovery(true)
+        return
+      }
       if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
         setUser(null)
         setLeagues([])
@@ -447,6 +453,17 @@ export default function FourplayApp() {
     )
   }
 
+  if (passwordRecovery) {
+    return (
+      <ResetPasswordScreen
+        onSubmit={async (newPassword) => {
+          await updatePassword(newPassword)
+          setPasswordRecovery(false)
+        }}
+      />
+    )
+  }
+
   if (!user) {
     return (
       <AuthScreen
@@ -454,6 +471,7 @@ export default function FourplayApp() {
         setIsSignUp={setIsSignUp}
         handleAuth={handleAuth}
         isLoading={isAuthLoading}
+        onRequestPasswordReset={requestPasswordReset}
       />
     )
   }

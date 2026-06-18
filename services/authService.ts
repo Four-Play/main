@@ -111,6 +111,20 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   return data as Profile | null
 }
 
+export async function requestPasswordReset(email: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://www.fourplaypicks.com',
+  })
+  if (error) throw new Error(error.message)
+}
+
+export async function updatePassword(newPassword: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw new Error(error.message)
+}
+
 export async function updateProfile(userId: string, updates: Partial<Profile>): Promise<Profile> {
   const supabase = createClient()
   const { data, error } = await supabase
