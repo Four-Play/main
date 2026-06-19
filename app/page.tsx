@@ -427,7 +427,6 @@ export default function FourplayApp() {
                 setViewingPlayer={setViewingPlayer}
                 currentWeek={currentWeek}
                 currentYear={currentYear}
-                authReady={authReady}
               />
             )}
             

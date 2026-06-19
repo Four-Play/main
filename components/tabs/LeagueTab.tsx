@@ -17,7 +17,6 @@ interface LeagueTabProps {
   setViewingPlayer: (player: any) => void
   currentWeek: number
   currentYear: number
-  authReady: boolean
 }
 
 export function LeagueTab({
@@ -27,30 +26,33 @@ export function LeagueTab({
   setViewingPlayer,
   currentWeek,
   currentYear,
-  authReady,
 }: LeagueTabProps) {
   const [members, setMembers] = useState<LeagueMember[]>([])
   const [weekSummaries, setWeekSummaries] = useState<WeekSummary[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [activeView, setActiveView] = useState<'standings' | 'week'>('standings')
 
   useEffect(() => {
-    if (!currentLeague || !authReady) return
-    let cancelled = false
-    setLoading(true)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
 
-    authFetch(`/api/league-tab?leagueId=${currentLeague}&year=${currentYear}`)
+    authFetch(`/api/league-tab?leagueId=${currentLeague}&year=${currentYear}`, { signal: controller.signal })
       .then(res => res.json())
       .then(data => {
-        if (cancelled) return
         if (data.members) setMembers(data.members)
         if (data.weekSummaries) setWeekSummaries(data.weekSummaries)
       })
-      .catch(err => console.error('LeagueTab load failed:', err))
-      .finally(() => { if (!cancelled) setLoading(false) })
+      .catch(() => {})
+      .finally(() => {
+        clearTimeout(timeout)
+        setLoading(false)
+      })
 
-    return () => { cancelled = true }
-  }, [currentLeague, currentYear, authReady])
+    return () => {
+      clearTimeout(timeout)
+      controller.abort()
+    }
+  }, [currentLeague, currentYear])
 
   if (loading) {
     return (
