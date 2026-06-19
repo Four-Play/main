@@ -230,12 +230,17 @@ export async function GET(request: Request) {
         .eq('season_year', year)
         .neq('status', 'final')
 
+      const now = new Date()
       const stale = (cachedThisWeek ?? []).filter((g: any) => {
         const gameDate = toETDateString(g.commence_time)
+        // Only evict a game that the API no longer returns if it has already
+        // started — a future game missing from the API just means spreads
+        // haven't been posted yet, not that the matchup changed.
         return (
           gameDate >= weekConfig.startDate &&
           gameDate <= weekConfig.endDate &&
-          !apiIdSet.has(g.external_id)
+          !apiIdSet.has(g.external_id) &&
+          new Date(g.commence_time) < now
         )
       })
 
