@@ -172,22 +172,14 @@ export async function updateLeague(
   leagueId: string,
   updates: Partial<Pick<League, 'name' | 'payout_per_loss_cents' | 'spread_cushion' | 'is_locked'>>
 ): Promise<League> {
-
-  const { error } = await supabase
-    .from('leagues')
-    .update(updates)
-    .eq('id', leagueId)
-
-  if (error) throw new Error(error.message)
-
-  const { data, error: fetchError } = await supabase
-    .from('leagues')
-    .select()
-    .eq('id', leagueId)
-    .single()
-
-  if (fetchError || !data) throw new Error(fetchError?.message ?? 'League not found')
-  return data as League
+  const res = await authFetch('/api/leagues/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ leagueId, updates }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error ?? 'Failed to update league')
+  return data.league as League
 }
 
 export async function deleteLeague(leagueId: string): Promise<void> {
