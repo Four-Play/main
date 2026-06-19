@@ -5,40 +5,19 @@ import { authFetch } from '@/lib/api'
 import type { League, LeagueMember, WeeklyResult, WeekSummary } from '@/types/database'
 
 
-function generateInviteCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-}
-
 export async function createLeague(
   name: string,
-  adminId: string,
+  _adminId: string,
   payoutPerLossCents: number = 5000
 ): Promise<League> {
-
-  const invite_code = generateInviteCode()
-
-  const { data: league, error } = await supabase
-    .from('leagues')
-    .insert({
-      name,
-      invite_code,
-      admin_id: adminId,
-      payout_per_loss_cents: payoutPerLossCents,
-    })
-    .select()
-    .single()
-
-  if (error) throw new Error(error.message)
-
-  // Auto-join as admin
-  await supabase.from('league_members').insert({
-    league_id: league.id,
-    user_id: adminId,
-    role: 'admin',
+  const res = await authFetch('/api/leagues/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, payoutPerLossCents }),
   })
-
-  return league as League
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error ?? 'Failed to create league')
+  return data.league as League
 }
 
 export async function joinLeagueWithCode(
@@ -183,11 +162,11 @@ export async function updateLeague(
 }
 
 export async function deleteLeague(leagueId: string): Promise<void> {
-
-  const { error } = await supabase
-    .from('leagues')
-    .delete()
-    .eq('id', leagueId)
-
-  if (error) throw new Error(error.message)
+  const res = await authFetch('/api/leagues/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ leagueId }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error ?? 'Failed to delete league')
 }
