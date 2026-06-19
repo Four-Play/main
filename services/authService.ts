@@ -28,7 +28,7 @@ export async function signUp(email: string, password: string, username: string):
 }
 
 export async function signOut(): Promise<void> {
-  await supabase.auth.signOut()
+  await supabase.auth.signOut({ scope: 'local' })
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
