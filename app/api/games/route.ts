@@ -62,8 +62,16 @@ export async function GET(request: Request) {
     const controller = new AbortController()
     const apiTimeout = setTimeout(() => controller.abort(), 10000)
 
+    // Scope the odds request to the exact week window so the API returns games
+    // even when they're months away (the default window is only ~a week out).
+    const weekFrom = weekConfig ? `${weekConfig.startDate}T00:00:00Z` : ''
+    const weekTo   = weekConfig ? `${weekConfig.endDate}T23:59:59Z`   : ''
+    const dateParams = weekConfig
+      ? `&commenceTimeFrom=${weekFrom}&commenceTimeTo=${weekTo}`
+      : ''
+
     const [oddsRes, scoresRes] = await Promise.all([
-      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american`, { cache: 'no-store', signal: controller.signal }),
+      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american${dateParams}`, { cache: 'no-store', signal: controller.signal }),
       fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=3`, { cache: 'no-store', signal: controller.signal }),
     ]).finally(() => clearTimeout(apiTimeout))
 
