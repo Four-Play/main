@@ -1,6 +1,7 @@
 // src/services/leagueService.ts
 // services/leagueService.ts
 import { supabase } from '@/lib/supabase/client'
+import { authFetch } from '@/lib/api'
 import type { League, LeagueMember, WeeklyResult, WeekSummary } from '@/types/database'
 
 
@@ -42,45 +43,16 @@ export async function createLeague(
 
 export async function joinLeagueWithCode(
   inviteCode: string,
-  userId: string
+  _userId: string
 ): Promise<League> {
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('Request timed out — check your connection and try again')), 15000)
-  )
-
-  const work = (async () => {
-
-    const { data: league, error } = await supabase
-      .from('leagues')
-      .select('*')
-      .eq('invite_code', inviteCode.toUpperCase())
-      .maybeSingle()
-
-    if (error) throw new Error(`League lookup failed: ${error.message}`)
-    if (!league) throw new Error('Invalid invite code — double-check the code and try again')
-
-    if (league.is_locked) throw new Error('This league is not accepting new members')
-
-    // Check if already a member — use maybeSingle so "no row" isn't an error
-    const { data: existing } = await supabase
-      .from('league_members')
-      .select('id')
-      .eq('league_id', league.id)
-      .eq('user_id', userId)
-      .maybeSingle()
-
-    if (existing) throw new Error('You are already in this league')
-
-    const { error: joinError } = await supabase
-      .from('league_members')
-      .insert({ league_id: league.id, user_id: userId, role: 'member' })
-
-    if (joinError) throw new Error(joinError.message)
-
-    return league as League
-  })()
-
-  return Promise.race([work, timeout])
+  const res = await authFetch('/api/leagues/join', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ inviteCode }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error ?? 'Failed to join league')
+  return data.league as League
 }
 
 export async function getMyLeagues(userId: string): Promise<League[]> {
