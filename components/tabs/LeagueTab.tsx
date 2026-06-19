@@ -17,6 +17,7 @@ interface LeagueTabProps {
   setViewingPlayer: (player: any) => void
   currentWeek: number
   currentYear: number
+  authReady: boolean
 }
 
 export function LeagueTab({
@@ -26,6 +27,7 @@ export function LeagueTab({
   setViewingPlayer,
   currentWeek,
   currentYear,
+  authReady,
 }: LeagueTabProps) {
   const [members, setMembers] = useState<LeagueMember[]>([])
   const [weekSummaries, setWeekSummaries] = useState<WeekSummary[]>([])
@@ -33,7 +35,7 @@ export function LeagueTab({
   const [activeView, setActiveView] = useState<'standings' | 'week'>('standings')
 
   useEffect(() => {
-    if (!currentLeague) return
+    if (!currentLeague || !authReady) return
     let cancelled = false
     setLoading(true)
 
@@ -78,7 +80,7 @@ export function LeagueTab({
     // what we fetch (members + every week's results), so excluding it
     // avoids unnecessary refetches when the parent recomputes the week.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentLeague, currentYear])
+  }, [currentLeague, currentYear, authReady])
 
   if (loading) {
     return (
