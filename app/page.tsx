@@ -57,6 +57,15 @@ export default function FourplayApp() {
   const [currentYear, setCurrentYear] = useState(SEASON_YEAR)
   const [selectedWeek, setSelectedWeek] = useState(() => computeCurrentWeek(ACTIVE_SPORT))
 
+  // Detect password reset redirect from /auth/callback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('reset') === 'true') {
+      setPasswordRecovery(true)
+      window.history.replaceState({}, '', '/')
+    }
+  }, [])
+
   // Auth bootstrap + state change listener
   useEffect(() => {
     const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform()

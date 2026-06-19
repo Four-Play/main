@@ -32,10 +32,13 @@ export async function signOut(): Promise<void> {
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://www.fourplaypicks.com',
+  const res = await fetch('/api/auth/reset-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
   })
-  if (error) throw new Error(error.message)
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error ?? 'Failed to send reset email')
 }
 
 export async function updatePassword(newPassword: string): Promise<void> {
