@@ -89,7 +89,7 @@ export function GameCard({ game, favPick, dogPick, isHistorical, onSelect, disab
   isLocked && !anySelected ? 'opacity-50' : 'opacity-100'
 }`}
     >
-      <CardContent className="px-2 pt-1.5 pb-2">
+      <CardContent className="px-2 pt-1 pb-1.5">
         {isLocked && anySelected && (
           <Lock className="absolute top-1.5 right-2 w-3 h-3 text-green-500/60" />
         )}
