@@ -1,11 +1,10 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Sliders, Trophy, TrendingDown, TrendingUp, Users } from "lucide-react"
-import { authFetch } from '@/lib/api'
 import { getWeekLabel, ACTIVE_SPORT } from '@/lib/weekUtils'
 import type { LeagueMember, WeekSummary } from '@/types/database'
 import { formatPoints } from '@/types/database'
@@ -17,6 +16,7 @@ interface LeagueTabProps {
   setViewingPlayer: (player: any) => void
   currentWeek: number
   currentYear: number
+  accessToken: string | null
 }
 
 export function LeagueTab({
@@ -26,33 +26,66 @@ export function LeagueTab({
   setViewingPlayer,
   currentWeek,
   currentYear,
+  accessToken,
 }: LeagueTabProps) {
   const [members, setMembers] = useState<LeagueMember[]>([])
   const [weekSummaries, setWeekSummaries] = useState<WeekSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [activeView, setActiveView] = useState<'standings' | 'week'>('standings')
+  const [refreshKey, setRefreshKey] = useState(0)
+  const hiddenAtRef = useRef<number>(0)
+
+  // Re-fetch when app comes back to foreground after 30+ seconds away.
+  // This runs once and is not dependent on any fetch state.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAtRef.current = Date.now()
+      } else if (Date.now() - hiddenAtRef.current > 30_000) {
+        setRefreshKey(k => k + 1)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
 
   useEffect(() => {
+    let active = true
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 8000)
 
-    authFetch(`/api/league-tab?leagueId=${currentLeague}&year=${currentYear}`, { signal: controller.signal })
+    // Hard wall-clock timeout: directly clears loading even if the fetch
+    // or session lookup hangs. AbortController.abort() alone is not enough
+    // because it only cancels fetch(), not upstream async work.
+    const timeout = setTimeout(() => {
+      if (active) setLoading(false)
+    }, 8000)
+
+    const headers: HeadersInit = accessToken
+      ? { Authorization: `Bearer ${accessToken}` }
+      : {}
+
+    fetch(`/api/league-tab?leagueId=${currentLeague}&year=${currentYear}`, {
+      headers,
+      signal: controller.signal,
+    })
       .then(res => res.json())
       .then(data => {
+        if (!active) return
         if (data.members) setMembers(data.members)
         if (data.weekSummaries) setWeekSummaries(data.weekSummaries)
       })
       .catch(() => {})
       .finally(() => {
         clearTimeout(timeout)
-        setLoading(false)
+        if (active) setLoading(false)
       })
 
     return () => {
+      active = false
       clearTimeout(timeout)
       controller.abort()
     }
-  }, [currentLeague, currentYear])
+  }, [currentLeague, currentYear, accessToken, refreshKey])
 
   if (loading) {
     return (

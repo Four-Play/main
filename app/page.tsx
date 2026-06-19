@@ -28,6 +28,7 @@ export default function FourplayApp() {
   const [isAuthLoading, setIsAuthLoading] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
   const [authReady, setAuthReady] = useState(false)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
   const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   // App state
@@ -101,6 +102,7 @@ export default function FourplayApp() {
         setUser(null)
         setLeagues([])
         setCurrentLeague(null)
+        setAccessToken(null)
         return
       }
 
@@ -139,6 +141,7 @@ export default function FourplayApp() {
 
         if (profile) setUser(profile)
         setAuthReady(true)
+        setAccessToken(session.access_token)
 
         // The session is confirmed valid here, so load leagues directly.
         // This is the reliable path for cold starts: bootstrap shows the user
@@ -427,6 +430,7 @@ export default function FourplayApp() {
                 setViewingPlayer={setViewingPlayer}
                 currentWeek={currentWeek}
                 currentYear={currentYear}
+                accessToken={accessToken}
               />
             )}
             
