@@ -62,29 +62,40 @@ export async function GET(request: Request) {
     const controller = new AbortController()
     const apiTimeout = setTimeout(() => controller.abort(), 10000)
 
-    // Scope the odds request to the exact week window so the API returns games
-    // even when they're months away (the default window is only ~a week out).
+    // Scope requests to the exact week window so the API returns games even
+    // when they're months away (the default window is only ~a week out).
     const weekFrom = weekConfig ? `${weekConfig.startDate}T00:00:00Z` : ''
     const weekTo   = weekConfig ? `${weekConfig.endDate}T23:59:59Z`   : ''
     const dateParams = weekConfig
       ? `&commenceTimeFrom=${weekFrom}&commenceTimeTo=${weekTo}`
       : ''
 
-    const [oddsRes, scoresRes] = await Promise.all([
+    // /events is the primary schedule source — uses far fewer API credits than
+    // /odds (which bills per bookmaker per game). /odds is best-effort for
+    // spreads and silently ignored when the quota is exceeded.
+    const [eventsRes, oddsRes, scoresRes] = await Promise.all([
+      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/events/?apiKey=${ODDS_API_KEY}${dateParams}`, { cache: 'no-store', signal: controller.signal }),
       fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american${dateParams}`, { cache: 'no-store', signal: controller.signal }),
       fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=3`, { cache: 'no-store', signal: controller.signal }),
     ]).finally(() => clearTimeout(apiTimeout))
 
-    const oddsData = oddsRes.ok ? await oddsRes.json() : []
+    const eventsData = eventsRes.ok ? await eventsRes.json() : []
+    const oddsData   = oddsRes.ok   ? await oddsRes.json()   : []   // empty when quota exceeded — that's fine
     const scoresData = scoresRes.ok ? await scoresRes.json() : []
 
-    // Track external_ids we've seen so scores don't duplicate odds entries
+    // Build a fast lookup: event id → bookmaker odds data
+    const oddsById = new Map<string, any>()
+    for (const o of (Array.isArray(oddsData) ? oddsData : [])) {
+      oddsById.set(o.id, o)
+    }
+
+    // Track external_ids we've seen so scores don't duplicate event entries
     const seenIds = new Set<string>()
 
-    // Lock in spreads only for games that have already started — live lines
-    // shift during/after the game, but pre-game line movement is useful to show.
+    // Lock in spreads for games that have already started so live line
+    // movement doesn't retroactively change what was shown pre-kickoff.
     const allApiIds = [
-      ...(Array.isArray(oddsData) ? oddsData : []).map((e: any) => e.id),
+      ...(Array.isArray(eventsData) ? eventsData : []).map((e: any) => e.id),
       ...(Array.isArray(scoresData) ? scoresData : []).filter((s: any) => s.completed).map((s: any) => s.id),
     ]
     const lockedSpreads = new Map<string, { spread: number; favorite_team: string; underdog_team: string }>()
@@ -100,11 +111,11 @@ export async function GET(request: Request) {
       }
     }
 
-    // Parse upcoming games from odds endpoint (has spread data)
-    const upcomingGames = (Array.isArray(oddsData) ? oddsData : []).map((event: any) => {
+    // Build upcoming games from the /events list (always available), overlaying
+    // spread data from /odds where it exists.
+    const upcomingGames = (Array.isArray(eventsData) ? eventsData : []).map((event: any) => {
       seenIds.add(event.id)
 
-      // If this game already has a spread in the DB, keep it
       const locked = lockedSpreads.get(event.id)
 
       let favTeam = event.home_team
@@ -116,7 +127,8 @@ export async function GET(request: Request) {
         dogTeam = locked.underdog_team
         spread = locked.spread
       } else {
-        const spreadMarket = event.bookmakers
+        const oddsEvent = oddsById.get(event.id)
+        const spreadMarket = oddsEvent?.bookmakers
           ?.find((b: any) => b.key === 'draftkings' || b.key === 'fanduel' || b.key === 'lowvig')
           ?.markets?.find((m: any) => m.key === 'spreads')
 
