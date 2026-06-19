@@ -201,15 +201,20 @@ export async function updateLeague(
   updates: Partial<Pick<League, 'name' | 'payout_per_loss_cents' | 'spread_cushion' | 'is_locked'>>
 ): Promise<League> {
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('leagues')
     .update(updates)
     .eq('id', leagueId)
-    .select()
-    .maybeSingle()
 
   if (error) throw new Error(error.message)
-  if (!data) throw new Error('League not found')
+
+  const { data, error: fetchError } = await supabase
+    .from('leagues')
+    .select()
+    .eq('id', leagueId)
+    .single()
+
+  if (fetchError || !data) throw new Error(fetchError?.message ?? 'League not found')
   return data as League
 }
 
