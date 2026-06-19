@@ -150,23 +150,6 @@ export default function FourplayApp() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Load leagues when user is set
-  useEffect(() => {
-    if (!user) return
-    const loadLeagues = async () => {
-      try {
-        const userLeagues = await getMyLeagues(user.id)
-        setLeagues(userLeagues)
-        if (userLeagues.length > 0 && !currentLeague) {
-          setCurrentLeague(userLeagues[0])
-        }
-      } catch (err) {
-        console.error('Failed to load leagues:', err)
-      }
-    }
-    loadLeagues()
-  }, [user])
-
   // Load games for current week
   const loadGames = useCallback(async (week: number, year: number) => {
     setGamesLoading(true)

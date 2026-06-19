@@ -5,13 +5,13 @@ import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Sliders, Trophy, TrendingDown, TrendingUp, Users } from "lucide-react"
-import { getLeagueMembers, getAllLeagueWeeklyResults } from '@/services/leagueService'
+import { authFetch } from '@/lib/api'
 import { getWeekLabel, ACTIVE_SPORT } from '@/lib/weekUtils'
 import type { LeagueMember, WeekSummary } from '@/types/database'
 import { formatPoints } from '@/types/database'
 
 interface LeagueTabProps {
-  currentLeague: string        // league ID
+  currentLeague: string
   currentLeagueName: string
   setLeagueSettingsOpen: (open: boolean) => void
   setViewingPlayer: (player: any) => void
@@ -31,7 +31,7 @@ export function LeagueTab({
 }: LeagueTabProps) {
   const [members, setMembers] = useState<LeagueMember[]>([])
   const [weekSummaries, setWeekSummaries] = useState<WeekSummary[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [activeView, setActiveView] = useState<'standings' | 'week'>('standings')
 
   useEffect(() => {
@@ -39,47 +39,17 @@ export function LeagueTab({
     let cancelled = false
     setLoading(true)
 
-    // Safety net — never stay stuck on the spinner even if a request hangs
-    const giveUpTimer = setTimeout(() => {
-      if (!cancelled) {
-        console.warn('League data load timed out')
-        setLoading(false)
-      }
-    }, 9000)
-
-    // Load members and weekly results independently so one failure
-    // doesn't blank out the whole tab
-    const loadMembers = getLeagueMembers(currentLeague)
+    authFetch(`/api/league-tab?leagueId=${currentLeague}&year=${currentYear}`)
+      .then(res => res.json())
       .then(data => {
-        if (!cancelled) setMembers(data)
+        if (cancelled) return
+        if (data.members) setMembers(data.members)
+        if (data.weekSummaries) setWeekSummaries(data.weekSummaries)
       })
-      .catch(err => {
-        console.error('getLeagueMembers failed:', err)
-      })
+      .catch(err => console.error('LeagueTab load failed:', err))
+      .finally(() => { if (!cancelled) setLoading(false) })
 
-    const loadWeekly = getAllLeagueWeeklyResults(currentLeague, currentYear)
-      .then(data => {
-        if (!cancelled) setWeekSummaries(data)
-      })
-      .catch(err => {
-        console.error('getAllLeagueWeeklyResults failed:', err)
-      })
-
-    Promise.all([loadMembers, loadWeekly]).finally(() => {
-      if (!cancelled) {
-        clearTimeout(giveUpTimer)
-        setLoading(false)
-      }
-    })
-
-    return () => {
-      cancelled = true
-      clearTimeout(giveUpTimer)
-    }
-    // currentWeek is only used for a render-only label; it doesn't affect
-    // what we fetch (members + every week's results), so excluding it
-    // avoids unnecessary refetches when the parent recomputes the week.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { cancelled = true }
   }, [currentLeague, currentYear, authReady])
 
   if (loading) {
@@ -132,7 +102,6 @@ export function LeagueTab({
       </div>
 
       {activeView === 'standings' ? (
-        /* STANDINGS TABLE */
         <Card className="bg-zinc-950 border-zinc-800 rounded-2xl overflow-hidden">
           <Table>
             <TableBody>
@@ -187,7 +156,6 @@ export function LeagueTab({
           </Table>
         </Card>
       ) : (
-        /* WEEK SUMMARIES — one section per completed week, newest first */
         <div className="space-y-6">
           {weekSummaries.filter(s => s.isFinal).length === 0 ? (
             <div className="flex flex-col items-center py-12 gap-3 text-zinc-600">

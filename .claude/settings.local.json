@@ -15,7 +15,32 @@
       "Bash(git push *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\mic71\\\\OneDrive\\\\Documents\\\\main-main\" -Force)",
       "Bash(Select-Object Name, PSIsContainer)",
-      "Bash(Format-Table)"
+      "Bash(Format-Table)",
+      "Bash(git fetch *)",
+      "Bash(git stash *)",
+      "Bash(git checkout *)",
+      "Bash(pod install *)",
+      "Bash(security find-identity *)",
+      "Bash(curl -s --max-time 10 https://developer.apple.com/services-account/QH65B2/account/ios/profile/listProvisioningProfiles.action -o /dev/null -w \"HTTP %{http_code} in %{time_total}s\")",
+      "Bash(curl -s --max-time 10 https://ocsp.apple.com -o /dev/null -w \"HTTP %{http_code} in %{time_total}s\")",
+      "Bash(LANG=en_US.UTF-8 xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -destination \"generic/platform=iOS\" CODE_SIGN_IDENTITY=\"Apple Distribution\" DEVELOPMENT_TEAM=NDS8AZCNBB archive -archivePath /tmp/FourplayTest.xcarchive)",
+      "Bash(LANG=en_US.UTF-8 xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -destination \"generic/platform=iOS\" archive -archivePath /tmp/FourplayTest.xcarchive)",
+      "Bash(LANG=en_US.UTF-8 xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -destination \"generic/platform=iOS\" -allowProvisioningUpdates archive -archivePath /tmp/FourplayBuild8.xcarchive)",
+      "Bash(git rm *)",
+      "Bash(plutil -lint /Users/saralozano/Documents/main-main/ios/App/App.xcodeproj/project.pbxproj)",
+      "Bash(ls -lt ~/Library/Developer/Xcode/DerivedData/App-*/Logs/Build/*.xcactivitylog 2>/dev/null | head -3)",
+      "Read(//Users/saralozano/Library/Developer/Xcode/DerivedData/**)",
+      "Bash(LANG=en_US.UTF-8 xcodebuild -workspace ios/App/App.xcworkspace -scheme App -showBuildSettings -configuration Release archive)",
+      "Bash(find ~/Library/MobileDevice -name \"*.mobileprovision\" 2>/dev/null | head -10 && echo \"---\" && find ~/Library/Developer/Xcode -name \"*.mobileprovision\" 2>/dev/null | head -10)",
+      "Read(//Users/saralozano/Library/**)",
+      "Read(//Users/saralozano/Library/Developer/Xcode/**)",
+      "Bash(LANG=en_US.UTF-8 xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -destination \"id=085AFC8D-AFED-5400-8C70-F27BC3F24578\" build)",
+      "Bash(rm -rf ~/Library/Developer/Xcode/DerivedData/App-dkrdipwuhztexcfvobpnqadojqoz && echo \"DerivedData cleared\")",
+      "Bash(grep -A1 \"CFBundleVersion\" /tmp/FourplayBuild8.xcarchive/Products/Applications/App.app/Info.plist | tail -1 && grep -A1 \"CFBundleShortVersionString\" /tmp/FourplayBuild8.xcarchive/Products/Applications/App.app/Info.plist | tail -1)",
+      "Read(//private/tmp/FourplayBuild8.xcarchive/Products/Applications/App.app/**)"
+    ],
+    "additionalDirectories": [
+      "/Users/saralozano/Library/Developer/Xcode/DerivedData/App-dkrdipwuhztexcfvobpnqadojqoz"
     ]
   }
 }
