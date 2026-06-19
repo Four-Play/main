@@ -127,6 +127,20 @@ export default function FourplayApp() {
         }
 
         if (profile) setUser(profile)
+
+        // The session is confirmed valid here, so load leagues directly.
+        // This is the reliable path for cold starts: bootstrap shows the user
+        // immediately but the Supabase client may not have finished initialising
+        // (token refresh in progress), so the user-change league effect can run
+        // unauthenticated and get an empty result. We correct that here.
+        getMyLeagues(session.user.id)
+          .then(userLeagues => {
+            setLeagues(userLeagues)
+            if (userLeagues.length > 0) {
+              setCurrentLeague(prev => prev ?? userLeagues[0])
+            }
+          })
+          .catch(() => {})
       }
     })
 
