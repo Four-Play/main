@@ -12,7 +12,8 @@ import { SubmitBar } from '@/components/layout/SubmitBar'
 import { EditPicksBar } from '@/components/layout/EditPicksBar'
 import { signIn, signUp, signOut, getProfile, requestPasswordReset, updatePassword } from '@/services/authService'
 import { getMyLeagues } from '@/services/leagueService'
-import { getMyPicks, savePick, deletePick } from '@/services/picksService'
+import { getMyPicks } from '@/services/picksService'
+import { authFetch } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 import { readStoredUser } from '@/lib/supabase/storage'
 import { Capacitor } from '@capacitor/core'
@@ -313,11 +314,6 @@ export default function FourplayApp() {
     if (pickDiff.total === 0) return
     setIsSubmittingPicks(true)
 
-    // Hard timeout — never leave the spinner hanging forever
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Submission timed out — please try again')), 20000)
-    )
-
     try {
       const now = new Date()
       const canEdit = (gameId: string) => {
@@ -326,29 +322,16 @@ export default function FourplayApp() {
         return new Date(game.commence_time) > now
       }
 
-      const savesToMake = pickDiff.toSave.filter(({ gameId }) => canEdit(gameId))
-      const deletesToMake = pickDiff.toDelete.filter(({ gameId }) => canEdit(gameId))
+      const toSave = pickDiff.toSave.filter(({ gameId }) => canEdit(gameId))
+      const toDelete = pickDiff.toDelete.filter(({ gameId }) => canEdit(gameId))
 
-      console.log('[submit] saving:', savesToMake, 'deleting:', deletesToMake)
-
-      const work = Promise.all([
-        ...savesToMake.map(({ gameId, team }) =>
-          savePick(user.id, currentLeague!.id, gameId, team, selectedWeek, currentYear)
-            .catch((err: any) => {
-              console.error(`[submit] savePick failed for ${gameId}:`, err)
-              throw new Error(`Failed to save pick: ${err?.message ?? 'unknown error'}`)
-            })
-        ),
-        ...deletesToMake.map(({ gameId, team }) =>
-          deletePick(user.id, currentLeague!.id, gameId, team)
-            .catch((err: any) => {
-              console.error(`[submit] deletePick failed for ${gameId}:`, err)
-              throw new Error(`Failed to remove pick: ${err?.message ?? 'unknown error'}`)
-            })
-        ),
-      ])
-
-      await Promise.race([work, timeout])
+      const res = await authFetch('/api/picks/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leagueId: currentLeague!.id, week: selectedWeek, year: currentYear, toSave, toDelete }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to submit picks')
 
       // Reload authoritative state from DB so the UI matches what was actually saved
       await loadPicks()
