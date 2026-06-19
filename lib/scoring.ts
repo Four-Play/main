@@ -149,6 +149,29 @@ export async function calculateWeeklyResults(
       .eq('user_id', member.user_id)
       .eq('league_id', leagueId)
   }))
+
+  // Sync profiles.total_points — sum across ALL leagues so the Settings tab
+  // always reflects the user's true season total. One batch fetch, then parallel updates.
+  const memberIds = members.map((m: any) => m.user_id)
+  const { data: crossLeagueResults } = await supabase
+    .from('weekly_results')
+    .select('user_id, amount_won_cents, amount_owed_cents')
+    .in('user_id', memberIds)
+
+  const totalByUser = new Map<string, number>()
+  for (const r of crossLeagueResults ?? []) {
+    totalByUser.set(
+      r.user_id,
+      (totalByUser.get(r.user_id) ?? 0) + (r.amount_won_cents ?? 0) - (r.amount_owed_cents ?? 0)
+    )
+  }
+
+  await Promise.all(members.map((member: any) =>
+    supabase
+      .from('profiles')
+      .update({ total_points: totalByUser.get(member.user_id) ?? 0 })
+      .eq('id', member.user_id)
+  ))
 }
 
 /**
