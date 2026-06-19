@@ -531,12 +531,12 @@ function formatGameTime(commenceTime: string, status: string): string {
   if (status === 'live') return 'LIVE'
 
   const date = new Date(commenceTime)
-  const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+  const dayStr = date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'America/New_York' }).toUpperCase()
   const timeStr = date.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
     timeZone: 'America/New_York',
   })
-  return `${days[date.getDay()]} ${timeStr}`
+  return `${dayStr} ${timeStr} ET`
 }
