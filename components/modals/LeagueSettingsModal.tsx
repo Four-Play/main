@@ -43,6 +43,7 @@ export function LeagueSettingsModal({
 
   // Dev tools state
   const [isScoring, setIsScoring] = useState(false)
+  const [isRefreshingGames, setIsRefreshingGames] = useState(false)
   const [devMessage, setDevMessage] = useState('')
 
   useEffect(() => {
@@ -126,6 +127,23 @@ export function LeagueSettingsModal({
       setDevMessage(`✗ ${err.message}`)
     } finally {
       setIsResetting(false)
+    }
+  }
+
+  const handleRefreshGames = async () => {
+    setIsRefreshingGames(true)
+    setDevMessage('')
+    try {
+      const res = await authFetch('/api/admin/refresh-games', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      const spreads = Object.values(data.results as Record<string, { spreads: number }>)
+        .reduce((sum, r) => sum + r.spreads, 0)
+      setDevMessage(`✓ Refreshed ${data.totalUpserted} games (${spreads > 0 ? spreads + ' with spreads' : 'no spreads yet — API quota'})`)
+    } catch (err: any) {
+      setDevMessage(`✗ ${err.message}`)
+    } finally {
+      setIsRefreshingGames(false)
     }
   }
 
@@ -295,6 +313,18 @@ export function LeagueSettingsModal({
                   Dev Tools
                 </label>
               </div>
+
+              <Button
+                variant="outline"
+                disabled={isRefreshingGames}
+                onClick={handleRefreshGames}
+                className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[10px] h-10 tracking-widest"
+              >
+                {isRefreshingGames
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <><Play className="w-3 h-3 mr-2" /> Refresh Games</>
+                }
+              </Button>
 
               <Button
                 variant="outline"
