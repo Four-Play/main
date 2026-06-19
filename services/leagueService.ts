@@ -4,15 +4,18 @@ import { supabase } from '@/lib/supabase/client'
 import type { League, LeagueMember, WeeklyResult, WeekSummary } from '@/types/database'
 
 
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
 export async function createLeague(
   name: string,
   adminId: string,
   payoutPerLossCents: number = 5000
 ): Promise<League> {
 
-  // Generate invite code via DB function
-  const { data: codeData } = await supabase.rpc('generate_invite_code')
-  const invite_code = codeData as string
+  const invite_code = generateInviteCode()
 
   const { data: league, error } = await supabase
     .from('leagues')
@@ -42,19 +45,19 @@ export async function joinLeagueWithCode(
   userId: string
 ): Promise<League> {
   const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('Request timed out — please try again')), 10000)
+    setTimeout(() => reject(new Error('Request timed out — check your connection and try again')), 15000)
   )
 
   const work = (async () => {
-  
+
     const { data: league, error } = await supabase
       .from('leagues')
       .select('*')
       .eq('invite_code', inviteCode.toUpperCase())
       .maybeSingle()
 
-    if (error) throw new Error(error.message)
-    if (!league) throw new Error('Invalid invite code')
+    if (error) throw new Error(`League lookup failed: ${error.message}`)
+    if (!league) throw new Error('Invalid invite code — double-check the code and try again')
 
     if (league.is_locked) throw new Error('This league is not accepting new members')
 
