@@ -125,31 +125,39 @@ export default function FourplayApp() {
         event === 'TOKEN_REFRESHED' ||
         (event === 'INITIAL_SESSION' && isNative)
       )) {
-        let profile = await getProfile(session.user.id).catch(() => null)
-
-        // For new signups the DB trigger may not have fired yet — create the profile row.
-        if (!profile && event === 'SIGNED_IN') {
-          const meta = session.user.user_metadata ?? {}
-          const username = meta.username ?? session.user.email?.split('@')[0] ?? 'Player'
-          const { data } = await supabase
-            .from('profiles')
-            .insert({ id: session.user.id, username })
-            .select()
-            .single()
-          profile = data as Profile | null
-        }
-
-        if (profile) setUser(profile)
+        // Commit auth state immediately — no awaiting network calls here.
+        // Awaiting Supabase calls inside onAuthStateChange can deadlock because
+        // the GoTrue auth lock is held during event dispatch. All network work
+        // must be fire-and-forget.
         setAuthReady(true)
         setAccessToken(session.access_token)
 
-        // The session is confirmed valid here, so load leagues directly.
-        // This is the reliable path for cold starts: bootstrap shows the user
-        // immediately but the Supabase client may not have finished initialising
-        // (token refresh in progress), so the user-change league effect can run
-        // unauthenticated and get an empty result. We correct that here.
-        getMyLeagues(session.user.id)
-          .then(userLeagues => {
+        // Background profile refresh. For new signups, create the row if missing.
+        getProfile(session.user.id)
+          .then(async profile => {
+            if (profile) {
+              setUser(profile)
+            } else if (event === 'SIGNED_IN') {
+              const meta = session.user.user_metadata ?? {}
+              const username = meta.username ?? session.user.email?.split('@')[0] ?? 'Player'
+              const { data } = await supabase
+                .from('profiles')
+                .insert({ id: session.user.id, username })
+                .select()
+                .single()
+              if (data) setUser(data as Profile)
+            }
+          })
+          .catch(() => {})
+
+        // Load leagues using the session token directly — never call getSession()
+        // inside onAuthStateChange as it tries to re-acquire the auth lock.
+        fetch('/api/leagues/mine', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+          .then(res => res.json())
+          .then(data => {
+            const userLeagues: League[] = data.leagues ?? []
             setLeagues(userLeagues)
             if (userLeagues.length > 0) {
               setCurrentLeague(prev => prev ?? userLeagues[0])
@@ -161,6 +169,22 @@ export default function FourplayApp() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // Fallback: token arrived but leagues fetch in onAuthStateChange may have
+  // failed (e.g. brief network gap on resume). Retry whenever token updates.
+  useEffect(() => {
+    if (!accessToken || leagues.length > 0) return
+    fetch('/api/leagues/mine', { headers: { Authorization: `Bearer ${accessToken}` } })
+      .then(res => res.json())
+      .then(data => {
+        const userLeagues: League[] = data.leagues ?? []
+        if (userLeagues.length > 0) {
+          setLeagues(userLeagues)
+          setCurrentLeague(prev => prev ?? userLeagues[0])
+        }
+      })
+      .catch(() => {})
+  }, [accessToken])
 
   // Load games for current week
   const loadGames = useCallback(async (week: number, year: number) => {
