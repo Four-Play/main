@@ -32,6 +32,7 @@ export async function signOut(): Promise<void> {
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
+  // Validate email is registered server-side (shows useful error for unknown addresses)
   const res = await fetch('/api/auth/reset-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -39,6 +40,13 @@ export async function requestPasswordReset(email: string): Promise<void> {
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error ?? 'Failed to send reset email')
+
+  // Send the reset email from the browser so Supabase uses PKCE and the
+  // standard "Reset Password" email template (more reliable than admin generateLink)
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://www.fourplaypicks.com/auth/callback',
+  })
+  if (error) throw new Error(error.message)
 }
 
 export async function updatePassword(newPassword: string): Promise<void> {

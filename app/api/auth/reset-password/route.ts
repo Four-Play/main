@@ -1,34 +1,32 @@
 import { NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
 
 export async function POST(request: Request) {
   const { email } = await request.json()
   if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
 
-  const supabase = createServiceClient()
-
-  // Use generateLink only to validate the email exists — it errors 404 for
-  // unknown addresses. The actual email is sent client-side via
-  // resetPasswordForEmail so it uses PKCE and the standard email template.
-  const { error } = await supabase.auth.admin.generateLink({
-    type: 'recovery',
-    email,
-    options: { redirectTo: 'https://www.fourplaypicks.com/auth/callback' },
-  })
-
-  if (error) {
-    const isNotFound = error.status === 404 ||
-      error.message.toLowerCase().includes('not found')
-    return NextResponse.json(
-      {
-        error: isNotFound
-          ? 'This email is not currently registered with an account. Please create an account.'
-          : 'Failed to send reset email',
+  // Search for the user by email via the GoTrue admin REST API.
+  // This validates existence without generating a link or sending any email
+  // (admin.generateLink was also sending an implicit-flow email we don't want).
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/users?query=${encodeURIComponent(email)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
       },
-      { status: isNotFound ? 404 : 500 }
+    }
+  )
+  const data = await res.json()
+  const exists = (data.users ?? []).some(
+    (u: any) => u.email?.toLowerCase() === email.toLowerCase()
+  )
+
+  if (!exists) {
+    return NextResponse.json(
+      { error: 'This email is not currently registered with an account. Please create an account.' },
+      { status: 404 }
     )
   }
 
-  // Email exists — return success so the client sends via resetPasswordForEmail
   return NextResponse.json({ success: true })
 }
