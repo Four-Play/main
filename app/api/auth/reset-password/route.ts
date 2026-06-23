@@ -1,21 +1,19 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
-const REDIRECT_TO = 'https://www.fourplaypicks.com/auth/callback'
-
 export async function POST(request: Request) {
   const { email } = await request.json()
   if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
 
   const supabase = createServiceClient()
 
-  // admin.generateLink validates the email (errors for unknown addresses)
-  // and sends the recovery email. options.redirectTo is where the user
-  // lands after clicking the link — must be in Supabase's allowed redirect URLs.
+  // Use generateLink only to validate the email exists — it errors 404 for
+  // unknown addresses. The actual email is sent client-side via
+  // resetPasswordForEmail so it uses PKCE and the standard email template.
   const { error } = await supabase.auth.admin.generateLink({
     type: 'recovery',
     email,
-    options: { redirectTo: REDIRECT_TO },
+    options: { redirectTo: 'https://www.fourplaypicks.com/auth/callback' },
   })
 
   if (error) {
@@ -31,5 +29,6 @@ export async function POST(request: Request) {
     )
   }
 
+  // Email exists — return success so the client sends via resetPasswordForEmail
   return NextResponse.json({ success: true })
 }
