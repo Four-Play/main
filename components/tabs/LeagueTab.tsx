@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Sliders, Users } from "lucide-react"
 import { getWeekLabel, ACTIVE_SPORT } from '@/lib/weekUtils'
-import type { LeagueMember } from '@/types/database'
+import type { LeagueMember, WeekSummary } from '@/types/database'
 
 interface PickChartWeek {
   week: number
@@ -60,6 +60,7 @@ export function LeagueTab({
   accessToken,
 }: LeagueTabProps) {
   const [members, setMembers] = useState<LeagueMember[]>([])
+  const [weekSummaries, setWeekSummaries] = useState<WeekSummary[]>([])
   const [weeklyPickCharts, setWeeklyPickCharts] = useState<PickChartWeek[]>([])
   const [loading, setLoading] = useState(true)
   const [activeView, setActiveView] = useState<'standings' | 'results'>('standings')
@@ -93,7 +94,8 @@ export function LeagueTab({
       .then(data => {
         if (!active) return
         if (data.members) setMembers(data.members)
-if (data.weeklyPickCharts) setWeeklyPickCharts(data.weeklyPickCharts)
+        if (data.weekSummaries) setWeekSummaries(data.weekSummaries)
+        if (data.weeklyPickCharts) setWeeklyPickCharts(data.weeklyPickCharts)
       })
       .catch(() => {})
       .finally(() => {
@@ -237,16 +239,23 @@ if (data.weeklyPickCharts) setWeeklyPickCharts(data.weeklyPickCharts)
                 <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden">
                   {/* Column headers */}
                   <div className="flex items-center py-1.5 px-3 border-b border-zinc-800">
-                    <div className="w-[28%]" />
+                    <div className="w-[22%]" />
                     {[1, 2, 3, 4].map(n => (
                       <div key={n} className="flex-1 text-center text-[8px] font-black text-zinc-600 uppercase tracking-widest">
                         {n}
                       </div>
                     ))}
+                    <div className="w-[20%] text-right text-[8px] font-black text-zinc-600 uppercase tracking-widest pr-0.5">
+                      Result
+                    </div>
                   </div>
 
                   {/* One row per member */}
                   {members.map((member, idx) => {
+                    const weeklySummary = weekSummaries.find(s => s.week === week)
+                    const winResult = weeklySummary?.winners.find(r => r.user_id === member.user_id)
+                    const lossResult = weeklySummary?.losers.find(r => r.user_id === member.user_id)
+
                     // Get this member's picks for the week, enriched with game data, sorted by start time
                     const enriched = picks
                       .filter(p => p.user_id === member.user_id)
@@ -269,9 +278,9 @@ if (data.weeklyPickCharts) setWeeklyPickCharts(data.weeklyPickCharts)
                         className={`flex items-center py-2.5 px-3 ${idx < members.length - 1 ? 'border-b border-zinc-900' : ''}`}
                       >
                         {/* Player name */}
-                        <div className="w-[28%] pr-1">
+                        <div className="w-[22%] pr-1">
                           <span className="text-[10px] font-bold uppercase text-white truncate block">
-                            {(member.profile?.username ?? 'Player').substring(0, 9)}
+                            {(member.profile?.username ?? 'Player').substring(0, 8)}
                           </span>
                         </div>
 
@@ -323,6 +332,27 @@ if (data.weeklyPickCharts) setWeeklyPickCharts(data.weeklyPickCharts)
                             </div>
                           )
                         })}
+
+                        {/* Week result — shown once all games are scored */}
+                        <div className="w-[20%] flex flex-col items-end pr-0.5">
+                          {winResult ? (
+                            <>
+                              <span className="text-[9px] font-black text-green-500 leading-tight">
+                                +{(winResult.amount_won_cents / 100).toFixed(0)}
+                              </span>
+                              <span className="text-[7px] text-green-500/60 leading-tight uppercase">pts</span>
+                            </>
+                          ) : lossResult ? (
+                            <>
+                              <span className="text-[9px] font-black text-red-500 leading-tight">
+                                -{(lossResult.amount_owed_cents / 100).toFixed(0)}
+                              </span>
+                              <span className="text-[7px] text-red-500/60 leading-tight uppercase">pts</span>
+                            </>
+                          ) : (
+                            <span className="text-zinc-800 text-[11px] font-mono">—</span>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
