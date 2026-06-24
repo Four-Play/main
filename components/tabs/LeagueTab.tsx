@@ -1,13 +1,30 @@
 "use client"
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Sliders, Trophy, TrendingDown, TrendingUp, Users } from "lucide-react"
+import { Sliders, Users } from "lucide-react"
 import { getWeekLabel, ACTIVE_SPORT } from '@/lib/weekUtils'
-import type { LeagueMember, WeekSummary } from '@/types/database'
-import { formatPoints } from '@/types/database'
+import type { LeagueMember } from '@/types/database'
+
+interface PickChartWeek {
+  week: number
+  games: Array<{
+    id: string
+    commence_time: string
+    favorite_team: string
+    underdog_team: string
+    spread: number
+    status: string
+  }>
+  picks: Array<{
+    user_id: string
+    game_id: string
+    team_selected: string
+    result: string | null
+  }>
+}
 
 interface LeagueTabProps {
   currentLeague: string
@@ -17,6 +34,20 @@ interface LeagueTabProps {
   currentWeek: number
   currentYear: number
   accessToken: string | null
+}
+
+// Returns the team mascot — last word of the full team name (e.g. "Kansas City Chiefs" → "Chiefs")
+function teamMascot(name: string): string {
+  if (!name) return '?'
+  const parts = name.trim().split(' ')
+  return parts[parts.length - 1]
+}
+
+// Adjusted spread shown in each pick cell (team's cushioned line)
+function adjSpreadStr(spread: number, pickedFav: boolean): string {
+  const adj = pickedFav ? spread + 13 : Math.abs(spread) + 13
+  const sign = adj >= 0 ? '+' : ''
+  return `${sign}${Number.isInteger(adj) ? adj : adj.toFixed(1)}`
 }
 
 export function LeagueTab({
@@ -29,14 +60,12 @@ export function LeagueTab({
   accessToken,
 }: LeagueTabProps) {
   const [members, setMembers] = useState<LeagueMember[]>([])
-  const [weekSummaries, setWeekSummaries] = useState<WeekSummary[]>([])
+  const [weeklyPickCharts, setWeeklyPickCharts] = useState<PickChartWeek[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeView, setActiveView] = useState<'standings' | 'week'>('standings')
+  const [activeView, setActiveView] = useState<'standings' | 'results'>('standings')
   const [refreshKey, setRefreshKey] = useState(0)
   const hiddenAtRef = useRef<number>(0)
 
-  // Re-fetch when app comes back to foreground after 30+ seconds away.
-  // This runs once and is not dependent on any fetch state.
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'hidden') {
@@ -52,27 +81,19 @@ export function LeagueTab({
   useEffect(() => {
     let active = true
     const controller = new AbortController()
+    const timeout = setTimeout(() => { if (active) setLoading(false) }, 8000)
 
-    // Hard wall-clock timeout: directly clears loading even if the fetch
-    // or session lookup hangs. AbortController.abort() alone is not enough
-    // because it only cancels fetch(), not upstream async work.
-    const timeout = setTimeout(() => {
-      if (active) setLoading(false)
-    }, 8000)
+    const headers: HeadersInit = accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
 
-    const headers: HeadersInit = accessToken
-      ? { Authorization: `Bearer ${accessToken}` }
-      : {}
-
-    fetch(`/api/league-tab?leagueId=${currentLeague}&year=${currentYear}`, {
-      headers,
-      signal: controller.signal,
-    })
+    fetch(
+      `/api/league-tab?leagueId=${currentLeague}&year=${currentYear}&week=${currentWeek}`,
+      { headers, signal: controller.signal }
+    )
       .then(res => res.json())
       .then(data => {
         if (!active) return
         if (data.members) setMembers(data.members)
-        if (data.weekSummaries) setWeekSummaries(data.weekSummaries)
+if (data.weeklyPickCharts) setWeeklyPickCharts(data.weeklyPickCharts)
       })
       .catch(() => {})
       .finally(() => {
@@ -85,7 +106,7 @@ export function LeagueTab({
       clearTimeout(timeout)
       controller.abort()
     }
-  }, [currentLeague, currentYear, accessToken, refreshKey])
+  }, [currentLeague, currentYear, currentWeek, accessToken, refreshKey])
 
   if (loading) {
     return (
@@ -125,9 +146,9 @@ export function LeagueTab({
           STANDINGS
         </button>
         <button
-          onClick={() => setActiveView('week')}
+          onClick={() => setActiveView('results')}
           className={`flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all ${
-            activeView === 'week'
+            activeView === 'results'
               ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.3)]'
               : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
           }`}
@@ -191,57 +212,129 @@ export function LeagueTab({
           </Table>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {weekSummaries.filter(s => s.isFinal).length === 0 ? (
-            <div className="flex flex-col items-center py-12 gap-3 text-zinc-600">
-              <TrendingUp className="w-8 h-8" />
-              <p className="text-[10px] font-black uppercase tracking-widest">{getWeekLabel(currentWeek, ACTIVE_SPORT)} in progress</p>
-              <p className="text-[9px] text-zinc-700 uppercase">Results calculated after all games final</p>
-            </div>
-          ) : (
-            weekSummaries
-              .filter(s => s.isFinal)
-              .map(summary => (
-                <div key={summary.week} className="space-y-3">
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-300 px-1 pb-1 border-b border-zinc-800">
-                    {getWeekLabel(summary.week, ACTIVE_SPORT)}
+        // RESULTS — pick chart, current week first, prior weeks below
+        <div className="space-y-5">
+          {weeklyPickCharts.map(chart => {
+            const { week, games, picks } = chart
+            const gamesById = new Map(games.map(g => [g.id, g as PickChartWeek['games'][0]]))
+            const now = new Date()
+
+            return (
+              <div key={week} className="space-y-2">
+                {/* Week label */}
+                <div className="flex items-center gap-2 px-1">
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                    {getWeekLabel(week, ACTIVE_SPORT)}
                   </h3>
-
-                  {summary.winners.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-green-500 px-1 flex items-center gap-1.5">
-                        <Trophy className="w-3 h-3" /> Winners — each earns {formatPoints(summary.prizePerWinner)}
-                      </p>
-                      {summary.winners.map(r => (
-                        <div key={r.id} className="flex justify-between items-center p-3 bg-zinc-900 rounded-xl border border-green-500/20">
-                          <span className="font-bold uppercase text-white text-xs">{r.profile?.username}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-zinc-500">{r.picks_correct}/4 correct</span>
-                            <span className="text-green-500 font-black text-xs font-mono">+{formatPoints(r.amount_won_cents)}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {summary.losers.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-red-500 px-1 flex items-center gap-1.5">
-                        <TrendingDown className="w-3 h-3" /> Losers — each loses {formatPoints(summary.losers[0]?.amount_owed_cents ?? 0)}
-                      </p>
-                      {summary.losers.map(r => (
-                        <div key={r.id} className="flex justify-between items-center p-3 bg-zinc-900 rounded-xl border border-red-500/10">
-                          <span className="font-bold uppercase text-white text-xs">{r.profile?.username}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-zinc-500">{r.picks_correct}/4 correct</span>
-                            <span className="text-red-500 font-black text-xs font-mono">-{formatPoints(r.amount_owed_cents)}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  {week === currentWeek && (
+                    <span className="text-[8px] font-black bg-green-500/15 text-green-500 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                      Current
+                    </span>
                   )}
                 </div>
-              ))
+
+                {/* Chart card */}
+                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden">
+                  {/* Column headers */}
+                  <div className="flex items-center py-1.5 px-3 border-b border-zinc-800">
+                    <div className="w-[28%]" />
+                    {[1, 2, 3, 4].map(n => (
+                      <div key={n} className="flex-1 text-center text-[8px] font-black text-zinc-600 uppercase tracking-widest">
+                        {n}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* One row per member */}
+                  {members.map((member, idx) => {
+                    // Get this member's picks for the week, enriched with game data, sorted by start time
+                    const enriched = picks
+                      .filter(p => p.user_id === member.user_id)
+                      .reduce<Array<{ user_id: string; game_id: string; team_selected: string; result: string | null; game: PickChartWeek['games'][0] }>>(
+                        (acc, p) => {
+                          const game = gamesById.get(p.game_id)
+                          if (game) acc.push({ ...p, game })
+                          return acc
+                        },
+                        []
+                      )
+                      .sort((a, b) => new Date(a.game.commence_time).getTime() - new Date(b.game.commence_time).getTime())
+
+                    // Pad to exactly 4 slots (null = no pick)
+                    const slots: (typeof enriched[0] | null)[] = [...enriched, null, null, null, null].slice(0, 4)
+
+                    return (
+                      <div
+                        key={member.user_id}
+                        className={`flex items-center py-2.5 px-3 ${idx < members.length - 1 ? 'border-b border-zinc-900' : ''}`}
+                      >
+                        {/* Player name */}
+                        <div className="w-[28%] pr-1">
+                          <span className="text-[10px] font-bold uppercase text-white truncate block">
+                            {(member.profile?.username ?? 'Player').substring(0, 9)}
+                          </span>
+                        </div>
+
+                        {/* 4 pick slots */}
+                        {slots.map((slot, pickIdx) => {
+                          // No pick or game not found
+                          if (!slot) {
+                            return (
+                              <div key={pickIdx} className="flex-1 flex items-center justify-center">
+                                <span className="text-zinc-800 text-[11px] font-mono">—</span>
+                              </div>
+                            )
+                          }
+
+                          // Pick exists but game hasn't started — hide it
+                          const revealed = new Date(slot.game.commence_time) <= now
+                          if (!revealed) {
+                            return (
+                              <div key={pickIdx} className="flex-1 flex items-center justify-center">
+                                <span className="text-zinc-800 text-[11px] font-mono">—</span>
+                              </div>
+                            )
+                          }
+
+                          const pickedFav = slot.team_selected === slot.game.favorite_team
+                          const mascot = teamMascot(slot.team_selected)
+                          const spreadStr = adjSpreadStr(slot.game.spread, pickedFav)
+
+                          const color =
+                            slot.result === 'win' ? 'text-green-500' :
+                            slot.result === 'loss' ? 'text-red-500' :
+                            slot.result === 'push' ? 'text-zinc-400' :
+                            'text-white'
+
+                          const subColor =
+                            slot.result === 'win' ? 'text-green-500/70' :
+                            slot.result === 'loss' ? 'text-red-500/70' :
+                            slot.result === 'push' ? 'text-zinc-500' :
+                            'text-zinc-500'
+
+                          return (
+                            <div key={pickIdx} className="flex-1 flex flex-col items-center">
+                              <span className={`text-[9px] font-black uppercase leading-tight ${color}`}>
+                                {mascot}
+                              </span>
+                              <span className={`text-[8px] font-mono leading-tight ${subColor}`}>
+                                {spreadStr}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+
+          {weeklyPickCharts.length === 0 && (
+            <div className="flex flex-col items-center py-12 gap-2 text-zinc-600">
+              <p className="text-[10px] font-black uppercase tracking-widest">No picks yet this season</p>
+            </div>
           )}
         </div>
       )}
