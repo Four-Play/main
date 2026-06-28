@@ -1,8 +1,7 @@
 "use client"
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
@@ -12,7 +11,7 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog"
-import { Lock, Loader2, ChevronDown, ChevronUp, Users } from "lucide-react"
+import { Loader2, ChevronDown, ChevronUp, Users } from "lucide-react"
 import { supabase } from '@/lib/supabase/client'
 import type { LeagueMember, Pick, WeeklyResult } from '@/types/database'
 import { formatPoints } from '@/types/database'
@@ -142,16 +141,6 @@ export function PlayerDetailModal({ player, onClose, currentLeagueId }: PlayerDe
               </p>
             </div>
           </div>
-
-          {/* Current Week Picks - Hidden */}
-          <Card className="bg-zinc-900 border-dashed border-zinc-700">
-            <CardContent className="p-4 flex items-center justify-center gap-3 text-zinc-500">
-              <Lock className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">
-                Current week picks hidden until kickoff
-              </span>
-            </CardContent>
-          </Card>
 
           {/* Weekly History */}
           <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 pt-2">
