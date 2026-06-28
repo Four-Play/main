@@ -11,7 +11,7 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog"
-import { Crown, Copy, Check, Trash2, Loader2, Play, Lock, Unlock } from "lucide-react"
+import { Crown, Copy, Check, Trash2, Loader2, Play, Lock, Unlock, FlaskConical } from "lucide-react"
 import { updateLeague, deleteLeague } from '@/services/leagueService'
 import { authFetch } from '@/lib/api'
 import type { League } from '@/types/database'
@@ -36,6 +36,8 @@ export function LeagueSettingsModal({
   const [isLeagueLocked, setIsLeagueLocked] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [copied, setCopied] = useState(false)
 
   const isAdmin = currentLeague?.admin_id === currentUserId
@@ -50,6 +52,8 @@ export function LeagueSettingsModal({
       setName(currentLeague.name)
       setPayoutDollars(String(currentLeague.payout_per_loss_cents / 100))
       setIsLeagueLocked(currentLeague.is_locked ?? false)
+      setShowDeleteConfirm(false)
+      setDeleteConfirmText('')
     }
   }, [currentLeague])
 
@@ -91,10 +95,6 @@ export function LeagueSettingsModal({
   }
 
   const handleDelete = async () => {
-    const confirmed = confirm(
-      `Delete "${currentLeague.name}"? This removes all picks and results for everyone in the league. This cannot be undone.`
-    )
-    if (!confirmed) return
     setIsDeleting(true)
     try {
       await deleteLeague(currentLeague.id)
@@ -329,17 +329,45 @@ export function LeagueSettingsModal({
               <label className="text-[10px] font-black text-red-500 uppercase tracking-widest px-1 block">
                 Danger Zone
               </label>
-              <Button
-                variant="outline"
-                disabled={isDeleting}
-                className="w-full border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-500 font-black uppercase text-[10px] h-10 tracking-widest"
-                onClick={handleDelete}
-              >
-                {isDeleting
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <><Trash2 className="w-3.5 h-3.5 mr-2" /> Delete League</>
-                }
-              </Button>
+              {!showDeleteConfirm ? (
+                <Button
+                  variant="outline"
+                  className="w-full border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-500 font-black uppercase text-[10px] h-10 tracking-widest"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete League
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-[9px] text-zinc-500 px-1">
+                    Type <span className="text-red-400 font-black">DELETE</span> to confirm
+                  </p>
+                  <Input
+                    value={deleteConfirmText}
+                    onChange={e => setDeleteConfirmText(e.target.value)}
+                    placeholder="DELETE"
+                    className="bg-zinc-900 border-red-500/30 text-white font-mono uppercase text-[11px]"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-zinc-700 text-zinc-400 font-black uppercase text-[10px] h-9"
+                      onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+                      className="flex-1 border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-500 font-black uppercase text-[10px] h-9 disabled:opacity-30"
+                      onClick={handleDelete}
+                    >
+                      {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Delete'}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
