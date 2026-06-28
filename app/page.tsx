@@ -401,7 +401,7 @@ export default function FourplayApp() {
   const isHistorical = selectedWeek < currentWeek
 
   return (
-    <div className="relative max-w-md mx-auto min-h-screen bg-black text-white overflow-x-hidden font-sans">
+    <div className="relative max-w-md mx-auto min-h-screen bg-black text-white font-sans">
       <Header
         currentLeague={currentLeague?.name ?? 'No League'}
         leagues={leagues}
