@@ -91,7 +91,7 @@ export function PicksTab({
             {editBarMode && (
               <button
                 onClick={onEditPicks}
-                className="text-[10px] font-black uppercase tracking-widest text-green-500 border border-green-500/40 px-2.5 py-0.5 rounded-full hover:bg-green-500/10 transition-colors"
+                className="text-[11px] font-black uppercase tracking-widest text-green-500 border border-green-500/40 px-3 py-1 rounded-full hover:bg-green-500/10 transition-colors"
               >
                 {editBarMode === 'locked' ? 'EDIT' : 'DONE'}
               </button>
