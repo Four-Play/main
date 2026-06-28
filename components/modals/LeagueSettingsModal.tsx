@@ -11,7 +11,7 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog"
-import { Crown, Copy, Check, Trash2, Loader2, FlaskConical, Play, Lock, Unlock } from "lucide-react"
+import { Crown, Copy, Check, Trash2, Loader2, Play, Lock, Unlock } from "lucide-react"
 import { updateLeague, deleteLeague } from '@/services/leagueService'
 import { authFetch } from '@/lib/api'
 import type { League } from '@/types/database'
@@ -36,7 +36,6 @@ export function LeagueSettingsModal({
   const [isLeagueLocked, setIsLeagueLocked] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isResetting, setIsResetting] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const isAdmin = currentLeague?.admin_id === currentUserId
@@ -105,28 +104,6 @@ export function LeagueSettingsModal({
     } catch (err: any) {
       alert(err.message)
       setIsDeleting(false)
-    }
-  }
-
-  const handleReset = async () => {
-    const confirmed = confirm(
-      `Reset "${currentLeague.name}"? This clears all picks, results, standings, and the games cache. Member accounts stay. This cannot be undone.`
-    )
-    if (!confirmed) return
-    setIsResetting(true)
-    try {
-      const res = await authFetch('/api/admin/reset-league', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leagueId: currentLeague.id, clearGames: true }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setDevMessage('✓ League reset — all picks, results, and games cleared')
-    } catch (err: any) {
-      setDevMessage(`✗ ${err.message}`)
-    } finally {
-      setIsResetting(false)
     }
   }
 
@@ -352,17 +329,6 @@ export function LeagueSettingsModal({
               <label className="text-[10px] font-black text-red-500 uppercase tracking-widest px-1 block">
                 Danger Zone
               </label>
-              <Button
-                variant="outline"
-                disabled={isResetting}
-                className="w-full border-orange-500/20 bg-orange-500/5 hover:bg-orange-500/10 text-orange-400 font-black uppercase text-[10px] h-10 tracking-widest"
-                onClick={handleReset}
-              >
-                {isResetting
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <><FlaskConical className="w-3.5 h-3.5 mr-2" /> Reset League</>
-                }
-              </Button>
               <Button
                 variant="outline"
                 disabled={isDeleting}
