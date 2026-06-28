@@ -299,7 +299,7 @@ export function LeagueSettingsModal({
               >
                 {isRefreshingGames
                   ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <><Play className="w-3 h-3 mr-2" /> Refresh Games</>
+                  : <><Play className="w-3 h-3 mr-2" /> Refresh Spreads</>
                 }
               </Button>
 
