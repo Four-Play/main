@@ -346,8 +346,7 @@ export function LeagueSettingsModal({
                     value={deleteConfirmText}
                     onChange={e => setDeleteConfirmText(e.target.value)}
                     placeholder="DELETE"
-                    className="bg-zinc-900 border-red-500/30 text-white font-mono uppercase text-[11px]"
-                    autoFocus
+                    className="bg-zinc-900 border-red-500/30 text-white font-mono uppercase text-base"
                   />
                   <div className="flex gap-2">
                     <Button
