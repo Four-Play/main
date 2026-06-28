@@ -1,5 +1,4 @@
 "use client"
-import React from 'react'
 import { Badge } from "@/components/ui/badge"
 import { GameCard } from '@/components/picks/GameCard'
 import { WeekSwitcher } from '@/components/picks/WeekSwitcher'
@@ -20,6 +19,8 @@ interface PicksTabProps {
   picksMap: Map<string, Pick>     // `${gameId}|${team}` -> Pick
   onTogglePick: (gameId: string, teamSelected: string) => void
   disableInteraction?: boolean
+  editBarMode?: 'locked' | 'editing' | null
+  onEditPicks?: () => void
 }
 
 export function PicksTab({
@@ -31,6 +32,8 @@ export function PicksTab({
   picksMap,
   onTogglePick,
   disableInteraction = false,
+  editBarMode = null,
+  onEditPicks,
 }: PicksTabProps) {
   const isHistorical = selectedWeek < currentWeek
   const isFuture = selectedWeek > currentWeek
@@ -69,9 +72,25 @@ export function PicksTab({
           </Badge>
         )}
         {!isHistorical && !isFuture && (
-          <Badge className="bg-green-500/10 text-green-500 border-none text-[9px]">
-            {picksMap.size}/4 SELECTED
-          </Badge>
+          <div className="flex items-center gap-2">
+            {editBarMode === 'locked' ? (
+              <Badge className="bg-green-500/10 text-green-500 border border-green-500/20 text-[9px]">
+                ✓ SUBMITTED
+              </Badge>
+            ) : (
+              <Badge className="bg-green-500/10 text-green-500 border-none text-[9px]">
+                {picksMap.size}/4 SELECTED
+              </Badge>
+            )}
+            {editBarMode && (
+              <button
+                onClick={onEditPicks}
+                className="text-[9px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+              >
+                {editBarMode === 'locked' ? 'EDIT' : 'DONE'}
+              </button>
+            )}
+          </div>
         )}
       </div>
 

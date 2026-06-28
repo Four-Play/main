@@ -9,7 +9,6 @@ import { ModalManager } from '@/components/modals/ModalManager'
 import { Header } from '@/components/layout/Header'
 import { Navbar } from '@/components/layout/Navbar'
 import { SubmitBar } from '@/components/layout/SubmitBar'
-import { EditPicksBar } from '@/components/layout/EditPicksBar'
 import { signIn, signUp, signOut, getProfile, requestPasswordReset, updatePassword } from '@/services/authService'
 import { getMyLeagues } from '@/services/leagueService'
 import { getMyPicks } from '@/services/picksService'
@@ -443,6 +442,15 @@ export default function FourplayApp() {
                 picksMap={picksMap}
                 onTogglePick={handleTogglePick}
                 disableInteraction={picksLocked}
+                editBarMode={
+                  !isHistorical &&
+                  savedPickKeys.size > 0 &&
+                  pickDiff.total === 0 &&
+                  games.some(g => !g.commence_time || new Date(g.commence_time) > new Date())
+                    ? (picksLocked ? 'locked' : 'editing')
+                    : null
+                }
+                onEditPicks={() => setIsEditingPicks(v => !v)}
               />
             )}
 
@@ -489,23 +497,6 @@ export default function FourplayApp() {
         isVisible={!isHistorical && activeTab === 'picks' && pickDiff.total > 0}
       />
 
-      <EditPicksBar
-        mode={picksLocked ? 'locked' : 'editing'}
-        onClick={() => setIsEditingPicks(v => !v)}
-        isVisible={
-          !isHistorical &&
-          activeTab === 'picks' &&
-          savedPickKeys.size > 0 &&
-          pickDiff.total === 0 &&
-          // Show as long as any game in the week is still pickable — even if the
-          // user's existing picks have all started, they may still want to add
-          // picks for later games (up to the 4-pick cap).
-          (() => {
-            const now = new Date()
-            return games.some(g => !g.commence_time || new Date(g.commence_time) > now)
-          })()
-        }
-      />
 
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
