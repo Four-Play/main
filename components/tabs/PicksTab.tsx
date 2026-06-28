@@ -20,6 +20,7 @@ interface PicksTabProps {
   onTogglePick: (gameId: string, teamSelected: string) => void
   disableInteraction?: boolean
   editBarMode?: 'locked' | 'editing' | null
+  savedPickCount?: number
   onEditPicks?: () => void
 }
 
@@ -33,6 +34,7 @@ export function PicksTab({
   onTogglePick,
   disableInteraction = false,
   editBarMode = null,
+  savedPickCount = 0,
   onEditPicks,
 }: PicksTabProps) {
   const isHistorical = selectedWeek < currentWeek
@@ -73,9 +75,13 @@ export function PicksTab({
         )}
         {!isHistorical && !isFuture && (
           <div className="flex items-center gap-2">
-            {editBarMode === 'locked' ? (
+            {editBarMode === 'locked' && savedPickCount >= 4 ? (
               <Badge className="bg-green-500/10 text-green-500 border border-green-500/20 text-[9px]">
                 ✓ SUBMITTED
+              </Badge>
+            ) : editBarMode === 'locked' && savedPickCount < 4 ? (
+              <Badge className="bg-zinc-800 text-zinc-400 border-none text-[9px]">
+                {savedPickCount}/4 PICKS MADE
               </Badge>
             ) : (
               <Badge className="bg-green-500/10 text-green-500 border-none text-[9px]">
@@ -85,7 +91,7 @@ export function PicksTab({
             {editBarMode && (
               <button
                 onClick={onEditPicks}
-                className="text-[9px] font-black uppercase tracking-widest text-green-500 border border-green-500/40 px-2.5 py-0.5 rounded-full hover:bg-green-500/10 transition-colors"
+                className="text-[10px] font-black uppercase tracking-widest text-green-500 border border-green-500/40 px-2.5 py-0.5 rounded-full hover:bg-green-500/10 transition-colors"
               >
                 {editBarMode === 'locked' ? 'EDIT' : 'DONE'}
               </button>

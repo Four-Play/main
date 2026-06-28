@@ -442,6 +442,7 @@ export default function FourplayApp() {
                 picksMap={picksMap}
                 onTogglePick={handleTogglePick}
                 disableInteraction={picksLocked}
+                savedPickCount={savedPickKeys.size}
                 editBarMode={
                   !isHistorical &&
                   savedPickKeys.size > 0 &&
