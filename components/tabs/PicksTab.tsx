@@ -74,27 +74,44 @@ export function PicksTab({
           </Badge>
         )}
         {!isHistorical && !isFuture && (
-          <div className="flex items-center gap-2">
-            {editBarMode === 'locked' && savedPickCount >= 4 ? (
-              <Badge className="bg-green-500/10 text-green-500 border border-green-500/20 text-[9px]">
-                ✓ SUBMITTED
-              </Badge>
-            ) : editBarMode === 'locked' && savedPickCount < 4 ? (
-              <Badge className="bg-zinc-800 text-zinc-400 border-none text-[9px]">
-                {savedPickCount}/4 PICKS MADE
-              </Badge>
-            ) : (
-              <Badge className="bg-green-500/10 text-green-500 border-none text-[9px]">
-                {picksMap.size}/4 SELECTED
-              </Badge>
-            )}
-            {editBarMode && (
-              <button
-                onClick={onEditPicks}
-                className="text-[11px] font-black uppercase tracking-widest text-green-500 border border-green-500/40 px-3 py-1 rounded-full hover:bg-green-500/10 transition-colors"
-              >
-                {editBarMode === 'locked' ? 'EDIT' : 'DONE'}
-              </button>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2">
+              {editBarMode === 'locked' && savedPickCount >= 4 ? (
+                <Badge className="bg-green-500/10 text-green-500 border border-green-500/20 text-[9px]">
+                  ✓ SUBMITTED
+                </Badge>
+              ) : editBarMode === 'locked' && savedPickCount < 4 ? (
+                <Badge className="bg-zinc-800 text-zinc-400 border-none text-[9px]">
+                  {savedPickCount}/4 PICKS MADE
+                </Badge>
+              ) : (
+                <Badge className="bg-green-500/10 text-green-500 border-none text-[9px]">
+                  {picksMap.size}/4 SELECTED
+                </Badge>
+              )}
+              {editBarMode && (
+                <button
+                  onClick={onEditPicks}
+                  className="text-[11px] font-black uppercase tracking-widest text-green-500 border border-green-500/40 px-3 py-1 rounded-full hover:bg-green-500/10 transition-colors"
+                >
+                  {editBarMode === 'locked' ? 'EDIT' : 'DONE'}
+                </button>
+              )}
+            </div>
+            {editBarMode === 'locked' && savedPickCount > 0 && (
+              <div className="flex gap-2">
+                {Array.from(picksMap.values())
+                  .sort((a, b) => {
+                    const at = a.game?.commence_time ? new Date(a.game.commence_time).getTime() : 0
+                    const bt = b.game?.commence_time ? new Date(b.game.commence_time).getTime() : 0
+                    return at - bt
+                  })
+                  .map(p => (
+                    <span key={p.game_id} className="text-[8px] font-black uppercase text-zinc-500 tracking-wide">
+                      {p.team_selected.split(' ').pop()}
+                    </span>
+                  ))}
+              </div>
             )}
           </div>
         )}
