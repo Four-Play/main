@@ -31,7 +31,7 @@ function getBreakdown(game: Game, selectedTeam: string) {
     ? `Won by ${pickedMargin}`
     : pickedMargin < 0
     ? `Lost by ${Math.abs(pickedMargin)}`
-    : `Tied`
+    : `Lost by 0`
 
   return {
     neededDesc,
@@ -75,7 +75,7 @@ export function GameCard({ game, favPick, dogPick, isHistorical, onSelect, disab
     return `${halfBase} ${halfIdle}`
   }
 
-  function resultBadgeClass(r?: 'win' | 'loss' | 'push' | null) {
+  function resultBadgeClass(r?: 'win' | 'loss' | null) {
     return r === 'win'
       ? 'bg-green-500/20 text-green-500'
       : r === 'loss'

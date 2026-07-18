@@ -312,13 +312,11 @@ export function LeagueTab({
                           const color =
                             slot.result === 'win' ? 'text-green-500' :
                             slot.result === 'loss' ? 'text-red-500' :
-                            slot.result === 'push' ? 'text-zinc-400' :
                             'text-white'
 
                           const subColor =
                             slot.result === 'win' ? 'text-green-500/70' :
                             slot.result === 'loss' ? 'text-red-500/70' :
-                            slot.result === 'push' ? 'text-zinc-500' :
                             'text-zinc-500'
 
                           return (

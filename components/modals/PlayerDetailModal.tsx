@@ -220,9 +220,7 @@ export function PlayerDetailModal({ player, onClose, currentLeagueId }: PlayerDe
                             ? 'bg-green-500/20 text-green-500'
                             : r === 'loss'
                               ? 'bg-red-500/20 text-red-500'
-                              : r === 'push'
-                                ? 'bg-zinc-700/40 text-zinc-300'
-                                : 'bg-zinc-800 text-zinc-500'
+                              : 'bg-zinc-800 text-zinc-500'
                           const label = r ? r.toUpperCase() : 'PENDING'
                           return (
                             <div

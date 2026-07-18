@@ -54,7 +54,7 @@ export interface Game {
   fav?: string
   dog?: string
   time?: string
-  result?: 'WIN' | 'LOSS' | 'PUSH'
+  result?: 'WIN' | 'LOSS'
 }
 
 export interface Pick {
@@ -64,7 +64,7 @@ export interface Pick {
   game_id: string
   team_selected: string
   is_locked: boolean
-  result?: 'win' | 'loss' | 'push' | null
+  result?: 'win' | 'loss' | null
   nfl_week: number
   season_year: number
   created_at?: string

@@ -4,7 +4,7 @@
  * Score a single pick against a final game result.
  * Cushion is per-league (default 13) and must be passed in.
  */
-export function scorePick(pick: any, game: any, cushion: number): 'win' | 'loss' | 'push' {
+export function scorePick(pick: any, game: any, cushion: number): 'win' | 'loss' {
   const { home_team, favorite_team, spread, home_score, away_score } = game
   const homeMargin = home_score - away_score
   const pickedFavorite = pick.team_selected === favorite_team
@@ -12,17 +12,15 @@ export function scorePick(pick: any, game: any, cushion: number): 'win' | 'loss'
 
   if (pickedFavorite) {
     // Favorite wins if they outperform: (|spread| - cushion - 1)
-    // e.g. -7 spread + 13 cushion → threshold = -7, fav can lose by up to 6
+    // e.g. -7 spread + 13 cushion → threshold = -7, fav can lose by up to 6; tie = loss
     const threshold = Math.abs(spread) - cushion - 1
     if (pickedMargin > threshold) return 'win'
-    if (pickedMargin === threshold) return 'push'
     return 'loss'
   } else {
     // Underdog wins if they don't lose by more than (|spread| + cushion)
-    // e.g. +7 spread + 13 cushion → threshold = -20, dog can lose by up to 19
+    // e.g. +7 spread + 13 cushion → threshold = -20, dog can lose by up to 19; tie = loss
     const threshold = -(Math.abs(spread) + cushion)
     if (pickedMargin > threshold) return 'win'
-    if (pickedMargin === threshold) return 'push'
     return 'loss'
   }
 }
@@ -75,8 +73,7 @@ export async function calculateWeeklyResults(
     const wins = picks.filter((p: any) => p.result === 'win').length
 
     // Any wrong pick = loss for the week, regardless of how many picks were made.
-    // A push counts as a wrong pick (was already the rule for full 4-pick weeks).
-    const hasWrong = picks.some((p: any) => p.result === 'loss' || p.result === 'push')
+    const hasWrong = picks.some((p: any) => p.result === 'loss')
     if (hasWrong) {
       results.push({ user_id: member.user_id, is_winner: false, picks_correct: wins })
       continue
@@ -207,22 +204,19 @@ export async function scoreExistingGames(supabase: any) {
     // 3 update calls instead of one per pick.
     const winIds: string[] = []
     const lossIds: string[] = []
-    const pushIds: string[] = []
     for (const pick of picks) {
       const game = gamesById.get(pick.game_id)
       if (!game) continue
       const cushion = pick.league?.spread_cushion ?? 13
       const result = scorePick(pick, game, cushion)
       if (result === 'win') winIds.push(pick.id)
-      else if (result === 'loss') lossIds.push(pick.id)
-      else pushIds.push(pick.id)
+      else lossIds.push(pick.id)
       picksScored++
     }
 
     const updates: Promise<any>[] = []
     if (winIds.length > 0) updates.push(supabase.from('picks').update({ result: 'win' }).in('id', winIds))
     if (lossIds.length > 0) updates.push(supabase.from('picks').update({ result: 'loss' }).in('id', lossIds))
-    if (pushIds.length > 0) updates.push(supabase.from('picks').update({ result: 'push' }).in('id', pushIds))
     await Promise.all(updates)
   }
 
