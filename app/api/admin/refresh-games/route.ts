@@ -5,7 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { createServiceClient, getAuthenticatedUser } from '@/lib/supabase/server'
-import { ACTIVE_SPORT, SPORT_CONFIG, computeWeekFromDate, computeCurrentWeek, toETDateString } from '@/lib/weekUtils'
+import { ACTIVE_SPORT, SPORT_CONFIG, computeWeekFromDate, toETDateString } from '@/lib/weekUtils'
 import { SEASON_WEEKS } from '@/config/season'
 
 const ODDS_API_KEY = process.env.ODDS_API_KEY!
@@ -18,11 +18,12 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const currentWeek = computeCurrentWeek(SPORT_KEY)
+  const todayStr = toETDateString(new Date().toISOString())
 
-  const weeksToFetch = [currentWeek, currentWeek + 1].filter(w =>
-    SEASON_WEEKS.some(s => s.week === w)
-  )
+  // Refresh all weeks that haven't ended yet so any week's spreads can be updated manually.
+  const weeksToFetch = SEASON_WEEKS
+    .filter(w => w.endDate >= todayStr)
+    .map(w => w.week)
 
   let totalUpserted = 0
   const results: Record<number, { events: number; spreads: number }> = {}
@@ -30,9 +31,6 @@ export async function POST(request: Request) {
   for (const week of weeksToFetch) {
     const weekConfig = SEASON_WEEKS.find(w => w.week === week)
     if (!weekConfig) continue
-
-    const todayStr = toETDateString(new Date().toISOString())
-    if (weekConfig.endDate < todayStr) continue
 
     const dateParams = `&commenceTimeFrom=${weekConfig.startDate}T00:00:00Z&commenceTimeTo=${weekConfig.endDate}T23:59:59Z`
     const controller = new AbortController()
