@@ -17,14 +17,15 @@ function getBreakdown(game: Game, selectedTeam: string) {
   const absSpread = Math.abs(game.spread)
 
   // Effective cushioned line — mirrors the threshold in lib/scoring.ts
-  // Fav: cushion - spread  (e.g. 13 - 7 = +6, fav can lose by 6)
-  // Dog: spread + cushion  (e.g. 7 + 13 = +20, dog can lose by 19)
+  // Fav: cushion - |spread|  (e.g. 13 - 7 = +6, fav can lose by up to 5)
+  // Dog: |spread| + cushion  (e.g. 7 + 13 = +20, dog can lose by up to 19)
+  // Both: adjusted +N → losing by N exactly = loss; must lose by N-1 or less to win
   const effectiveLine = pickedFavorite ? CUSHION - absSpread : absSpread + CUSHION
 
   const neededDesc = pickedFavorite
-    ? effectiveLine >= 0
-      ? `Not lose by ${effectiveLine + 1}+`
-      : `Win by ${Math.abs(effectiveLine)}+`
+    ? effectiveLine > 0
+      ? `Not lose by ${effectiveLine}+`
+      : `Win by ${Math.abs(effectiveLine) + 1}+`
     : `Not lose by ${effectiveLine}+`
 
   const marginDesc = pickedMargin > 0
@@ -159,11 +160,13 @@ export function GameCard({ game, favPick, dogPick, isHistorical, onSelect, disab
           const absSpread = Math.abs(game.spread)
           const effectiveLine = pickedFavorite ? CUSHION - absSpread : absSpread + CUSHION
           const neededDesc = pickedFavorite
-            ? effectiveLine > 0
-              ? `Can lose by up to ${effectiveLine}, or win`
-              : effectiveLine === 0
+            ? effectiveLine > 1
+              ? `Can lose by up to ${effectiveLine - 1}, or win`
+              : effectiveLine === 1
               ? `Must not lose`
-              : `Must win by ${Math.abs(effectiveLine)}+`
+              : effectiveLine === 0
+              ? `Must win`
+              : `Must win by ${Math.abs(effectiveLine) + 1}+`
             : `Can lose by up to ${effectiveLine - 1}, or win`
           const role = pickedFavorite ? 'FAV' : 'DOG'
           return (

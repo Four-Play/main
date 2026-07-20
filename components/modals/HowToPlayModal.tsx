@@ -55,11 +55,11 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
           </Rule>
 
           <Rule icon={TrendingDown} title="Picking the Favorite">
-            The favorite's spread is negative (e.g. <span className="text-red-400 font-black">–7</span>). Add the +13 cushion and your adjusted line is <span className="text-green-400 font-black">+6</span>. That means your team can actually <span className="text-white font-black">lose by up to 6 points</span> and you still win the pick.
+            The favorite's spread is negative (e.g. <span className="text-red-400 font-black">–7</span>). Add the +13 cushion and your adjusted line is <span className="text-green-400 font-black">+6</span>. Your team must <span className="text-white font-black">not lose by 6 or more</span> — so they can lose by up to 5 points and you still win the pick.
           </Rule>
 
           <Rule icon={TrendingUp} title="Picking the Underdog">
-            The underdog's spread is positive (e.g. <span className="text-green-400 font-black">+7</span>). Add the +13 cushion and your adjusted line is <span className="text-green-400 font-black">+20</span>. Your team can <span className="text-white font-black">lose by up to 19 points</span> and you still win the pick.
+            The underdog's spread is positive (e.g. <span className="text-green-400 font-black">+7</span>). Add the +13 cushion and your adjusted line is <span className="text-green-400 font-black">+20</span>. Your team must <span className="text-white font-black">not lose by 20 or more</span> — so they can lose by up to 19 points and you still win the pick.
           </Rule>
 
           <Rule icon={CheckCircle2} title="Winning the Week">
@@ -92,7 +92,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
                 <span className="text-[11px] font-black font-mono text-green-400">+3</span>
               </div>
               <p className="text-[10px] text-zinc-500 pt-1">
-                The favorite can lose by 3 and you still win. If they lose by 4 or more, you lose the pick.
+                The favorite can lose by up to 2 and you still win. If they lose by 3 or more, you lose the pick.
               </p>
             </div>
           </div>

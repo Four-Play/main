@@ -11,14 +11,14 @@ export function scorePick(pick: any, game: any, cushion: number): 'win' | 'loss'
   const pickedMargin = pick.team_selected === home_team ? homeMargin : -homeMargin
 
   if (pickedFavorite) {
-    // Favorite wins if they outperform: (|spread| - cushion - 1)
-    // e.g. -7 spread + 13 cushion → threshold = -7, fav can lose by up to 6; tie = loss
-    const threshold = Math.abs(spread) - cushion - 1
+    // Favorite: adjusted line = cushion - |spread|. Win requires strictly beating it.
+    // e.g. -7 spread + 13 cushion → adjusted +6, threshold = -6, fav can lose by up to 5; lose by 6+ = loss
+    const threshold = -(cushion - Math.abs(spread))
     if (pickedMargin > threshold) return 'win'
     return 'loss'
   } else {
-    // Underdog wins if they don't lose by more than (|spread| + cushion)
-    // e.g. +7 spread + 13 cushion → threshold = -20, dog can lose by up to 19; tie = loss
+    // Underdog: adjusted line = |spread| + cushion. Win requires strictly beating it.
+    // e.g. +7 spread + 13 cushion → adjusted +20, threshold = -20, dog can lose by up to 19; lose by 20+ = loss
     const threshold = -(Math.abs(spread) + cushion)
     if (pickedMargin > threshold) return 'win'
     return 'loss'
