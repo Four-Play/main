@@ -147,7 +147,7 @@ export function PicksTab({
                 dogPick={dogPick}
                 isHistorical={isHistorical}
                 onSelect={onTogglePick}
-                disableInteraction={disableInteraction}
+                disableInteraction={isFuture || disableInteraction}
               />
             )
           })}

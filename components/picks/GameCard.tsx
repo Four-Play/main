@@ -19,14 +19,15 @@ function getBreakdown(game: Game, selectedTeam: string) {
   // Effective cushioned line — mirrors the threshold in lib/scoring.ts
   // Fav: cushion - |spread|  (e.g. 13 - 7 = +6, fav can lose by up to 5)
   // Dog: |spread| + cushion  (e.g. 7 + 13 = +20, dog can lose by up to 19)
-  // Both: adjusted +N → losing by N exactly = loss; must lose by N-1 or less to win
+  // Both: adjusted +N → lose by ceil(N) or more = loss; max integer win = ceil(N)-1
   const effectiveLine = pickedFavorite ? CUSHION - absSpread : absSpread + CUSHION
 
+  // For half-point lines, ceil to the next integer threshold (e.g. +2.5 → "Not lose by 3+")
   const neededDesc = pickedFavorite
     ? effectiveLine > 0
-      ? `Not lose by ${effectiveLine}+`
-      : `Win by ${Math.abs(effectiveLine) + 1}+`
-    : `Not lose by ${effectiveLine}+`
+      ? `Not lose by ${Math.ceil(effectiveLine)}+`
+      : `Win by ${Math.floor(Math.abs(effectiveLine)) + 1}+`
+    : `Not lose by ${Math.ceil(effectiveLine)}+`
 
   const marginDesc = pickedMargin > 0
     ? `Won by ${pickedMargin}`
@@ -159,15 +160,16 @@ export function GameCard({ game, favPick, dogPick, isHistorical, onSelect, disab
           const pickedFavorite = pick.team_selected === favTeam
           const absSpread = Math.abs(game.spread)
           const effectiveLine = pickedFavorite ? CUSHION - absSpread : absSpread + CUSHION
+          // Max integer loss: largest whole number strictly less than effectiveLine
+          // e.g. +3 → lose by 2 max; +3.5 → lose by 3 max (not 2.5)
+          const maxLoss = Math.ceil(effectiveLine) - 1
           const neededDesc = pickedFavorite
-            ? effectiveLine > 1
-              ? `Can lose by up to ${effectiveLine - 1}, or win`
-              : effectiveLine === 1
+            ? maxLoss > 0
+              ? `Can lose by up to ${maxLoss}, or win`
+              : maxLoss === 0
               ? `Must not lose`
-              : effectiveLine === 0
-              ? `Must win`
-              : `Must win by ${Math.abs(effectiveLine) + 1}+`
-            : `Can lose by up to ${effectiveLine - 1}, or win`
+              : `Must win by ${-maxLoss}+`
+            : `Can lose by up to ${maxLoss}, or win`
           const role = pickedFavorite ? 'FAV' : 'DOG'
           return (
             <div key={pick.team_selected} className="mt-2 px-1 flex justify-between items-center">

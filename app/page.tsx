@@ -399,6 +399,7 @@ export default function FourplayApp() {
   }
 
   const isHistorical = selectedWeek < currentWeek
+  const isFuture = selectedWeek > currentWeek
 
   return (
     <div className="relative max-w-md mx-auto min-h-screen bg-black text-white font-sans">
@@ -445,6 +446,7 @@ export default function FourplayApp() {
                 savedPickCount={savedPickKeys.size}
                 editBarMode={
                   !isHistorical &&
+                  !isFuture &&
                   savedPickKeys.size > 0 &&
                   pickDiff.total === 0 &&
                   games.some(g => !g.commence_time || new Date(g.commence_time) > new Date())
@@ -495,7 +497,7 @@ export default function FourplayApp() {
         changeCount={pickDiff.total}
         isSubmitting={isSubmittingPicks}
         onSubmit={handleSubmitPicks}
-        isVisible={!isHistorical && activeTab === 'picks' && pickDiff.total > 0}
+        isVisible={!isHistorical && !isFuture && activeTab === 'picks' && pickDiff.total > 0}
       />
 
 
