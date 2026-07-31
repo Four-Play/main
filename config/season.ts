@@ -34,10 +34,10 @@ export const SEASON_WEEKS: SeasonWeek[] = [
   { week: 17, name: 'WK 17',      startDate: '2026-12-30', endDate: '2027-01-05', placeholderCount: 4 },
   { week: 18, name: 'WK 18',      startDate: '2027-01-06', endDate: '2027-01-12', placeholderCount: 4 },
   // Playoffs
-  { week: 19, name: 'Wild Card',  startDate: '2027-01-09', endDate: '2027-01-12', placeholderCount: 4 },
-  { week: 20, name: 'Divisional', startDate: '2027-01-16', endDate: '2027-01-19', placeholderCount: 4 },
-  { week: 21, name: 'Conf. Champ.', startDate: '2027-01-23', endDate: '2027-01-26', placeholderCount: 2 },
-  { week: 22, name: 'Super Bowl', startDate: '2027-02-06', endDate: '2027-02-09', placeholderCount: 1 },
+  { week: 19, name: 'Wild Card',    startDate: '2027-01-13', endDate: '2027-01-19', placeholderCount: 4 },
+  { week: 20, name: 'Divisional',   startDate: '2027-01-20', endDate: '2027-01-26', placeholderCount: 4 },
+  { week: 21, name: 'Conf. Champ.', startDate: '2027-01-27', endDate: '2027-02-02', placeholderCount: 2 },
+  { week: 22, name: 'Super Bowl',   startDate: '2027-02-06', endDate: '2027-02-09', placeholderCount: 1 },
 ]
 
 // ─── PLAYOFF RULES ───────────────────────────────────────────────────────────
