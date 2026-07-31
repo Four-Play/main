@@ -10,7 +10,6 @@ export interface SeasonWeek {
   startDate: string      // YYYY-MM-DD (inclusive)
   endDate: string        // YYYY-MM-DD (inclusive) — adjust if week ends early/late
   placeholderCount: number  // How many TBD game cards to show before matchups are set
-  sportKey?: string      // Odds API sport key override (e.g. preseason uses a different key)
 }
 
 // ─── NFL 2026 SEASON ─────────────────────────────────────────────────────────
@@ -39,11 +38,6 @@ export const SEASON_WEEKS: SeasonWeek[] = [
   { week: 20, name: 'Divisional', startDate: '2027-01-16', endDate: '2027-01-19', placeholderCount: 4 },
   { week: 21, name: 'Conf. Champ.', startDate: '2027-01-23', endDate: '2027-01-26', placeholderCount: 2 },
   { week: 22, name: 'Super Bowl', startDate: '2027-02-06', endDate: '2027-02-09', placeholderCount: 1 },
-  // NFL Preseason 2026 — placed at the end so the regular season week switcher is unaffected.
-  // These weeks use a separate Odds API sport key. Adjust dates if the schedule shifts.
-  { week: 23, name: 'PRE WK 1', startDate: '2026-08-06', endDate: '2026-08-12', placeholderCount: 4, sportKey: 'americanfootball_nfl_preseason' },
-  { week: 24, name: 'PRE WK 2', startDate: '2026-08-13', endDate: '2026-08-19', placeholderCount: 4, sportKey: 'americanfootball_nfl_preseason' },
-  { week: 25, name: 'PRE WK 3', startDate: '2026-08-20', endDate: '2026-08-26', placeholderCount: 4, sportKey: 'americanfootball_nfl_preseason' },
 ]
 
 export const SPORT_KEY = 'americanfootball_nfl'
