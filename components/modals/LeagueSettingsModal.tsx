@@ -11,7 +11,7 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog"
-import { Crown, Copy, Check, Trash2, Loader2, Play, Lock, Unlock, FlaskConical } from "lucide-react"
+import { Crown, Copy, Check, Trash2, Loader2, Play, Lock, Unlock, FlaskConical, MessageSquare } from "lucide-react"
 import { updateLeague, deleteLeague } from '@/services/leagueService'
 import { authFetch } from '@/lib/api'
 import type { League } from '@/types/database'
@@ -63,6 +63,13 @@ export function LeagueSettingsModal({
     navigator.clipboard.writeText(currentLeague.invite_code)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleTextInvite = () => {
+    const body = encodeURIComponent(
+      `Hey! Join my FourPlay league "${currentLeague.name}"! Use code ${currentLeague.invite_code} to join. Download the app: https://apps.apple.com/us/app/fourplay-picks/id6762365775`
+    )
+    window.open(`sms:?body=${body}`)
   }
 
   const handleSave = async () => {
@@ -201,6 +208,16 @@ export function LeagueSettingsModal({
                 {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={handleTextInvite}
+                className="w-full h-10 rounded-md bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 transition-colors flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Send Text Invite
+              </button>
+            )}
             <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
               Share this code with friends to join
             </p>
