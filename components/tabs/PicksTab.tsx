@@ -5,7 +5,7 @@ import { WeekSwitcher } from '@/components/picks/WeekSwitcher'
 import { Loader2 } from "lucide-react"
 import type { Game, Pick } from '@/types/database'
 import { ACTIVE_SPORT, SPORT_CONFIG, getWeekLabel } from '@/lib/weekUtils'
-import { SEASON_WEEKS, getPlaceholderCount } from '@/config/season'
+import { SEASON_WEEKS, PLAYOFF_RULES, getPlaceholderCount } from '@/config/season'
 import { GameCardPlaceholder } from '@/components/picks/GameCardPlaceholder'
 
 const activeSport = SPORT_CONFIG[ACTIVE_SPORT]
@@ -39,6 +39,9 @@ export function PicksTab({
 }: PicksTabProps) {
   const isHistorical = selectedWeek < currentWeek
   const isFuture = selectedWeek > currentWeek
+  const playoffRule = PLAYOFF_RULES[selectedWeek]
+  const maxPicks = playoffRule?.picksRequired ?? 4
+  const cushion = playoffRule?.cushion ?? 13
 
   // Show all rounds from the season config — future rounds show placeholders until games are set
   const weeks = SEASON_WEEKS.map(w => w.week)
@@ -76,17 +79,17 @@ export function PicksTab({
         {!isHistorical && !isFuture && (
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-2">
-              {editBarMode === 'locked' && savedPickCount >= 4 ? (
+              {editBarMode === 'locked' && savedPickCount >= maxPicks ? (
                 <Badge className="bg-green-500/10 text-green-500 border border-green-500/20 text-[9px]">
                   ✓ SUBMITTED
                 </Badge>
-              ) : editBarMode === 'locked' && savedPickCount < 4 ? (
+              ) : editBarMode === 'locked' && savedPickCount < maxPicks ? (
                 <Badge className="bg-zinc-800 text-zinc-400 border-none text-[9px]">
-                  {savedPickCount}/4 PICKS MADE
+                  {savedPickCount}/{maxPicks} PICKS MADE
                 </Badge>
               ) : (
                 <Badge className="bg-green-500/10 text-green-500 border-none text-[9px]">
-                  {picksMap.size}/4 SELECTED
+                  {picksMap.size}/{maxPicks} SELECTED
                 </Badge>
               )}
               {editBarMode && (
@@ -138,6 +141,8 @@ export function PicksTab({
             const dogTeam = game.dog ?? game.underdog_team
             const favPick = favTeam ? picksMap.get(`${game.id}|${favTeam}`) : undefined
             const dogPick = dogTeam ? picksMap.get(`${game.id}|${dogTeam}`) : undefined
+            const overPick = playoffRule ? picksMap.get(`${game.id}|OVER`) : undefined
+            const underPick = playoffRule ? picksMap.get(`${game.id}|UNDER`) : undefined
 
             return (
               <GameCard
@@ -145,9 +150,12 @@ export function PicksTab({
                 game={game}
                 favPick={favPick}
                 dogPick={dogPick}
+                overPick={overPick}
+                underPick={underPick}
                 isHistorical={isHistorical}
                 onSelect={onTogglePick}
                 disableInteraction={isFuture || disableInteraction}
+                cushion={cushion}
               />
             )
           })}

@@ -44,6 +44,7 @@ export interface Game {
   favorite_team?: string
   underdog_team?: string
   spread: number
+  total?: number
   commence_time?: string
   nfl_week?: number
   season_year?: number

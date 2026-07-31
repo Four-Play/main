@@ -18,7 +18,7 @@ import { readStoredUser } from '@/lib/supabase/storage'
 import { Capacitor } from '@capacitor/core'
 import type { Profile, League, Game, Pick } from '@/types/database'
 import { computeCurrentWeek, ACTIVE_SPORT } from '@/lib/weekUtils'
-import { SEASON_YEAR } from '@/config/season'
+import { SEASON_YEAR, PLAYOFF_RULES } from '@/config/season'
 
 export default function FourplayApp() {
   // Auth state
@@ -285,6 +285,7 @@ export default function FourplayApp() {
     }
 
     const key = pickKey(gameId, teamSelected)
+    const maxPicks = PLAYOFF_RULES[selectedWeek]?.picksRequired ?? 4
 
     // Unselect: clicking an already-selected side removes that pick
     if (picksMap.has(key)) {
@@ -292,8 +293,33 @@ export default function FourplayApp() {
       return
     }
 
-    // Max 4 picks — each side is its own pick, both sides of a game cost 2
-    if (picksMap.size >= 4) return
+    // O/U picks are mutually exclusive per game — swap OVER↔UNDER atomically
+    if (teamSelected === 'OVER' || teamSelected === 'UNDER') {
+      const opposite = teamSelected === 'OVER' ? 'UNDER' : 'OVER'
+      const oppositeKey = pickKey(gameId, opposite)
+      const hasOpposite = picksMap.has(oppositeKey)
+      if (!hasOpposite && picksMap.size >= maxPicks) return
+      const nextPick: Pick = {
+        id: `draft-${key}`,
+        user_id: user.id,
+        league_id: currentLeague.id,
+        game_id: gameId,
+        team_selected: teamSelected,
+        is_locked: false,
+        nfl_week: selectedWeek,
+        season_year: currentYear,
+      }
+      setPicksMap(prev => {
+        const n = new Map(prev)
+        n.delete(oppositeKey)
+        n.set(key, nextPick)
+        return n
+      })
+      return
+    }
+
+    // Max picks per week (4 regular season, fewer in playoff rounds)
+    if (picksMap.size >= maxPicks) return
 
     const nextPick: Pick = {
       id: `draft-${key}`,

@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { Trophy, Target, TrendingUp, TrendingDown, Star, CheckCircle2 } from "lucide-react"
+import { Trophy, Target, TrendingUp, TrendingDown, Star, CheckCircle2, Zap } from "lucide-react"
 
 interface HowToPlayModalProps {
   isOpen: boolean
@@ -72,6 +72,33 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
 
           <Rule icon={Trophy} title="Season Standings">
             Season points track your total across all rounds. The leaderboard in the League tab shows where everyone stands. The default league stake is 50 points per loss.
+          </Rule>
+
+          {/* Playoffs */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
+            <p className="text-[10px] font-black text-green-500 uppercase tracking-widest">Playoffs</p>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              The playoffs use a <span className="text-white font-black">smaller cushion</span> and fewer required picks — the stakes get tighter as the season ends.
+            </p>
+            <div className="space-y-1.5">
+              {[
+                { round: 'Wild Card',        week: 19, cushion: 10, picks: 3 },
+                { round: 'Divisional',       week: 20, cushion: 7,  picks: 3 },
+                { round: 'Conf. Champ.',     week: 21, cushion: 3,  picks: 2 },
+                { round: 'Super Bowl',       week: 22, cushion: 0,  picks: 1 },
+              ].map(r => (
+                <div key={r.week} className="flex justify-between items-center">
+                  <span className="text-[11px] text-zinc-400">{r.round}</span>
+                  <span className="text-[11px] font-mono text-white">
+                    +{r.cushion} cushion · {r.picks} pick{r.picks !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Rule icon={Zap} title="Over / Under (Playoffs Only)">
+            In every playoff round you can also pick the <span className="text-white font-black">Over or Under</span> on a game's total score. The same cushion applies — OVER wins if the combined score exceeds the total line minus the cushion; UNDER wins if it stays below the total plus the cushion. Each O/U pick counts toward your required picks for that round.
           </Rule>
 
           {/* Quick Example */}

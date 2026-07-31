@@ -3,10 +3,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Clock, Lock } from "lucide-react"
 import type { Game, Pick } from '@/types/database'
 
-const CUSHION = 13
-
 /** Returns display strings for the result breakdown — no logic changes, purely cosmetic */
-function getBreakdown(game: Game, selectedTeam: string) {
+function getBreakdown(game: Game, selectedTeam: string, cushion: number) {
   if (game.home_score == null || game.away_score == null || !game.home_team || !game.away_team) return null
 
   const favTeam = game.fav ?? game.favorite_team
@@ -20,7 +18,7 @@ function getBreakdown(game: Game, selectedTeam: string) {
   // Fav: cushion - |spread|  (e.g. 13 - 7 = +6, fav can lose by up to 5)
   // Dog: |spread| + cushion  (e.g. 7 + 13 = +20, dog can lose by up to 19)
   // Both: adjusted +N → lose by ceil(N) or more = loss; max integer win = ceil(N)-1
-  const effectiveLine = pickedFavorite ? CUSHION - absSpread : absSpread + CUSHION
+  const effectiveLine = pickedFavorite ? cushion - absSpread : absSpread + cushion
 
   // For half-point lines, ceil to the next integer threshold (e.g. +2.5 → "Not lose by 3+")
   const neededDesc = pickedFavorite
@@ -48,21 +46,26 @@ interface GameCardProps {
   game: Game
   favPick?: Pick
   dogPick?: Pick
+  overPick?: Pick
+  underPick?: Pick
   isHistorical: boolean
   onSelect: (id: string, teamSelected: string) => void
   disableInteraction?: boolean
+  cushion?: number
 }
 
-export function GameCard({ game, favPick, dogPick, isHistorical, onSelect, disableInteraction = false }: GameCardProps) {
+export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistorical, onSelect, disableInteraction = false, cushion = 13 }: GameCardProps) {
   const favTeam = game.fav ?? game.favorite_team
   const dogTeam = game.dog ?? game.underdog_team
-  const favCushion = game.spread + 13
-  const dogCushion = Math.abs(game.spread) + 13
+  const favCushion = game.spread + cushion
+  const dogCushion = Math.abs(game.spread) + cushion
   const hasStarted = game.commence_time ? new Date(game.commence_time) < new Date() : false
 
   const favSelected = !!favPick
   const dogSelected = !!dogPick
-  const anySelected = favSelected || dogSelected
+  const overSelected = !!overPick
+  const underSelected = !!underPick
+  const anySelected = favSelected || dogSelected || overSelected || underSelected
 
   // A pick becomes locked once its individual game has started
   const isLocked = hasStarted && !isHistorical
@@ -159,7 +162,7 @@ export function GameCard({ game, favPick, dogPick, isHistorical, onSelect, disab
           if (!pick) return null
           const pickedFavorite = pick.team_selected === favTeam
           const absSpread = Math.abs(game.spread)
-          const effectiveLine = pickedFavorite ? CUSHION - absSpread : absSpread + CUSHION
+          const effectiveLine = pickedFavorite ? cushion - absSpread : absSpread + cushion
           // Max integer loss: largest whole number strictly less than effectiveLine
           // e.g. +3 → lose by 2 max; +3.5 → lose by 3 max (not 2.5)
           const maxLoss = Math.ceil(effectiveLine) - 1
@@ -181,10 +184,73 @@ export function GameCard({ game, favPick, dogPick, isHistorical, onSelect, disab
           )
         })}
 
+        {/* O/U section — shown for playoff games that have a total set */}
+        {game.total != null && (
+          <>
+            <div className="mt-2 mb-1 flex items-center gap-2">
+              <div className="flex-1 h-px bg-zinc-800" />
+              <span className="text-[8px] font-black uppercase tracking-widest text-zinc-600">Over / Under</span>
+              <div className="flex-1 h-px bg-zinc-800" />
+            </div>
+            <div className={`flex gap-2 ${isInteractionDisabled ? 'pointer-events-none' : ''}`}>
+              <button
+                className={halfClass(overSelected)}
+                onClick={() => onSelect(game.id, 'OVER')}
+              >
+                <p className="font-bold text-sm text-white uppercase leading-tight">OVER</p>
+                <div className="mt-1.5 space-y-0.5">
+                  <p className="text-[10px] font-mono leading-tight">
+                    <span className="text-zinc-500">Total: </span>
+                    <span className="text-zinc-300">{game.total}</span>
+                  </p>
+                  <p className="text-[10px] font-mono leading-tight">
+                    <span className="text-zinc-500">Win if &gt; </span>
+                    <span className="text-green-400">{game.total - cushion}</span>
+                  </p>
+                </div>
+              </button>
+              <button
+                className={halfClass(underSelected)}
+                onClick={() => onSelect(game.id, 'UNDER')}
+              >
+                <p className="font-bold text-sm text-white uppercase leading-tight">UNDER</p>
+                <div className="mt-1.5 space-y-0.5">
+                  <p className="text-[10px] font-mono leading-tight">
+                    <span className="text-zinc-500">Total: </span>
+                    <span className="text-zinc-300">{game.total}</span>
+                  </p>
+                  <p className="text-[10px] font-mono leading-tight">
+                    <span className="text-zinc-500">Win if &lt; </span>
+                    <span className="text-green-400">{game.total + cushion}</span>
+                  </p>
+                </div>
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* "Needed to win" summary for O/U picks on non-final playoff games */}
+        {game.status !== 'final' && game.total != null && [overPick, underPick].map(pick => {
+          if (!pick) return null
+          const isOver = pick.team_selected === 'OVER'
+          const threshold = isOver ? game.total! - cushion : game.total! + cushion
+          const neededDesc = isOver
+            ? `Total must reach ${Math.floor(threshold) + (Number.isInteger(threshold) ? 1 : 0)}+`
+            : `Total must stay under ${Math.ceil(threshold)}`
+          return (
+            <div key={pick.team_selected} className="mt-2 px-1 flex justify-between items-center">
+              <span className="text-[9px] font-black uppercase tracking-widest text-green-500/70">
+                {pick.team_selected}
+              </span>
+              <span className="text-[9px] text-zinc-400">{neededDesc}</span>
+            </div>
+          )
+        })}
+
         {/* Result breakdown for completed picked games — one per selected side */}
         {game.status === 'final' && [favPick, dogPick].map(pick => {
           if (!pick?.result) return null
-          const bd = getBreakdown(game, pick.team_selected)
+          const bd = getBreakdown(game, pick.team_selected, cushion)
           if (!bd) return null
           const color = pick.result === 'win' ? 'text-green-400' : pick.result === 'loss' ? 'text-red-400' : 'text-zinc-400'
           return (
@@ -199,6 +265,33 @@ export function GameCard({ game, favPick, dogPick, isHistorical, onSelect, disab
                 <span className="text-[9px] font-mono text-zinc-500">{bd.score}</span>
                 <span className={`text-[9px] font-black uppercase ${color}`}>
                   {bd.marginDesc} → {pick.result.toUpperCase()}
+                </span>
+              </div>
+            </div>
+          )
+        })}
+
+        {/* Result breakdown for completed O/U picks */}
+        {game.status === 'final' && game.total != null && [overPick, underPick].map(pick => {
+          if (!pick?.result) return null
+          const actualTotal = (game.home_score ?? 0) + (game.away_score ?? 0)
+          const isOver = pick.team_selected === 'OVER'
+          const threshold = isOver ? game.total! - cushion : game.total! + cushion
+          const color = pick.result === 'win' ? 'text-green-400' : 'text-red-400'
+          return (
+            <div key={pick.team_selected} className="mt-3 pt-3 border-t border-zinc-800 space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                  {pick.team_selected}
+                </span>
+                <span className="text-[9px] text-zinc-600">
+                  Needed: {isOver ? `> ${threshold}` : `< ${threshold}`}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-mono text-zinc-500">Total: {actualTotal}</span>
+                <span className={`text-[9px] font-black uppercase ${color}`}>
+                  {pick.result.toUpperCase()}
                 </span>
               </div>
             </div>

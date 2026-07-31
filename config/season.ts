@@ -40,6 +40,16 @@ export const SEASON_WEEKS: SeasonWeek[] = [
   { week: 22, name: 'Super Bowl', startDate: '2027-02-06', endDate: '2027-02-09', placeholderCount: 1 },
 ]
 
+// ─── PLAYOFF RULES ───────────────────────────────────────────────────────────
+// Cushion and required pick count per playoff week.
+// O/U picks share the same cushion (OVER wins if total > line-cushion, UNDER if total < line+cushion).
+export const PLAYOFF_RULES: Record<number, { cushion: number; picksRequired: number }> = {
+  19: { cushion: 10, picksRequired: 3 }, // Wild Card
+  20: { cushion: 7,  picksRequired: 3 }, // Divisional
+  21: { cushion: 3,  picksRequired: 2 }, // Conf. Championship
+  22: { cushion: 0,  picksRequired: 1 }, // Super Bowl
+}
+
 export const SPORT_KEY = 'americanfootball_nfl'
 
 export const SEASON_YEAR = 2026

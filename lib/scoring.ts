@@ -1,27 +1,38 @@
 // Shared scoring logic used by both the cron job and admin simulation tools
+import { PLAYOFF_RULES } from '@/config/season'
 
 /**
  * Score a single pick against a final game result.
- * Cushion is per-league (default 13) and must be passed in.
+ * Cushion is per-league (default 13) or per-playoff-round, and must be passed in.
+ * O/U picks: team_selected === 'OVER' | 'UNDER', scored against game.total with same cushion.
  */
 export function scorePick(pick: any, game: any, cushion: number): 'win' | 'loss' {
-  const { home_team, favorite_team, spread, home_score, away_score } = game
+  const { home_team, favorite_team, spread, home_score, away_score, total } = game
+
+  // Over/Under pick (playoff rounds only)
+  if (pick.team_selected === 'OVER' || pick.team_selected === 'UNDER') {
+    if (total == null) return 'loss'
+    const actualTotal = home_score + away_score
+    if (pick.team_selected === 'OVER') {
+      return actualTotal > total - cushion ? 'win' : 'loss'
+    } else {
+      return actualTotal < total + cushion ? 'win' : 'loss'
+    }
+  }
+
+  // Spread pick
   const homeMargin = home_score - away_score
   const pickedFavorite = pick.team_selected === favorite_team
   const pickedMargin = pick.team_selected === home_team ? homeMargin : -homeMargin
 
   if (pickedFavorite) {
-    // Favorite: adjusted line = cushion - |spread|. Win requires strictly beating it.
     // e.g. -7 spread + 13 cushion → adjusted +6, threshold = -6, fav can lose by up to 5; lose by 6+ = loss
     const threshold = -(cushion - Math.abs(spread))
-    if (pickedMargin > threshold) return 'win'
-    return 'loss'
+    return pickedMargin > threshold ? 'win' : 'loss'
   } else {
-    // Underdog: adjusted line = |spread| + cushion. Win requires strictly beating it.
     // e.g. +7 spread + 13 cushion → adjusted +20, threshold = -20, dog can lose by up to 19; lose by 20+ = loss
     const threshold = -(Math.abs(spread) + cushion)
-    if (pickedMargin > threshold) return 'win'
-    return 'loss'
+    return pickedMargin > threshold ? 'win' : 'loss'
   }
 }
 
@@ -79,9 +90,10 @@ export async function calculateWeeklyResults(
       continue
     }
 
-    // No wrong picks. Only a win if they made all 4 picks and every one is final.
-    // Otherwise (fewer than 4 picks, or some still pending) → no result yet.
-    if (picks.length < 4) continue
+    // No wrong picks. Only a win if they made all required picks and every one is final.
+    // Otherwise (fewer picks than required, or some still pending) → no result yet.
+    const picksRequired = PLAYOFF_RULES[week]?.picksRequired ?? 4
+    if (picks.length < picksRequired) continue
     const allFinal = picks.every((p: any) => p.game?.status === 'final')
     if (!allFinal) continue
     results.push({ user_id: member.user_id, is_winner: true, picks_correct: wins })
@@ -207,7 +219,7 @@ export async function scoreExistingGames(supabase: any) {
     for (const pick of picks) {
       const game = gamesById.get(pick.game_id)
       if (!game) continue
-      const cushion = pick.league?.spread_cushion ?? 13
+      const cushion = PLAYOFF_RULES[pick.nfl_week]?.cushion ?? (pick.league?.spread_cushion ?? 13)
       const result = scorePick(pick, game, cushion)
       if (result === 'win') winIds.push(pick.id)
       else lossIds.push(pick.id)

@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { ACTIVE_SPORT, SPORT_CONFIG, computeWeekFromDate, computeCurrentWeek, toETDateString } from '@/lib/weekUtils'
-import { SEASON_WEEKS } from '@/config/season'
+import { SEASON_WEEKS, PLAYOFF_RULES } from '@/config/season'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,9 +48,10 @@ export async function GET(request: Request) {
     const timeout = setTimeout(() => controller.abort(), 15000)
 
     try {
+      const markets = week in PLAYOFF_RULES ? 'spreads,totals' : 'spreads'
       const [eventsRes, oddsRes] = await Promise.all([
         fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/events/?apiKey=${ODDS_API_KEY}${dateParams}`, { cache: 'no-store', signal: controller.signal }),
-        fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american${dateParams}`, { cache: 'no-store', signal: controller.signal }),
+        fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=${markets}&oddsFormat=american${dateParams}`, { cache: 'no-store', signal: controller.signal }),
       ]).finally(() => clearTimeout(timeout))
 
       const eventsData: any[] = eventsRes.ok ? await eventsRes.json() : []
@@ -103,6 +104,11 @@ export async function GET(request: Request) {
           }
         }
 
+        const totalsMarket = oddsEvent?.bookmakers
+          ?.find((b: any) => b.key === 'draftkings' || b.key === 'fanduel' || b.key === 'lowvig')
+          ?.markets?.find((m: any) => m.key === 'totals')
+        const total: number | undefined = totalsMarket?.outcomes?.find((o: any) => o.name === 'Over')?.point
+
         return {
           external_id: event.id,
           home_team: event.home_team,
@@ -110,6 +116,7 @@ export async function GET(request: Request) {
           favorite_team: favTeam,
           underdog_team: dogTeam,
           spread,
+          ...(total != null ? { total } : {}),
           commence_time: event.commence_time,
           nfl_week: computeWeekFromDate(event.commence_time, SPORT_KEY),
           season_year: SEASON_YEAR,
