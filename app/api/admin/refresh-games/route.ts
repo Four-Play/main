@@ -37,9 +37,10 @@ export async function POST(request: Request) {
     const timeout = setTimeout(() => controller.abort(), 15000)
 
     try {
+      const weekSportKey = weekConfig.sportKey ?? SPORT_KEY
       const [eventsRes, oddsRes] = await Promise.all([
-        fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/events/?apiKey=${ODDS_API_KEY}${dateParams}`, { cache: 'no-store', signal: controller.signal }),
-        fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american${dateParams}`, { cache: 'no-store', signal: controller.signal }),
+        fetch(`${ODDS_BASE}/sports/${weekSportKey}/events/?apiKey=${ODDS_API_KEY}${dateParams}`, { cache: 'no-store', signal: controller.signal }),
+        fetch(`${ODDS_BASE}/sports/${weekSportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american${dateParams}`, { cache: 'no-store', signal: controller.signal }),
       ]).finally(() => clearTimeout(timeout))
 
       const eventsData: any[] = eventsRes.ok ? await eventsRes.json() : []
