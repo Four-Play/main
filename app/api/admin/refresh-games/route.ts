@@ -67,12 +67,13 @@ export async function POST(request: Request) {
         let dogTeam = event.away_team
         let spread = 0
 
+        const oddsEvent = oddsById.get(event.id)
+
         if (locked) {
           favTeam = locked.favorite_team
           dogTeam = locked.underdog_team
           spread = locked.spread
         } else {
-          const oddsEvent = oddsById.get(event.id)
           const spreadMarket = oddsEvent?.bookmakers
             ?.find((b: any) => b.key === 'draftkings' || b.key === 'fanduel' || b.key === 'lowvig')
             ?.markets?.find((m: any) => m.key === 'spreads')
