@@ -75,19 +75,19 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
           </Rule>
 
           {/* Playoffs */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
+          <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 space-y-3">
             <p className="text-[10px] font-black text-green-500 uppercase tracking-widest">Playoffs</p>
-            <p className="text-[11px] text-zinc-400 leading-relaxed">
-              The playoffs use a <span className="text-white font-black">smaller cushion</span> and fewer required picks — the stakes get tighter as the season ends.
+            <p className="text-[11px] text-zinc-300 leading-relaxed">
+              The playoffs shrink the cushion each round and require fewer picks — go perfect on all your required picks to win the week. Points still work the same way.
             </p>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 pt-1">
               {[
-                { round: 'Wild Card',        week: 19, cushion: 10, picks: 3 },
-                { round: 'Divisional',       week: 20, cushion: 7,  picks: 3 },
-                { round: 'Conf. Champ.',     week: 21, cushion: 3,  picks: 2 },
-                { round: 'Super Bowl',       week: 22, cushion: 0,  picks: 1 },
+                { round: 'Wild Card',    cushion: 10, picks: 3 },
+                { round: 'Divisional',   cushion: 7,  picks: 3 },
+                { round: 'Conf. Champ.', cushion: 3,  picks: 2 },
+                { round: 'Super Bowl',   cushion: 0,  picks: 1 },
               ].map(r => (
-                <div key={r.week} className="flex justify-between items-center">
+                <div key={r.round} className="flex justify-between items-center">
                   <span className="text-[11px] text-zinc-400">{r.round}</span>
                   <span className="text-[11px] font-mono text-white">
                     +{r.cushion} cushion · {r.picks} pick{r.picks !== 1 ? 's' : ''}
@@ -95,11 +95,42 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
                 </div>
               ))}
             </div>
+            <div className="h-px bg-zinc-800" />
+            <p className="text-[10px] text-zinc-500 leading-relaxed">
+              Example — Wild Card, pick the favorite with a <span className="text-white">–7</span> spread: adjusted line is <span className="text-green-400">–7 + 10 = +3</span>. Your team must not lose by 3 or more.
+            </p>
+            <p className="text-[10px] text-zinc-500 leading-relaxed">
+              Super Bowl cushion is <span className="text-white">0</span> — your pick must actually beat the spread to win.
+            </p>
           </div>
 
           <Rule icon={Zap} title="Over / Under (Playoffs Only)">
-            In every playoff round you can also pick the <span className="text-white font-black">Over or Under</span> on a game's total score. The same cushion applies — OVER wins if the combined score exceeds the total line minus the cushion; UNDER wins if it stays below the total plus the cushion. Each O/U pick counts toward your required picks for that round.
+            In every playoff round you can also pick the <span className="text-white font-black">Over or Under</span> on a game's total score — it counts as one of your required picks. The same round cushion applies: <span className="text-white font-black">OVER wins</span> if the combined score exceeds the total line minus the cushion; <span className="text-white font-black">UNDER wins</span> if it stays below the total plus the cushion. Ties count as a loss.
           </Rule>
+
+          {/* O/U example */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
+            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">O/U Example — Wild Card</p>
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] text-zinc-400">Total line</span>
+                <span className="text-[11px] font-mono text-zinc-300">47.5</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] text-zinc-400">Wild Card cushion</span>
+                <span className="text-[11px] font-mono text-green-400">+10</span>
+              </div>
+              <div className="h-px bg-zinc-800" />
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] font-black text-white">OVER wins if total &gt;</span>
+                <span className="text-[11px] font-black font-mono text-green-400">37.5</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] font-black text-white">UNDER wins if total &lt;</span>
+                <span className="text-[11px] font-black font-mono text-green-400">57.5</span>
+              </div>
+            </div>
+          </div>
 
           {/* Quick Example */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
