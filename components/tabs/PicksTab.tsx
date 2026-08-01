@@ -10,6 +10,43 @@ import { GameCardPlaceholder } from '@/components/picks/GameCardPlaceholder'
 
 const activeSport = SPORT_CONFIG[ACTIVE_SPORT]
 
+function getPickBarColor(pick: Pick, cushion: number): string {
+  const game = pick.game
+  const isFinal = game?.status === 'final'
+
+  if (isFinal) {
+    return pick.result === 'win' ? 'bg-green-600' : 'bg-red-600'
+  }
+
+  const isOU = pick.team_selected === 'OVER' || pick.team_selected === 'UNDER'
+  let winning: boolean
+
+  if (isOU) {
+    if (game?.total == null) {
+      winning = true
+    } else {
+      const actual = (game.home_score ?? 0) + (game.away_score ?? 0)
+      winning = pick.team_selected === 'OVER'
+        ? actual > game.total - cushion
+        : actual < game.total + cushion
+    }
+  } else {
+    if (!game) {
+      winning = true
+    } else {
+      const favTeam = game.fav ?? game.favorite_team
+      const pickedFavorite = pick.team_selected === favTeam
+      const homeMargin = (game.home_score ?? 0) - (game.away_score ?? 0)
+      const pickedMargin = pick.team_selected === game.home_team ? homeMargin : -homeMargin
+      winning = pickedFavorite
+        ? pickedMargin > -(cushion - Math.abs(game.spread))
+        : pickedMargin > -(Math.abs(game.spread) + cushion)
+    }
+  }
+
+  return winning ? 'bg-green-500/30' : 'bg-red-500/30'
+}
+
 interface PicksTabProps {
   selectedWeek: number
   setSelectedWeek: (week: number) => void
@@ -110,9 +147,12 @@ export function PicksTab({
                     return at - bt
                   })
                   .map(p => (
-                    <span key={p.game_id} className="text-[8px] font-black uppercase text-zinc-500 tracking-wide">
-                      {p.team_selected.split(' ').pop()}
-                    </span>
+                    <div key={`${p.game_id}|${p.team_selected}`} className="flex flex-col items-center gap-0.5">
+                      <span className="text-[8px] font-black uppercase text-zinc-500 tracking-wide">
+                        {p.team_selected.split(' ').pop()}
+                      </span>
+                      <div className={`h-1 w-full rounded-full ${getPickBarColor(p, cushion)}`} />
+                    </div>
                   ))}
               </div>
             )}
