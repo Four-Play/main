@@ -6,22 +6,43 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { Trophy, Target, TrendingUp, TrendingDown, Star, CheckCircle2, Zap } from "lucide-react"
+import { Trophy, Zap } from "lucide-react"
 
 interface HowToPlayModalProps {
   isOpen: boolean
   onClose: (open: boolean) => void
 }
 
-function Rule({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
+function StepHeader({ n, title }: { n: number; title: string }) {
   return (
-    <div className="flex gap-3">
-      <div className="mt-0.5 w-7 h-7 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
-        <Icon className="w-3.5 h-3.5 text-green-500" />
+    <div className="flex items-center gap-2 mb-3">
+      <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+        <span className="text-[9px] font-black text-black">{n}</span>
       </div>
-      <div>
-        <p className="text-[11px] font-black uppercase tracking-widest text-white mb-1">{title}</p>
-        <p className="text-[11px] text-zinc-400 leading-relaxed">{children}</p>
+      <p className="text-[11px] font-black uppercase tracking-widest text-white">{title}</p>
+    </div>
+  )
+}
+
+function MiniPickButton({ team, spreadLabel, adjLabel, selected }: {
+  team: string
+  spreadLabel: string
+  adjLabel: string
+  selected?: boolean
+}) {
+  const spreadIsNeg = spreadLabel.startsWith('–') || spreadLabel.startsWith('-')
+  return (
+    <div className={`flex-1 rounded-lg p-2 border ${selected ? 'border-green-500 bg-green-500/10' : 'border-zinc-800'}`}>
+      <p className="font-bold text-[11px] text-white uppercase leading-tight">{team}</p>
+      <div className="mt-1 space-y-0.5">
+        <p className="text-[9px] font-mono">
+          <span className="text-zinc-500">Spread: </span>
+          <span className={spreadIsNeg ? 'text-red-400' : 'text-green-400'}>{spreadLabel}</span>
+        </p>
+        <p className="text-[9px] font-mono">
+          <span className="text-zinc-500">Adj: </span>
+          <span className="text-green-400">{adjLabel}</span>
+        </p>
       </div>
     </div>
   )
@@ -40,118 +61,234 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 py-4 overflow-y-auto flex-1 min-h-0">
+        <div className="space-y-7 py-4 overflow-y-auto flex-1 min-h-0 pr-1">
 
-          {/* The Basics */}
-          <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4">
-            <p className="text-[10px] font-black text-green-500 uppercase tracking-widest mb-2">The Basics</p>
-            <p className="text-[12px] text-zinc-300 leading-relaxed">
-              Each round, every player picks <span className="text-white font-black">4 games</span>. For each game you choose either the <span className="text-white font-black">Favorite</span> or the <span className="text-white font-black">Underdog</span>. Go 4-for-4 to win the week.
+          {/* ── Step 1: 4 picks ── */}
+          <div>
+            <StepHeader n={1} title="Pick 4 Games Each Week" />
+            <div className="flex gap-1.5 mb-3">
+              {['CHIEFS', 'BILLS', 'RAVENS', '?'].map((label, i) => {
+                const filled = i < 3
+                return (
+                  <div
+                    key={i}
+                    className={`flex-1 h-11 rounded-lg border flex flex-col items-center justify-center gap-0.5 ${
+                      filled ? 'border-green-500/40 bg-green-500/5' : 'border-dashed border-zinc-700'
+                    }`}
+                  >
+                    {filled ? (
+                      <>
+                        <span className="text-[7px] font-black uppercase text-zinc-300">{label}</span>
+                        <span className="text-green-500 text-[9px] font-black">✓</span>
+                      </>
+                    ) : (
+                      <span className="text-[13px] text-zinc-700 font-black leading-none">+</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Each week choose a team from <span className="text-white font-black">4 different games</span>. You need to win <span className="text-white font-black">all 4</span> — there's no partial credit.
             </p>
           </div>
 
-          <Rule icon={Target} title="The +13 Cushion">
-            Every pick comes with a built-in <span className="text-white font-black">+13 point cushion</span> on top of the spread. This makes it easier to win — your team doesn't have to cover the line, they just have to stay within the cushion.
-          </Rule>
-
-          <Rule icon={TrendingDown} title="Picking the Favorite">
-            The favorite's spread is negative (e.g. <span className="text-red-400 font-black">–7</span>). Add the +13 cushion and your adjusted line is <span className="text-green-400 font-black">+6</span>. Your team must <span className="text-white font-black">not lose by 6 or more</span> — so they can lose by up to 5 points and you still win the pick.
-          </Rule>
-
-          <Rule icon={TrendingUp} title="Picking the Underdog">
-            The underdog's spread is positive (e.g. <span className="text-green-400 font-black">+7</span>). Add the +13 cushion and your adjusted line is <span className="text-green-400 font-black">+20</span>. Your team must <span className="text-white font-black">not lose by 20 or more</span> — so they can lose by up to 19 points and you still win the pick.
-          </Rule>
-
-          <Rule icon={CheckCircle2} title="Winning the Week">
-            You need to win <span className="text-white font-black">all 4 picks</span> to be a weekly winner. If any single pick loses, you're in the loser pool for that round. There's no partial credit — it's all or nothing.
-          </Rule>
-
-          <Rule icon={Star} title="Points & Scoring">
-            At the end of each round, every player who <span className="text-white font-black">didn't go 4-for-4</span> loses points equal to the league stake. Those points are split evenly among all players who <span className="text-white font-black">did go 4-for-4</span>. No winners? No points change — the round is a wash.
-          </Rule>
-
-          <Rule icon={Trophy} title="Season Standings">
-            Season points track your total across all rounds. The leaderboard in the League tab shows where everyone stands. The default league stake is 50 points per loss.
-          </Rule>
-
-          {/* Playoffs */}
-          <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 space-y-3">
-            <p className="text-[10px] font-black text-green-500 uppercase tracking-widest">Playoffs</p>
-            <p className="text-[11px] text-zinc-300 leading-relaxed">
-              The playoffs shrink the cushion each round and require fewer picks — go perfect on all your required picks to win the week. Points still work the same way.
+          {/* ── Step 2: FAV or DOG ── */}
+          <div>
+            <StepHeader n={2} title="Choose the Favorite or Underdog" />
+            <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-3 mb-3">
+              <div className="mb-2">
+                <span className="text-[8px] bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded font-mono uppercase">SUN 4:25 PM</span>
+              </div>
+              <div className="flex gap-2">
+                <MiniPickButton team="CHIEFS" spreadLabel="–10" adjLabel="+3" selected />
+                <MiniPickButton team="EAGLES" spreadLabel="+10" adjLabel="+23" />
+              </div>
+            </div>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              The <span className="text-white font-black">Favorite</span> has a negative spread. The <span className="text-white font-black">Underdog</span> has a positive spread. Each button shows your <span className="text-green-400 font-black">adjusted line</span> after the cushion is applied.
             </p>
-            <div className="space-y-1.5 pt-1">
+          </div>
+
+          {/* ── Step 3: The Cushion ── */}
+          <div>
+            <StepHeader n={3} title="The +13 Cushion" />
+
+            {/* Equation */}
+            <div className="flex items-center justify-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 mb-3">
+              <div className="text-center">
+                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-0.5">Spread</p>
+                <p className="text-2xl font-black font-mono text-red-400">–10</p>
+              </div>
+              <p className="text-zinc-600 font-black text-xl pb-2">+</p>
+              <div className="text-center">
+                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-0.5">Cushion</p>
+                <p className="text-2xl font-black font-mono text-green-400">+13</p>
+              </div>
+              <p className="text-zinc-600 font-black text-xl pb-2">=</p>
+              <div className="text-center">
+                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-0.5">Your Line</p>
+                <p className="text-2xl font-black font-mono text-green-400">+3</p>
+              </div>
+            </div>
+
+            {/* Win / Loss bar */}
+            <div className="mb-3">
+              <div className="flex h-8 rounded-lg overflow-hidden border border-zinc-800">
+                <div className="w-[38%] bg-red-500/15 border-r border-red-500/20 flex items-center justify-center">
+                  <span className="text-[9px] font-black text-red-400">LOSS</span>
+                </div>
+                <div className="flex-1 bg-green-500/10 flex items-center justify-center">
+                  <span className="text-[9px] font-black text-green-400">WIN</span>
+                </div>
+              </div>
+              <div className="flex mt-1 px-0.5">
+                <div className="w-[38%] text-center">
+                  <span className="text-[8px] text-zinc-600 font-mono">lose by 3+</span>
+                </div>
+                <div className="flex-1 text-center">
+                  <span className="text-[8px] text-zinc-500 font-mono">lose by ≤2, or win</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Picking the Chiefs (–10)? The cushion shifts your line to <span className="text-green-400 font-black">+3</span>. They can lose by up to <span className="text-white font-black">2 points</span> and you still win the pick.
+            </p>
+          </div>
+
+          {/* Underdog example card */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+            <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-3">Underdog Example — Eagles +10</p>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="text-center flex-1">
+                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1">Spread</p>
+                <p className="text-xl font-black font-mono text-green-400">+10</p>
+              </div>
+              <p className="text-zinc-700 font-black text-lg">+</p>
+              <div className="text-center flex-1">
+                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1">Cushion</p>
+                <p className="text-xl font-black font-mono text-green-400">+13</p>
+              </div>
+              <p className="text-zinc-700 font-black text-lg">=</p>
+              <div className="text-center flex-1">
+                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1">Your Line</p>
+                <p className="text-xl font-black font-mono text-green-400">+23</p>
+              </div>
+            </div>
+            <div className="flex h-8 rounded-lg overflow-hidden border border-zinc-800">
+              <div className="w-[10%] bg-red-500/15 border-r border-red-500/20 flex items-center justify-center">
+                <span className="text-[7px] font-black text-red-400">L</span>
+              </div>
+              <div className="flex-1 bg-green-500/10 flex items-center justify-center">
+                <span className="text-[9px] font-black text-green-400">WIN — lose by ≤22, or win outright</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Step 4: Scoring ── */}
+          <div>
+            <StepHeader n={4} title="How Points Work" />
+            <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 mb-3 space-y-3">
+              <div>
+                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1.5">Missed 4-for-4</p>
+                <div className="flex gap-1.5">
+                  {[['You', '–50'], ['Player B', '–50'], ['Player C', '–50']].map(([name, pts]) => (
+                    <div key={name} className="flex-1 rounded-lg bg-red-500/8 border border-red-500/15 p-1.5 text-center">
+                      <p className="text-[8px] font-black text-zinc-400">{name}</p>
+                      <p className="text-[10px] font-black text-red-400">{pts}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px bg-zinc-800" />
+                <span className="text-[8px] text-zinc-600 font-mono">150 pts flow to →</span>
+                <div className="flex-1 h-px bg-zinc-800" />
+              </div>
+              <div>
+                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1.5">Went 4-for-4</p>
+                <div className="flex gap-1.5">
+                  <div className="flex-1 rounded-lg bg-green-500/8 border border-green-500/15 p-1.5 text-center">
+                    <p className="text-[8px] font-black text-zinc-400">Player D</p>
+                    <p className="text-[10px] font-black text-green-400">+150</p>
+                  </div>
+                  <div className="flex-1 rounded-lg border border-dashed border-zinc-800 p-1.5 text-center flex items-center justify-center">
+                    <p className="text-[8px] text-zinc-700">empty slot</p>
+                  </div>
+                  <div className="flex-1 rounded-lg border border-dashed border-zinc-800 p-1.5 text-center flex items-center justify-center">
+                    <p className="text-[8px] text-zinc-700">empty slot</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Every player who missed pays the <span className="text-white font-black">league stake (50 pts)</span>. That total is split among 4-for-4 winners. No winners? No points change.
+            </p>
+          </div>
+
+          {/* ── Playoffs ── */}
+          <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-3.5 h-3.5 text-green-500" />
+              <p className="text-[10px] font-black text-green-500 uppercase tracking-widest">Playoffs</p>
+            </div>
+            <p className="text-[11px] text-zinc-300 leading-relaxed">
+              Fewer picks required each round — but the cushion shrinks too. Go perfect on all required picks to win the week.
+            </p>
+            <div className="rounded-lg border border-zinc-800 overflow-hidden">
               {[
-                { round: 'Wild Card',    cushion: 10, picks: 3 },
-                { round: 'Divisional',   cushion: 7,  picks: 3 },
-                { round: 'Conf. Champ.', cushion: 3,  picks: 2 },
-                { round: 'Super Bowl',   cushion: 0,  picks: 1 },
-              ].map(r => (
-                <div key={r.round} className="flex justify-between items-center">
-                  <span className="text-[11px] text-zinc-400">{r.round}</span>
-                  <span className="text-[11px] font-mono text-white">
-                    +{r.cushion} cushion · {r.picks} pick{r.picks !== 1 ? 's' : ''}
-                  </span>
+                { round: 'Wild Card',    cushion: 10, picks: 3, barW: 'w-[77%]' },
+                { round: 'Divisional',   cushion: 7,  picks: 3, barW: 'w-[54%]' },
+                { round: 'Conf. Champ.', cushion: 3,  picks: 2, barW: 'w-[23%]' },
+                { round: 'Super Bowl',   cushion: 0,  picks: 1, barW: 'w-0' },
+              ].map((r, i) => (
+                <div key={r.round} className={`flex items-center gap-3 px-3 py-2 ${i < 3 ? 'border-b border-zinc-800' : ''}`}>
+                  <div className="w-[90px] flex-shrink-0">
+                    <p className="text-[10px] text-zinc-300">{r.round}</p>
+                    <p className="text-[8px] text-zinc-600">{r.picks} pick{r.picks !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="flex-1 flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                      <div className={`h-full bg-green-500 rounded-full ${r.barW}`} />
+                    </div>
+                    <span className="text-[10px] font-black font-mono text-green-400 w-6 text-right">+{r.cushion}</span>
+                  </div>
                 </div>
               ))}
             </div>
-            <div className="h-px bg-zinc-800" />
-            <p className="text-[10px] text-zinc-500 leading-relaxed">
-              Example — Wild Card, pick the favorite with a <span className="text-white">–7</span> spread: adjusted line is <span className="text-green-400">–7 + 10 = +3</span>. Your team must not lose by 3 or more.
-            </p>
-            <p className="text-[10px] text-zinc-500 leading-relaxed">
-              Super Bowl cushion is <span className="text-white">0</span> — your pick must actually beat the spread to win.
+            <p className="text-[10px] text-zinc-500">
+              Super Bowl cushion is <span className="text-white font-bold">0</span> — your pick must actually cover the spread to win.
             </p>
           </div>
 
-          <Rule icon={Zap} title="Over / Under (Playoffs Only)">
-            In every playoff round you can also pick the <span className="text-white font-black">Over or Under</span> on a game's total score — it counts as one of your required picks. The same round cushion applies: <span className="text-white font-black">OVER wins</span> if the combined score exceeds the total line minus the cushion; <span className="text-white font-black">UNDER wins</span> if it stays below the total plus the cushion. Ties count as a loss.
-          </Rule>
-
-          {/* O/U example */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
-            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">O/U Example — Wild Card</p>
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] text-zinc-400">Total line</span>
-                <span className="text-[11px] font-mono text-zinc-300">47.5</span>
+          {/* ── Over / Under ── */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0">
+                <Zap className="w-2.5 h-2.5 text-green-500" />
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] text-zinc-400">Wild Card cushion</span>
-                <span className="text-[11px] font-mono text-green-400">+10</span>
-              </div>
-              <div className="h-px bg-zinc-800" />
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] font-black text-white">OVER wins if total &gt;</span>
-                <span className="text-[11px] font-black font-mono text-green-400">37.5</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] font-black text-white">UNDER wins if total &lt;</span>
-                <span className="text-[11px] font-black font-mono text-green-400">57.5</span>
-              </div>
+              <p className="text-[11px] font-black uppercase tracking-widest text-white">Over / Under (Playoffs Only)</p>
             </div>
-          </div>
-
-          {/* Quick Example */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
-            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Quick Example</p>
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] text-zinc-400">Spread</span>
-                <span className="text-[11px] font-mono text-red-400">–10</span>
+            <p className="text-[11px] text-zinc-400 leading-relaxed mb-3">
+              In every playoff round you can also pick the <span className="text-white font-black">combined score</span> going Over or Under — it counts as one of your required picks. The round cushion applies here too.
+            </p>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-3">Wild Card · Total Line 47.5 · Cushion +10</p>
+              <div className="flex gap-2">
+                <div className="flex-1 rounded-lg border border-zinc-800 p-2.5 text-center">
+                  <p className="text-[11px] font-black text-white uppercase mb-1">OVER</p>
+                  <p className="text-[9px] font-mono text-zinc-500">Win if combined &gt;</p>
+                  <p className="text-[14px] font-black font-mono text-green-400">37.5</p>
+                  <p className="text-[8px] text-zinc-700 mt-0.5">47.5 – 10</p>
+                </div>
+                <div className="flex-1 rounded-lg border border-zinc-800 p-2.5 text-center">
+                  <p className="text-[11px] font-black text-white uppercase mb-1">UNDER</p>
+                  <p className="text-[9px] font-mono text-zinc-500">Win if combined &lt;</p>
+                  <p className="text-[14px] font-black font-mono text-green-400">57.5</p>
+                  <p className="text-[8px] text-zinc-700 mt-0.5">47.5 + 10</p>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] text-zinc-400">+13 Cushion</span>
-                <span className="text-[11px] font-mono text-green-400">+13</span>
-              </div>
-              <div className="h-px bg-zinc-800" />
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] font-black text-white">Adjusted Line (Fav)</span>
-                <span className="text-[11px] font-black font-mono text-green-400">+3</span>
-              </div>
-              <p className="text-[10px] text-zinc-500 pt-1">
-                The favorite can lose by up to 2 and you still win. If they lose by 3 or more, you lose the pick.
-              </p>
             </div>
           </div>
 
