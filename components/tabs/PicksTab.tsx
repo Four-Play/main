@@ -146,14 +146,23 @@ export function PicksTab({
                     const bt = b.game?.commence_time ? new Date(b.game.commence_time).getTime() : 0
                     return at - bt
                   })
-                  .map(p => (
-                    <div key={`${p.game_id}|${p.team_selected}`} className="flex flex-col items-center gap-0.5">
-                      <span className="text-[8px] font-black uppercase text-zinc-500 tracking-wide">
-                        {p.team_selected.split(' ').pop()}
-                      </span>
-                      <div className={`h-1 w-full rounded-full ${getPickBarColor(p, cushion)}`} />
-                    </div>
-                  ))}
+                  .map(p => {
+                    const isFinal = p.game?.status === 'final'
+                    return (
+                      <div key={`${p.game_id}|${p.team_selected}`} className="flex flex-col items-center gap-0.5">
+                        <span className="text-[8px] font-black uppercase text-zinc-500 tracking-wide">
+                          {p.team_selected.split(' ').pop()}
+                        </span>
+                        {isFinal ? (
+                          <span className={`text-[10px] font-black leading-none ${p.result === 'win' ? 'text-green-500' : 'text-red-500'}`}>
+                            {p.result === 'win' ? '✓' : '✗'}
+                          </span>
+                        ) : (
+                          <div className={`h-1 w-full rounded-full ${getPickBarColor(p, cushion)}`} />
+                        )}
+                      </div>
+                    )
+                  })}
               </div>
             )}
           </div>
