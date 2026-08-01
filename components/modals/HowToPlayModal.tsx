@@ -183,7 +183,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
             <StepHeader n={3} title="How Points Work" />
 
             <p className="text-[11px] text-zinc-400 leading-relaxed mb-4">
-              Everyone who misses pays the <span className="text-white font-black">league stake (50 pts)</span>. That pot is split evenly among everyone who went perfect. The fewer winners, the more each one earns.
+              Each loser pays the <span className="text-white font-black">league stake (50 pts)</span> to <span className="text-white font-black">every winner</span>. More winners = less you earn. Fewer winners = bigger payday.
             </p>
 
             {/* Scenario A: 1 winner */}
@@ -219,11 +219,11 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
             <div className="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden mb-3">
               <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between">
                 <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">3 Winners</span>
-                <span className="text-[9px] font-mono text-zinc-600">2 × 50 = 100 pt pot ÷ 3</span>
+                <span className="text-[9px] font-mono text-zinc-600">each loser pays 3 × 50</span>
               </div>
               <div className="p-3 space-y-2">
                 <div className="flex gap-1.5">
-                  {[['You', '–50'], ['Player B', '–50']].map(([n, p]) => (
+                  {[['You', '–150'], ['Player B', '–150']].map(([n, p]) => (
                     <div key={n} className="flex-1 rounded-lg bg-red-500/8 border border-red-500/15 p-1.5 text-center">
                       <p className="text-[8px] text-zinc-500">{n}</p>
                       <p className="text-[10px] font-black text-red-400">{p}</p>
@@ -232,14 +232,14 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-px bg-zinc-800" />
-                  <span className="text-[8px] text-zinc-600 font-mono">100 pts split →</span>
+                  <span className="text-[8px] text-zinc-600 font-mono">each winner gets 2 × 50</span>
                   <div className="flex-1 h-px bg-zinc-800" />
                 </div>
                 <div className="flex gap-1.5">
                   {['Player C', 'Player D', 'Player E'].map(n => (
                     <div key={n} className="flex-1 rounded-lg bg-green-500/8 border border-green-500/20 p-1.5 text-center">
                       <p className="text-[8px] text-zinc-400">{n}</p>
-                      <p className="text-[10px] font-black text-green-400">+33</p>
+                      <p className="text-[10px] font-black text-green-400">+100</p>
                     </div>
                   ))}
                 </div>

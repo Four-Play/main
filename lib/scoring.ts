@@ -105,9 +105,12 @@ export async function calculateWeeklyResults(
   const losers = results.filter(r => !r.is_winner)
 
   // If nobody went 4-for-4, the round is a wash — no points change
+  // Peer-to-peer model: each loser pays the stake to EACH winner.
+  // Winner earns: stake × losers.length
+  // Loser pays:   stake × winners.length
   const hasWinners = winners.length > 0
-  const totalPot = hasWinners ? losers.length * league.payout_per_loss_cents : 0
-  const prizePerWinner = hasWinners ? Math.floor(totalPot / winners.length) : 0
+  const amountWonPerWinner = hasWinners ? league.payout_per_loss_cents * losers.length : 0
+  const amountOwedPerLoser = hasWinners ? league.payout_per_loss_cents * winners.length : 0
 
   // Batch upsert all weekly_results in one round-trip
   const calculatedAt = new Date().toISOString()
@@ -120,8 +123,8 @@ export async function calculateWeeklyResults(
       season_year: year,
       picks_correct: result.picks_correct,
       is_winner: isWinner,
-      amount_won_cents: isWinner ? prizePerWinner : 0,
-      amount_owed_cents: !isWinner && hasWinners ? league.payout_per_loss_cents : 0,
+      amount_won_cents: isWinner ? amountWonPerWinner : 0,
+      amount_owed_cents: !isWinner && hasWinners ? amountOwedPerLoser : 0,
       calculated_at: calculatedAt,
     }
   })
