@@ -21,7 +21,19 @@ export async function GET(request: Request) {
   const supabase = createServiceClient()
 
   try {
-    // 1. Fetch scores from Odds API for recently completed games
+    // 1. Skip API call entirely if no games have kicked off and aren't yet final — saves credits
+    const { data: activeGames } = await supabase
+      .from('games')
+      .select('id')
+      .neq('status', 'final')
+      .lt('commence_time', new Date().toISOString())
+      .limit(1)
+
+    if (!activeGames || activeGames.length === 0) {
+      return NextResponse.json({ success: true, message: 'No active games', gamesUpdated: 0, picksScored: 0, weeksCalculated: 0 })
+    }
+
+    // 2. Fetch scores from Odds API — covers both live and completed games from last 3 days
     const scoresUrl = `https://api.the-odds-api.com/v4/sports/${SPORT_KEY}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=3`
     const controller = new AbortController()
     const apiTimeout = setTimeout(() => controller.abort(), 10000)
@@ -32,11 +44,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No scores data from Odds API' }, { status: 502 })
     }
 
-    // 2. Update game scores in DB
+    // 3. Update game scores — live games get status 'live', completed games get 'final'
     let gamesUpdated = 0
     for (const score of scoresData) {
-      if (!score.completed) continue
-
       const homeScore = score.scores?.find((s: any) => s.name === score.home_team)?.score
       const awayScore = score.scores?.find((s: any) => s.name === score.away_team)?.score
 
@@ -47,14 +57,14 @@ export async function GET(request: Request) {
         .update({
           home_score: parseInt(homeScore),
           away_score: parseInt(awayScore),
-          status: 'final',
+          status: score.completed ? 'final' : 'live',
         })
         .eq('external_id', score.id)
 
       if (!error) gamesUpdated++
     }
 
-    // 3. Score picks and calculate weekly results for all final games
+    // 4. Score picks and calculate weekly results for all final games
     const { picksScored, weeksCalculated } = await scoreExistingGames(supabase)
 
     return NextResponse.json({

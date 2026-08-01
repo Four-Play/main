@@ -100,25 +100,44 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
         )}
 
         {/* Header row */}
-        <div className="flex justify-between items-center mb-1.5">
-          <span className="text-[9px] font-black text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded uppercase flex items-center gap-1">
-            {(isHistorical || hasStarted) && <Clock className="w-3 h-3" />}
-            {game.time ?? game.status}
-          </span>
+        {(() => {
+          const isLive = game.status === 'live'
+          return (
+            <div className="flex justify-between items-center mb-1.5">
+              {isLive ? (
+                <span className="text-[9px] font-black text-green-400 bg-green-500/10 border border-green-500/30 px-2 py-0.5 rounded uppercase flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                  LIVE
+                </span>
+              ) : (
+                <span className="text-[9px] font-black text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded uppercase flex items-center gap-1">
+                  {(isHistorical || hasStarted) && <Clock className="w-3 h-3" />}
+                  {game.time ?? game.status}
+                </span>
+              )}
 
-          <div className="flex gap-1">
-            {favPick?.result && (
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded ${resultBadgeClass(favPick.result)}`}>
-                {favTeam}: {favPick.result.toUpperCase()}
-              </span>
-            )}
-            {dogPick?.result && (
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded ${resultBadgeClass(dogPick.result)}`}>
-                {dogTeam}: {dogPick.result.toUpperCase()}
-              </span>
-            )}
+              <div className="flex gap-1">
+                {favPick?.result && (
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded ${resultBadgeClass(favPick.result)}`}>
+                    {favTeam}: {favPick.result.toUpperCase()}
+                  </span>
+                )}
+                {dogPick?.result && (
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded ${resultBadgeClass(dogPick.result)}`}>
+                    {dogTeam}: {dogPick.result.toUpperCase()}
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Live score */}
+        {game.status === 'live' && game.home_score != null && game.away_score != null && (
+          <div className="text-center text-[11px] font-black font-mono text-white mb-1.5">
+            {game.home_team?.split(' ').pop()} {game.home_score} – {game.away_team?.split(' ').pop()} {game.away_score}
           </div>
-        </div>
+        )}
 
         {/* Two-half team selector */}
         <div className={`flex gap-2 ${isInteractionDisabled ? 'pointer-events-none' : ''}`}>
