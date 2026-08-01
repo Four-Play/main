@@ -63,41 +63,33 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
 
         <div className="space-y-7 py-4 overflow-y-auto flex-1 min-h-0 pr-1">
 
-          {/* ── Step 1: 4 picks ── */}
+          {/* ── Step 1: Make picks ── */}
           <div>
-            <StepHeader n={1} title="Pick 4 Games Each Week" />
-            <div className="flex gap-1.5 mb-3">
-              {['CHIEFS', 'BILLS', 'RAVENS', '?'].map((label, i) => {
-                const filled = i < 3
-                return (
-                  <div
-                    key={i}
-                    className={`flex-1 h-11 rounded-lg border flex flex-col items-center justify-center gap-0.5 ${
-                      filled ? 'border-green-500/40 bg-green-500/5' : 'border-dashed border-zinc-700'
-                    }`}
-                  >
-                    {filled ? (
-                      <>
-                        <span className="text-[7px] font-black uppercase text-zinc-300">{label}</span>
-                        <span className="text-green-500 text-[9px] font-black">✓</span>
-                      </>
-                    ) : (
-                      <span className="text-[13px] text-zinc-700 font-black leading-none">+</span>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-            <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Each week choose a team from <span className="text-white font-black">4 different games</span>. You need to win <span className="text-white font-black">all 4</span> — there's no partial credit.
-            </p>
-          </div>
-
-          {/* ── Step 2: FAV or DOG ── */}
-          <div>
-            <StepHeader n={2} title="Choose the Favorite or Underdog" />
+            <StepHeader n={1} title="Make 4 Picks Each Week" />
             <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-3 mb-3">
-              <div className="mb-2">
+              <div className="flex gap-1.5 mb-2.5">
+                {['CHIEFS', 'BILLS', 'RAVENS', '?'].map((label, i) => {
+                  const filled = i < 3
+                  return (
+                    <div
+                      key={i}
+                      className={`flex-1 h-9 rounded-lg border flex flex-col items-center justify-center gap-0.5 ${
+                        filled ? 'border-green-500/40 bg-green-500/5' : 'border-dashed border-zinc-700'
+                      }`}
+                    >
+                      {filled ? (
+                        <>
+                          <span className="text-[7px] font-black uppercase text-zinc-300">{label}</span>
+                          <span className="text-green-500 text-[8px] font-black">✓</span>
+                        </>
+                      ) : (
+                        <span className="text-[13px] text-zinc-700 font-black leading-none">+</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="mb-1.5">
                 <span className="text-[8px] bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded font-mono uppercase">SUN 4:25 PM</span>
               </div>
               <div className="flex gap-2">
@@ -106,13 +98,13 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
               </div>
             </div>
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              The <span className="text-white font-black">Favorite</span> has a negative spread. The <span className="text-white font-black">Underdog</span> has a positive spread. Each button shows your <span className="text-green-400 font-black">adjusted line</span> after the cushion is applied.
+              Each week, pick a team from <span className="text-white font-black">4 different games</span> — choose the Favorite or Underdog. You need to win <span className="text-white font-black">all 4</span> to win the week.
             </p>
           </div>
 
-          {/* ── Step 3: The Cushion ── */}
+          {/* ── Step 2: The Cushion ── */}
           <div>
-            <StepHeader n={3} title="The +13 Cushion" />
+            <StepHeader n={2} title="The +13 Cushion" />
 
             {/* Equation */}
             <div className="flex items-center justify-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 mb-3">
@@ -186,45 +178,92 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
             </div>
           </div>
 
-          {/* ── Step 4: Scoring ── */}
+          {/* ── Step 3: Scoring ── */}
           <div>
-            <StepHeader n={4} title="How Points Work" />
-            <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 mb-3 space-y-3">
-              <div>
-                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1.5">Missed 4-for-4</p>
+            <StepHeader n={3} title="How Points Work" />
+
+            <p className="text-[11px] text-zinc-400 leading-relaxed mb-4">
+              Everyone who misses pays the <span className="text-white font-black">league stake (50 pts)</span>. That pot is split evenly among everyone who went perfect. The fewer winners, the more each one earns.
+            </p>
+
+            {/* Scenario A: 1 winner */}
+            <div className="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden mb-3">
+              <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between">
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">1 Winner</span>
+                <span className="text-[9px] font-mono text-zinc-600">3 × 50 = 150 pt pot</span>
+              </div>
+              <div className="p-3 space-y-2">
                 <div className="flex gap-1.5">
-                  {[['You', '–50'], ['Player B', '–50'], ['Player C', '–50']].map(([name, pts]) => (
-                    <div key={name} className="flex-1 rounded-lg bg-red-500/8 border border-red-500/15 p-1.5 text-center">
-                      <p className="text-[8px] font-black text-zinc-400">{name}</p>
-                      <p className="text-[10px] font-black text-red-400">{pts}</p>
+                  {[['You', '–50'], ['Player B', '–50'], ['Player C', '–50']].map(([n, p]) => (
+                    <div key={n} className="flex-1 rounded-lg bg-red-500/8 border border-red-500/15 p-1.5 text-center">
+                      <p className="text-[8px] text-zinc-500">{n}</p>
+                      <p className="text-[10px] font-black text-red-400">{p}</p>
                     </div>
                   ))}
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-px bg-zinc-800" />
-                <span className="text-[8px] text-zinc-600 font-mono">150 pts flow to →</span>
-                <div className="flex-1 h-px bg-zinc-800" />
-              </div>
-              <div>
-                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1.5">Went 4-for-4</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px bg-zinc-800" />
+                  <span className="text-[8px] text-zinc-600 font-mono">150 pts →</span>
+                  <div className="flex-1 h-px bg-zinc-800" />
+                </div>
                 <div className="flex gap-1.5">
-                  <div className="flex-1 rounded-lg bg-green-500/8 border border-green-500/15 p-1.5 text-center">
-                    <p className="text-[8px] font-black text-zinc-400">Player D</p>
-                    <p className="text-[10px] font-black text-green-400">+150</p>
-                  </div>
-                  <div className="flex-1 rounded-lg border border-dashed border-zinc-800 p-1.5 text-center flex items-center justify-center">
-                    <p className="text-[8px] text-zinc-700">empty slot</p>
-                  </div>
-                  <div className="flex-1 rounded-lg border border-dashed border-zinc-800 p-1.5 text-center flex items-center justify-center">
-                    <p className="text-[8px] text-zinc-700">empty slot</p>
+                  <div className="flex-1 rounded-lg bg-green-500/8 border border-green-500/20 p-1.5 text-center">
+                    <p className="text-[8px] text-zinc-400">Player D</p>
+                    <p className="text-[13px] font-black text-green-400">+150</p>
                   </div>
                 </div>
               </div>
             </div>
-            <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Every player who missed pays the <span className="text-white font-black">league stake (50 pts)</span>. That total is split among 4-for-4 winners. No winners? No points change.
-            </p>
+
+            {/* Scenario B: multiple winners */}
+            <div className="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden mb-3">
+              <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between">
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">3 Winners</span>
+                <span className="text-[9px] font-mono text-zinc-600">2 × 50 = 100 pt pot ÷ 3</span>
+              </div>
+              <div className="p-3 space-y-2">
+                <div className="flex gap-1.5">
+                  {[['You', '–50'], ['Player B', '–50']].map(([n, p]) => (
+                    <div key={n} className="flex-1 rounded-lg bg-red-500/8 border border-red-500/15 p-1.5 text-center">
+                      <p className="text-[8px] text-zinc-500">{n}</p>
+                      <p className="text-[10px] font-black text-red-400">{p}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px bg-zinc-800" />
+                  <span className="text-[8px] text-zinc-600 font-mono">100 pts split →</span>
+                  <div className="flex-1 h-px bg-zinc-800" />
+                </div>
+                <div className="flex gap-1.5">
+                  {['Player C', 'Player D', 'Player E'].map(n => (
+                    <div key={n} className="flex-1 rounded-lg bg-green-500/8 border border-green-500/20 p-1.5 text-center">
+                      <p className="text-[8px] text-zinc-400">{n}</p>
+                      <p className="text-[10px] font-black text-green-400">+33</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Scenario C: no winners */}
+            <div className="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden">
+              <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between">
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">0 Winners</span>
+                <span className="text-[9px] font-mono text-zinc-600">nobody went 4-for-4</span>
+              </div>
+              <div className="p-3 space-y-2">
+                <div className="flex gap-1.5">
+                  {['You', 'Player B', 'Player C', 'Player D'].map(n => (
+                    <div key={n} className="flex-1 rounded-lg border border-zinc-800 p-1.5 text-center">
+                      <p className="text-[8px] text-zinc-600">{n}</p>
+                      <p className="text-[10px] font-black text-zinc-500">0</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-center text-[9px] text-zinc-600 pt-1">No points change — the round is a wash.</p>
+              </div>
+            </div>
           </div>
 
           {/* ── Playoffs ── */}
