@@ -63,7 +63,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
 
         <div className="space-y-7 py-4 overflow-y-auto flex-1 min-h-0 pr-1">
 
-          {/* ── Step 1: Make picks ── */}
+          {/* ── Step 1: Make picks + Cushion ── */}
           <div>
             <StepHeader n={1} title="Make 4 Picks Each Week" />
             <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-3 mb-3">
@@ -97,16 +97,12 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
                 <MiniPickButton team="EAGLES" spreadLabel="+10" adjLabel="+23" />
               </div>
             </div>
-            <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Each week, pick a team from <span className="text-white font-black">4 different games</span> — choose the Favorite or Underdog. You need to win <span className="text-white font-black">all 4</span> to win the week.
+
+            <p className="text-[11px] text-zinc-400 leading-relaxed mb-3">
+              Choose the Favorite or Underdog for <span className="text-white font-black">4 games</span> each week. Every pick comes with a <span className="text-white font-black">+13 point cushion</span> on top of the spread — your team doesn't need to cover the line, just stay within 13.
             </p>
-          </div>
 
-          {/* ── Step 2: The Cushion ── */}
-          <div>
-            <StepHeader n={2} title="The +13 Cushion" />
-
-            {/* Equation */}
+            {/* Cushion equation */}
             <div className="flex items-center justify-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 mb-3">
               <div className="text-center">
                 <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-0.5">Spread</p>
@@ -145,42 +141,13 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
             </div>
 
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Picking the Chiefs (–10)? The cushion shifts your line to <span className="text-green-400 font-black">+3</span>. They can lose by up to <span className="text-white font-black">2 points</span> and you still win the pick.
+              Chiefs picked at –10: adjusted line is <span className="text-green-400 font-black">+3</span>, so they can lose by up to 2 and you still win. You need to go <span className="text-white font-black">4-for-4</span> — one wrong pick loses the week.
             </p>
           </div>
 
-          {/* Underdog example card */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-            <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-3">Underdog Example — Eagles +10</p>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="text-center flex-1">
-                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1">Spread</p>
-                <p className="text-xl font-black font-mono text-green-400">+10</p>
-              </div>
-              <p className="text-zinc-700 font-black text-lg">+</p>
-              <div className="text-center flex-1">
-                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1">Cushion</p>
-                <p className="text-xl font-black font-mono text-green-400">+13</p>
-              </div>
-              <p className="text-zinc-700 font-black text-lg">=</p>
-              <div className="text-center flex-1">
-                <p className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1">Your Line</p>
-                <p className="text-xl font-black font-mono text-green-400">+23</p>
-              </div>
-            </div>
-            <div className="flex h-8 rounded-lg overflow-hidden border border-zinc-800">
-              <div className="w-[10%] bg-red-500/15 border-r border-red-500/20 flex items-center justify-center">
-                <span className="text-[7px] font-black text-red-400">L</span>
-              </div>
-              <div className="flex-1 bg-green-500/10 flex items-center justify-center">
-                <span className="text-[9px] font-black text-green-400">WIN — lose by ≤22, or win outright</span>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Step 3: Scoring ── */}
+          {/* ── Step 2: Scoring ── */}
           <div>
-            <StepHeader n={3} title="How Points Work" />
+            <StepHeader n={2} title="How Points Work" />
 
             <p className="text-[11px] text-zinc-400 leading-relaxed mb-4">
               Each loser pays the <span className="text-white font-black">league stake (50 pts)</span> to <span className="text-white font-black">every winner</span>. More winners = less you earn. Fewer winners = bigger payday.
