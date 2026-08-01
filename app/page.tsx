@@ -216,6 +216,34 @@ export default function FourplayApp() {
     loadGames(selectedWeek, currentYear)
   }, [selectedWeek, currentYear, loadGames])
 
+  // Silent background refresh for live scores — no loading spinner, current week only
+  const refreshGames = useCallback(async () => {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
+    try {
+      const res = await fetch(`/api/games?week=${selectedWeek}&year=${currentYear}`, { signal: controller.signal })
+      const data = await res.json()
+      if (data.games) {
+        setGames(data.games.map((g: any) => ({
+          ...g,
+          fav: g.favorite_team,
+          dog: g.underdog_team,
+          time: formatGameTime(g.commence_time, g.status),
+        })))
+      }
+    } catch {
+      // silent — don't surface polling errors to the user
+    } finally {
+      clearTimeout(timeout)
+    }
+  }, [selectedWeek, currentYear])
+
+  useEffect(() => {
+    if (selectedWeek !== currentWeek) return
+    const interval = setInterval(refreshGames, 60 * 1000)
+    return () => clearInterval(interval)
+  }, [selectedWeek, currentWeek, refreshGames])
+
   // Load user's existing picks for this week
   const loadPicks = useCallback(async () => {
     if (!user || !currentLeague) return
