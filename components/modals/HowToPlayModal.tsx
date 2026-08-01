@@ -140,8 +140,11 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
               </div>
             </div>
 
-            <p className="text-[11px] text-zinc-400 leading-relaxed">
+            <p className="text-[11px] text-zinc-400 leading-relaxed mb-2">
               Chiefs picked at –10: adjusted line is <span className="text-green-400 font-black">+3</span>, so they can lose by up to 2 and you still win. You need to go <span className="text-white font-black">4-for-4</span> — one wrong pick loses the week.
+            </p>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Hit <span className="text-white font-black">Submit</span> to lock in your picks. Each game locks individually at its own kickoff — you can still edit other picks after an early game kicks off.
             </p>
           </div>
 
