@@ -190,11 +190,11 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
             <div className="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden mb-3">
               <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between">
                 <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">1 Winner</span>
-                <span className="text-[9px] font-mono text-zinc-600">3 × 50 = 150 pt pot</span>
+                <span className="text-[9px] font-mono text-zinc-600">4 × 50 = 200 pt pot</span>
               </div>
               <div className="p-3 space-y-2">
                 <div className="flex gap-1.5">
-                  {[['You', '–50'], ['Player B', '–50'], ['Player C', '–50']].map(([n, p]) => (
+                  {[['You', '–50'], ['Player B', '–50'], ['Player C', '–50'], ['Player D', '–50']].map(([n, p]) => (
                     <div key={n} className="flex-1 rounded-lg bg-red-500/8 border border-red-500/15 p-1.5 text-center">
                       <p className="text-[8px] text-zinc-500">{n}</p>
                       <p className="text-[10px] font-black text-red-400">{p}</p>
@@ -203,13 +203,13 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-px bg-zinc-800" />
-                  <span className="text-[8px] text-zinc-600 font-mono">150 pts →</span>
+                  <span className="text-[8px] text-zinc-600 font-mono">200 pts →</span>
                   <div className="flex-1 h-px bg-zinc-800" />
                 </div>
                 <div className="flex gap-1.5">
                   <div className="flex-1 rounded-lg bg-green-500/8 border border-green-500/20 p-1.5 text-center">
-                    <p className="text-[8px] text-zinc-400">Player D</p>
-                    <p className="text-[13px] font-black text-green-400">+150</p>
+                    <p className="text-[8px] text-zinc-400">Player E</p>
+                    <p className="text-[13px] font-black text-green-400">+200</p>
                   </div>
                 </div>
               </div>
@@ -254,7 +254,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
               </div>
               <div className="p-3 space-y-2">
                 <div className="flex gap-1.5">
-                  {['You', 'Player B', 'Player C', 'Player D'].map(n => (
+                  {['You', 'Player B', 'Player C', 'Player D', 'Player E'].map(n => (
                     <div key={n} className="flex-1 rounded-lg border border-zinc-800 p-1.5 text-center">
                       <p className="text-[8px] text-zinc-600">{n}</p>
                       <p className="text-[10px] font-black text-zinc-500">0</p>
