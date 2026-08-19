@@ -315,15 +315,22 @@ export function LeagueSettingsModal({
                     `/api/leagues/export?leagueId=${currentLeague.id}&year=${SEASON_YEAR}`
                   )
                   if (!res.ok) throw new Error('Export failed')
-                  const blob = await res.blob()
-                  const url = URL.createObjectURL(blob)
-                  const a = document.createElement('a')
-                  a.href = url
-                  a.download = `${currentLeague.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${SEASON_YEAR}-export.csv`
-                  a.click()
-                  URL.revokeObjectURL(url)
+                  const filename = `${currentLeague.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${SEASON_YEAR}-export.csv`
+                  const text = await res.text()
+                  const file = new File([text], filename, { type: 'text/csv' })
+                  // On iOS (Capacitor) use the native share sheet; on desktop trigger a download
+                  if (navigator.share && navigator.canShare?.({ files: [file] })) {
+                    await navigator.share({ files: [file] })
+                  } else {
+                    const url = URL.createObjectURL(new Blob([text], { type: 'text/csv' }))
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = filename
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  }
                 } catch (err: any) {
-                  alert(err.message ?? 'Export failed')
+                  if (err.name !== 'AbortError') alert(err.message ?? 'Export failed')
                 } finally {
                   setIsExporting(false)
                 }
