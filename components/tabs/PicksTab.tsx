@@ -125,18 +125,9 @@ export function PicksTab({
             Week Tracker
           </p>
           {weekTracker.loserCount === 0 ? (
-            <>
-              <p className="text-[13px] font-black leading-tight text-zinc-400">
-                No losers yet
-              </p>
-              <p className="text-[10px] text-zinc-500 mt-0.5 leading-relaxed">
-                If you're the only one to lose, you'd owe{' '}
-                <span className="text-white font-black">
-                  {((weekTracker.stake * (weekTracker.totalMembers - 1)) / 100).toFixed(0)} pts
-                </span>
-                . If everyone goes 4-for-4, it's a wash.
-              </p>
-            </>
+            <p className="text-[13px] font-black leading-tight text-zinc-400">
+              No losers yet
+            </p>
           ) : (
             <>
               <p className={`text-[13px] font-black leading-tight ${
