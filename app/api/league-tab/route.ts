@@ -114,6 +114,7 @@ export async function GET(request: Request) {
     loserCount,
     survivorCount,
     totalWithPicks: loserCount + survivorCount,
+    totalMembers: memberIds.length,
     stake,
     penaltyPerLoss,
   }

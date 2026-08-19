@@ -13,6 +13,7 @@
     pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
     pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
     pod 'CapacitorPreferences', :path => '../../node_modules/@capacitor/preferences'
+    pod 'CapacitorPushNotifications', :path => '../../node_modules/@capacitor/push-notifications'
   end
 
   target 'App' do

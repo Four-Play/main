@@ -32,11 +32,11 @@ export async function GET(request: Request) {
 
   const supabase = createServiceClient()
 
-  // Fetch league stake and all members
-  const [leagueResult, membersResult, picksResult] = await Promise.all([
+  // Fetch league stake, all members, scored picks, and whether user has submitted any picks
+  const [leagueResult, membersResult, picksResult, userPicksResult] = await Promise.all([
     supabase.from('leagues').select('payout_per_loss_cents').eq('id', leagueId).maybeSingle(),
     supabase.from('league_members').select('user_id').eq('league_id', leagueId),
-    // Picks with result set AND from a final game — these are the only picks that count
+    // Only picks with a result set (from final games) count toward the tracker
     supabase
       .from('picks')
       .select('user_id, result, game:games(status)')
@@ -44,12 +44,23 @@ export async function GET(request: Request) {
       .eq('nfl_week', week)
       .eq('season_year', year)
       .not('result', 'is', null),
+    // Separate check: has the current user submitted ANY picks this week (regardless of game status)
+    supabase
+      .from('picks')
+      .select('id')
+      .eq('league_id', leagueId)
+      .eq('nfl_week', week)
+      .eq('season_year', year)
+      .eq('user_id', user.id)
+      .limit(1),
   ])
 
   if (!leagueResult.data) return NextResponse.json({ error: 'League not found' }, { status: 404 })
 
   const stake = leagueResult.data.payout_per_loss_cents   // stored in cents (×100)
   const members = membersResult.data ?? []
+  const totalMembers = members.length
+  const userSubmitted = (userPicksResult.data?.length ?? 0) > 0
   const scoredPicks = (picksResult.data ?? []).filter((p: any) => p.game?.status === 'final')
 
   // Group scored picks by user — identify definitive losers
@@ -97,9 +108,11 @@ export async function GET(request: Request) {
     loserCount,
     survivorCount,
     totalWithPicks: loserCount + survivorCount,
+    totalMembers,
     stake,              // in "cents" (×100) — divide by 100 to display
     userIsLoser,
     userHasPicks,
+    userSubmitted,      // true if user has any picks this week (even before games finish)
     userProjected,      // in "cents" — divide by 100
     penaltyPerLoss,     // in "cents" — divide by 100 — for the league tab banner
   })

@@ -50,9 +50,11 @@ export default function FourplayApp() {
     loserCount: number
     survivorCount: number
     totalWithPicks: number
+    totalMembers: number
     stake: number
     userIsLoser: boolean
     userHasPicks: boolean
+    userSubmitted: boolean
     userProjected: number
     penaltyPerLoss: number
   } | null>(null)
