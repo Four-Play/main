@@ -194,9 +194,7 @@ export function LeagueTab({
 
           {weekTracker.loserCount === 0 ? (
             <p className="text-[10px] text-zinc-500 leading-relaxed">
-              No losers yet. Stake is{' '}
-              <span className="text-white font-black">{(weekTracker.stake / 100).toFixed(0)} pts</span>{' '}
-              per loss.
+              No losers yet this week.
             </p>
           ) : (
             <p className="text-[10px] text-zinc-400 leading-relaxed">
