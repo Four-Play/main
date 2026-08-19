@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
   const supabase = createServiceClient()
 
-  const [membersResult, resultsResult, picksResult, gamesResult] = await Promise.all([
+  const [membersResult, resultsResult, picksResult, gamesResult, leagueResult] = await Promise.all([
     supabase
       .from('league_members')
       .select('*, profile:profiles(id, username, avatar_url, total_points)')
@@ -35,10 +35,17 @@ export async function GET(request: Request) {
       .select('id, commence_time, favorite_team, underdog_team, spread, nfl_week, status')
       .eq('season_year', year)
       .order('commence_time', { ascending: true }),
+    supabase
+      .from('leagues')
+      .select('payout_per_loss_cents')
+      .eq('id', leagueId)
+      .maybeSingle(),
   ])
 
   if (membersResult.error) return NextResponse.json({ error: membersResult.error.message }, { status: 500 })
   if (resultsResult.error) return NextResponse.json({ error: resultsResult.error.message }, { status: 500 })
+
+  const stake = leagueResult.data?.payout_per_loss_cents ?? 0
 
   // Build weekSummaries (standings tab still uses this)
   const byWeek = new Map<number, any[]>()
@@ -84,5 +91,37 @@ export async function GET(request: Request) {
       picks: picksByWeek.get(week) ?? [],
     }))
 
-  return NextResponse.json({ members: membersResult.data ?? [], weekSummaries, weeklyPickCharts })
+  // ── Week Tracker: compute from current week picks (final games only) ──────────
+  const finalGameIds = new Set(allGames.filter(g => g.status === 'final').map(g => g.id))
+  const currentWeekPicks = allPicks.filter(p => p.nfl_week === currentWeek)
+  const memberIds = (membersResult.data ?? []).map(m => m.user_id)
+
+  // For each member, check if they have any pick with result='loss' from a final game
+  const loserSet = new Set<string>()
+  const survivorSet = new Set<string>()
+  for (const userId of memberIds) {
+    const memberPicks = currentWeekPicks.filter(p => p.user_id === userId && finalGameIds.has(p.game_id))
+    if (memberPicks.length === 0) continue  // no final picks yet
+    if (memberPicks.some(p => p.result === 'loss')) loserSet.add(userId)
+    else survivorSet.add(userId)
+  }
+
+  const loserCount = loserSet.size
+  const survivorCount = survivorSet.size
+  const penaltyPerLoss = loserCount > 0 ? stake * survivorCount : 0
+
+  const weekTracker = {
+    loserCount,
+    survivorCount,
+    totalWithPicks: loserCount + survivorCount,
+    stake,
+    penaltyPerLoss,
+  }
+
+  return NextResponse.json({
+    members: membersResult.data ?? [],
+    weekSummaries,
+    weeklyPickCharts,
+    weekTracker,
+  })
 }

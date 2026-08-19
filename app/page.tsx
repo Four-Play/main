@@ -12,6 +12,7 @@ import { SubmitBar } from '@/components/layout/SubmitBar'
 import { signIn, signUp, signOut, getProfile, requestPasswordReset, updatePassword } from '@/services/authService'
 import { getMyLeagues } from '@/services/leagueService'
 import { getMyPicks } from '@/services/picksService'
+import { registerPushNotifications, unregisterPushNotifications } from '@/services/notificationService'
 import { authFetch } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 import { readStoredUser } from '@/lib/supabase/storage'
@@ -43,6 +44,18 @@ export default function FourplayApp() {
   const [viewingPlayer, setViewingPlayer] = useState<any | null>(null)
   const [inviteCode, setInviteCode] = useState('')
   const [newLeagueName, setNewLeagueName] = useState('')
+
+  // Live week tracker state (what-if projection for current week)
+  const [weekTracker, setWeekTracker] = useState<{
+    loserCount: number
+    survivorCount: number
+    totalWithPicks: number
+    stake: number
+    userIsLoser: boolean
+    userHasPicks: boolean
+    userProjected: number
+    penaltyPerLoss: number
+  } | null>(null)
 
   // Games + Picks state
   const [games, setGames] = useState<Game[]>([])
@@ -98,6 +111,10 @@ export default function FourplayApp() {
       }
 
       if (event === 'SIGNED_OUT') {
+        // Remove device token so this device stops getting notifications
+        if (accessToken) {
+          unregisterPushNotifications(accessToken).catch(() => {})
+        }
         setUser(null)
         setLeagues([])
         setCurrentLeague(null)
@@ -130,6 +147,9 @@ export default function FourplayApp() {
         // must be fire-and-forget.
         setAuthReady(true)
         setAccessToken(session.access_token)
+
+        // Register for push notifications (iOS only, no-op on web)
+        registerPushNotifications(session.access_token).catch(() => {})
 
         // Background profile refresh. For new signups, create the row if missing.
         getProfile(session.user.id)
@@ -184,6 +204,23 @@ export default function FourplayApp() {
       })
       .catch(() => {})
   }, [accessToken])
+
+  // Fetch live week tracker — only meaningful for the current active week
+  useEffect(() => {
+    if (!currentLeague || !accessToken || selectedWeek !== currentWeek) {
+      setWeekTracker(null)
+      return
+    }
+    const controller = new AbortController()
+    fetch(
+      `/api/leagues/tracker?leagueId=${currentLeague.id}&week=${currentWeek}&year=${currentYear}`,
+      { headers: { Authorization: `Bearer ${accessToken}` }, signal: controller.signal }
+    )
+      .then(res => res.json())
+      .then(data => { if (data && !data.error) setWeekTracker(data) })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [currentLeague, currentWeek, currentYear, selectedWeek, accessToken])
 
   // Load games for current week
   const loadGames = useCallback(async (week: number, year: number) => {
@@ -508,6 +545,7 @@ export default function FourplayApp() {
                     : null
                 }
                 onEditPicks={() => setIsEditingPicks(v => !v)}
+                weekTracker={weekTracker}
               />
             )}
 

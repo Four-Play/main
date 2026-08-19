@@ -59,9 +59,18 @@ export function LeagueTab({
   currentYear,
   accessToken,
 }: LeagueTabProps) {
+  interface WeekTracker {
+    loserCount: number
+    survivorCount: number
+    totalWithPicks: number
+    stake: number        // in "cents" (×100)
+    penaltyPerLoss: number  // in "cents"
+  }
+
   const [members, setMembers] = useState<LeagueMember[]>([])
   const [weekSummaries, setWeekSummaries] = useState<WeekSummary[]>([])
   const [weeklyPickCharts, setWeeklyPickCharts] = useState<PickChartWeek[]>([])
+  const [weekTracker, setWeekTracker] = useState<WeekTracker | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeView, setActiveView] = useState<'standings' | 'results'>('standings')
   const [refreshKey, setRefreshKey] = useState(0)
@@ -96,6 +105,7 @@ export function LeagueTab({
         if (data.members) setMembers(data.members)
         if (data.weekSummaries) setWeekSummaries(data.weekSummaries)
         if (data.weeklyPickCharts) setWeeklyPickCharts(data.weeklyPickCharts)
+        if (data.weekTracker) setWeekTracker(data.weekTracker)
       })
       .catch(() => {})
       .finally(() => {
@@ -158,6 +168,38 @@ export function LeagueTab({
           RESULTS
         </button>
       </div>
+
+      {/* Live Week Tracker banner — shows when at least one person has lost from a completed game */}
+      {weekTracker && weekTracker.loserCount > 0 && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 space-y-2">
+          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
+            Week Tracker
+          </p>
+
+          {/* Progress: losers so far */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1">
+              <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-red-500 transition-all"
+                  style={{ width: `${Math.round((weekTracker.loserCount / weekTracker.totalWithPicks) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <span className="text-[10px] font-black text-red-400 whitespace-nowrap">
+              {weekTracker.loserCount} / {weekTracker.totalWithPicks} lost
+            </span>
+          </div>
+
+          <p className="text-[10px] text-zinc-400 leading-relaxed">
+            If nobody else loses, each loser owes{' '}
+            <span className="text-white font-black">
+              {(weekTracker.penaltyPerLoss / 100).toFixed(0)} pts
+            </span>{' '}
+            ({weekTracker.survivorCount} survivor{weekTracker.survivorCount === 1 ? '' : 's'} × {(weekTracker.stake / 100).toFixed(0)} pts stake).
+          </p>
+        </div>
+      )}
 
       {activeView === 'standings' ? (
         <Card className="bg-zinc-950 border-zinc-800 rounded-2xl overflow-hidden">

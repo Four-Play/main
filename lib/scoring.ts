@@ -1,5 +1,6 @@
 // Shared scoring logic used by both the cron job and admin simulation tools
 import { PLAYOFF_RULES } from '@/config/season'
+import { sendPushToTokens } from '@/lib/apns'
 
 /**
  * Score a single pick against a final game result.
@@ -233,6 +234,55 @@ export async function scoreExistingGames(supabase: any) {
     if (winIds.length > 0) updates.push(supabase.from('picks').update({ result: 'win' }).in('id', winIds))
     if (lossIds.length > 0) updates.push(supabase.from('picks').update({ result: 'loss' }).in('id', lossIds))
     await Promise.all(updates)
+
+    // Build per-user notification payloads for newly-scored picks
+    const winSet = new Set(winIds)
+    const lossSet = new Set(lossIds)
+    const notifyByUser = new Map<string, { title: string; body: string }[]>()
+    for (const pick of picks) {
+      if (!winSet.has(pick.id) && !lossSet.has(pick.id)) continue
+      const isWin = winSet.has(pick.id)
+      const game = gamesById.get(pick.game_id)
+      const teamShort = pick.team_selected.split(' ').pop() ?? pick.team_selected
+      const opponent = game
+        ? (pick.team_selected === game.home_team ? game.away_team : game.home_team).split(' ').pop()
+        : ''
+      const arr = notifyByUser.get(pick.user_id) ?? []
+      arr.push({
+        title: isWin ? `${teamShort} ✓ Pick Won` : `${teamShort} ✗ Pick Lost`,
+        body: isWin
+          ? `Your ${teamShort} pick against ${opponent} won.`
+          : `Your ${teamShort} pick against ${opponent} lost.`,
+      })
+      notifyByUser.set(pick.user_id, arr)
+    }
+
+    if (notifyByUser.size > 0) {
+      const userIds = [...notifyByUser.keys()]
+      const { data: tokenRows } = await supabase
+        .from('device_tokens')
+        .select('user_id, token')
+        .in('user_id', userIds)
+
+      const tokensByUser = new Map<string, string[]>()
+      for (const row of tokenRows ?? []) {
+        const arr = tokensByUser.get(row.user_id) ?? []
+        arr.push(row.token)
+        tokensByUser.set(row.user_id, arr)
+      }
+
+      // Fire-and-forget — don't let notification failures block scoring
+      Promise.all(
+        [...notifyByUser.entries()].map(async ([userId, messages]) => {
+          const tokens = tokensByUser.get(userId) ?? []
+          if (tokens.length === 0) return
+          // Send one notification per scored game for this user
+          for (const msg of messages) {
+            await sendPushToTokens(tokens, msg).catch(() => {})
+          }
+        })
+      ).catch(() => {})
+    }
   }
 
   // Find all league/week combos with scored picks and calculate results

@@ -11,9 +11,10 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog"
-import { Crown, Copy, Check, Trash2, Loader2, Play, Lock, Unlock, FlaskConical, MessageSquare } from "lucide-react"
+import { Crown, Copy, Check, Trash2, Loader2, Play, Lock, Unlock, FlaskConical, MessageSquare, Download } from "lucide-react"
 import { updateLeague, deleteLeague } from '@/services/leagueService'
 import { authFetch } from '@/lib/api'
+import { SEASON_YEAR } from '@/config/season'
 import type { League } from '@/types/database'
 
 interface LeagueSettingsModalProps {
@@ -46,6 +47,7 @@ export function LeagueSettingsModal({
   const [isScoring, setIsScoring] = useState(false)
   const [isRefreshingGames, setIsRefreshingGames] = useState(false)
   const [devMessage, setDevMessage] = useState('')
+  const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
     if (currentLeague) {
@@ -296,6 +298,46 @@ export function LeagueSettingsModal({
               />
               <Crown className="absolute right-3 top-3.5 w-5 h-5 text-green-500/50" />
             </div>
+          </div>
+
+          {/* Export League Data — visible to all members */}
+          <div className="pt-4 border-t border-zinc-900 space-y-2">
+            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1 block">
+              Export
+            </label>
+            <Button
+              variant="outline"
+              disabled={isExporting}
+              onClick={async () => {
+                setIsExporting(true)
+                try {
+                  const res = await authFetch(
+                    `/api/leagues/export?leagueId=${currentLeague.id}&year=${SEASON_YEAR}`
+                  )
+                  if (!res.ok) throw new Error('Export failed')
+                  const blob = await res.blob()
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `${currentLeague.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${SEASON_YEAR}-export.csv`
+                  a.click()
+                  URL.revokeObjectURL(url)
+                } catch (err: any) {
+                  alert(err.message ?? 'Export failed')
+                } finally {
+                  setIsExporting(false)
+                }
+              }}
+              className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[10px] h-10 tracking-widest"
+            >
+              {isExporting
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <><Download className="w-3 h-3 mr-2" /> Export League Data (CSV)</>
+              }
+            </Button>
+            <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
+              Download all picks, results, and standings for this season
+            </p>
           </div>
 
           {/* Dev / Simulate — admin only */}

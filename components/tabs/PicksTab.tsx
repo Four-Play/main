@@ -47,6 +47,17 @@ function getPickBarColor(pick: Pick, cushion: number): string {
   return winning ? 'bg-green-500/30' : 'bg-red-500/30'
 }
 
+interface WeekTracker {
+  loserCount: number
+  survivorCount: number
+  totalWithPicks: number
+  stake: number          // in "cents" (×100) — display as stake/100
+  userIsLoser: boolean
+  userHasPicks: boolean
+  userProjected: number  // in "cents" — positive = win, negative = loss
+  penaltyPerLoss: number // in "cents"
+}
+
 interface PicksTabProps {
   selectedWeek: number
   setSelectedWeek: (week: number) => void
@@ -59,6 +70,7 @@ interface PicksTabProps {
   editBarMode?: 'locked' | 'editing' | null
   savedPickCount?: number
   onEditPicks?: () => void
+  weekTracker?: WeekTracker | null
 }
 
 export function PicksTab({
@@ -73,6 +85,7 @@ export function PicksTab({
   editBarMode = null,
   savedPickCount = 0,
   onEditPicks,
+  weekTracker = null,
 }: PicksTabProps) {
   const isHistorical = selectedWeek < currentWeek
   const isFuture = selectedWeek > currentWeek
@@ -96,6 +109,35 @@ export function PicksTab({
         weeks={weeks}
         getLabel={(w) => getWeekLabel(w, ACTIVE_SPORT)}
       />
+
+      {/* Live Week Tracker — personal projection, current week only */}
+      {!isHistorical && !isFuture && weekTracker && weekTracker.loserCount > 0 && weekTracker.userHasPicks && (
+        <div className={`rounded-xl border px-4 py-3 ${
+          weekTracker.userIsLoser
+            ? 'bg-red-500/5 border-red-500/20'
+            : 'bg-green-500/5 border-green-500/20'
+        }`}>
+          <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${
+            weekTracker.userIsLoser ? 'text-red-500' : 'text-green-500'
+          }`}>
+            Week Tracker
+          </p>
+          <p className={`text-[13px] font-black leading-tight ${
+            weekTracker.userIsLoser ? 'text-red-400' : 'text-green-400'
+          }`}>
+            {weekTracker.userIsLoser
+              ? `−${Math.abs(weekTracker.userProjected / 100).toFixed(0)} pts`
+              : `+${(weekTracker.userProjected / 100).toFixed(0)} pts`
+            }
+          </p>
+          <p className="text-[10px] text-zinc-500 mt-0.5 leading-relaxed">
+            {weekTracker.userIsLoser
+              ? `You have a losing pick. If the other ${weekTracker.survivorCount} player${weekTracker.survivorCount === 1 ? '' : 's'} win the week, you'd owe ${Math.abs(weekTracker.userProjected / 100).toFixed(0)} pts.`
+              : `${weekTracker.loserCount} player${weekTracker.loserCount === 1 ? ' has' : 's have'} lost so far. If nobody else loses, you'd earn ${(weekTracker.userProjected / 100).toFixed(0)} pts.`
+            }
+          </p>
+        </div>
+      )}
 
       <div className="flex justify-between items-center px-1">
         <div>
