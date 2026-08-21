@@ -1,7 +1,29 @@
 "use client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Clock, Lock } from "lucide-react"
+import Image from 'next/image'
 import type { Game, Pick } from '@/types/database'
+
+const NFL_LOGO: Record<string, string> = {
+  'Arizona Cardinals': 'ari', 'Atlanta Falcons': 'atl', 'Baltimore Ravens': 'bal',
+  'Buffalo Bills': 'buf', 'Carolina Panthers': 'car', 'Chicago Bears': 'chi',
+  'Cincinnati Bengals': 'cin', 'Cleveland Browns': 'cle', 'Dallas Cowboys': 'dal',
+  'Denver Broncos': 'den', 'Detroit Lions': 'det', 'Green Bay Packers': 'gb',
+  'Houston Texans': 'hou', 'Indianapolis Colts': 'ind', 'Jacksonville Jaguars': 'jax',
+  'Kansas City Chiefs': 'kc', 'Las Vegas Raiders': 'lv', 'Los Angeles Chargers': 'lac',
+  'Los Angeles Rams': 'lar', 'Miami Dolphins': 'mia', 'Minnesota Vikings': 'min',
+  'New England Patriots': 'ne', 'New Orleans Saints': 'no', 'New York Giants': 'nyg',
+  'New York Jets': 'nyj', 'Philadelphia Eagles': 'phi', 'Pittsburgh Steelers': 'pit',
+  'San Francisco 49ers': 'sf', 'Seattle Seahawks': 'sea', 'Tampa Bay Buccaneers': 'tb',
+  'Tennessee Titans': 'ten', 'Washington Commanders': 'wsh',
+}
+
+function teamLogoUrl(teamName?: string): string | null {
+  if (!teamName) return null
+  const abbr = NFL_LOGO[teamName]
+  if (!abbr) return null
+  return `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr}.png`
+}
 
 /** Returns display strings for the result breakdown — no logic changes, purely cosmetic */
 function getBreakdown(game: Game, selectedTeam: string, cushion: number) {
@@ -136,8 +158,22 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
 
         {/* Live score */}
         {game.status === 'live' && game.home_score != null && game.away_score != null && (
-          <div className="text-center text-[12px] font-black font-mono text-white bg-green-500/10 border border-green-500/20 rounded-lg py-1.5 mb-1.5">
-            {game.home_team?.split(' ').pop()} {game.home_score} – {game.away_team?.split(' ').pop()} {game.away_score}
+          <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 mb-1.5">
+            <div className="flex items-center gap-2">
+              {teamLogoUrl(game.home_team) && (
+                <Image src={teamLogoUrl(game.home_team)!} alt="" width={28} height={28} className="object-contain" unoptimized />
+              )}
+              <span className="text-[11px] font-black text-zinc-300 uppercase">{game.home_team?.split(' ').pop()}</span>
+            </div>
+            <span className="text-[18px] font-black font-mono text-white tracking-tight">
+              {game.home_score} – {game.away_score}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black text-zinc-300 uppercase">{game.away_team?.split(' ').pop()}</span>
+              {teamLogoUrl(game.away_team) && (
+                <Image src={teamLogoUrl(game.away_team)!} alt="" width={28} height={28} className="object-contain" unoptimized />
+              )}
+            </div>
           </div>
         )}
 
