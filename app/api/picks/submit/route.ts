@@ -10,27 +10,27 @@ export async function POST(request: Request) {
 
   const supabase = createServiceClient()
 
-  // Collect all game IDs being touched
+  // Find which games have already kicked off — picks for those cannot be changed
   const allGameIds = [
     ...(toSave ?? []).map((p: { gameId: string }) => p.gameId),
     ...(toDelete ?? []).map((p: { gameId: string }) => p.gameId),
   ]
 
+  const lockedGameIds = new Set<string>()
   if (allGameIds.length > 0) {
-    const now = new Date().toISOString()
     const { data: kickedOff } = await supabase
       .from('games')
-      .select('id, commence_time')
+      .select('id')
       .in('id', allGameIds)
-      .lt('commence_time', now)
+      .lt('commence_time', new Date().toISOString())
 
-    if (kickedOff && kickedOff.length > 0) {
-      return NextResponse.json({ error: 'One or more games have already started — picks cannot be changed.' }, { status: 400 })
-    }
+    for (const g of kickedOff ?? []) lockedGameIds.add(g.id)
   }
 
-  if (toSave?.length > 0) {
-    const rows = toSave.map(({ gameId, team }: { gameId: string; team: string }) => ({
+  // Only save picks for games that haven't started yet
+  const saveable = (toSave ?? []).filter((p: { gameId: string }) => !lockedGameIds.has(p.gameId))
+  if (saveable.length > 0) {
+    const rows = saveable.map(({ gameId, team }: { gameId: string; team: string }) => ({
       user_id: user.id,
       league_id: leagueId,
       game_id: gameId,
@@ -45,7 +45,9 @@ export async function POST(request: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  for (const { gameId, team } of (toDelete ?? [])) {
+  // Only delete picks for games that haven't started yet
+  const deleteable = (toDelete ?? []).filter((p: { gameId: string }) => !lockedGameIds.has(p.gameId))
+  for (const { gameId, team } of deleteable) {
     const { error } = await supabase
       .from('picks')
       .delete()
@@ -56,5 +58,5 @@ export async function POST(request: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, lockedGameCount: lockedGameIds.size })
 }
