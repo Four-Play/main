@@ -6,9 +6,28 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { leagueId, week, year, toSave, toDelete } = await request.json()
-  if (!leagueId || !week || !year) return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  if (!leagueId || week == null || !year) return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
 
   const supabase = createServiceClient()
+
+  // Collect all game IDs being touched
+  const allGameIds = [
+    ...(toSave ?? []).map((p: { gameId: string }) => p.gameId),
+    ...(toDelete ?? []).map((p: { gameId: string }) => p.gameId),
+  ]
+
+  if (allGameIds.length > 0) {
+    const now = new Date().toISOString()
+    const { data: kickedOff } = await supabase
+      .from('games')
+      .select('id, commence_time')
+      .in('id', allGameIds)
+      .lt('commence_time', now)
+
+    if (kickedOff && kickedOff.length > 0) {
+      return NextResponse.json({ error: 'One or more games have already started — picks cannot be changed.' }, { status: 400 })
+    }
+  }
 
   if (toSave?.length > 0) {
     const rows = toSave.map(({ gameId, team }: { gameId: string; team: string }) => ({
