@@ -244,6 +244,7 @@ export function PicksTab({
             const dogPick = dogTeam ? picksMap.get(`${game.id}|${dogTeam}`) : undefined
             const overPick = playoffRule ? picksMap.get(`${game.id}|OVER`) : undefined
             const underPick = playoffRule ? picksMap.get(`${game.id}|UNDER`) : undefined
+            const hasKickedOff = game.commence_time ? new Date(game.commence_time) <= new Date() : false
 
             return (
               <GameCard
@@ -255,7 +256,7 @@ export function PicksTab({
                 underPick={underPick}
                 isHistorical={isHistorical}
                 onSelect={onTogglePick}
-                disableInteraction={isFuture || disableInteraction}
+                disableInteraction={isFuture || disableInteraction || hasKickedOff}
                 cushion={cushion}
               />
             )
