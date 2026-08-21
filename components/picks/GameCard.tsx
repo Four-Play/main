@@ -90,9 +90,11 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
 
   return (
     <Card
-      className={`transition-all duration-300 bg-zinc-900 border-zinc-800 relative ${
-  isLocked && !anySelected ? 'opacity-50' : 'opacity-100'
-}`}
+      className={`transition-all duration-300 relative ${
+        game.status === 'live'
+          ? 'bg-green-500/5 border-green-500/40'
+          : 'bg-zinc-900 border-zinc-800'
+      } ${isLocked && !anySelected ? 'opacity-50' : 'opacity-100'}`}
     >
       <CardContent className="px-2 pt-0.5 pb-1">
         {isLocked && anySelected && (
@@ -134,7 +136,7 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
 
         {/* Live score */}
         {game.status === 'live' && game.home_score != null && game.away_score != null && (
-          <div className="text-center text-[11px] font-black font-mono text-white mb-1.5">
+          <div className="text-center text-[12px] font-black font-mono text-white bg-green-500/10 border border-green-500/20 rounded-lg py-1.5 mb-1.5">
             {game.home_team?.split(' ').pop()} {game.home_score} – {game.away_team?.split(' ').pop()} {game.away_score}
           </div>
         )}
