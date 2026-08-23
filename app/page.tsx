@@ -135,6 +135,17 @@ export default function FourplayApp() {
       }
 
       // On native, INITIAL_SESSION fires after Supabase's internal refresh attempt.
+      // If session is null here it means the stored token couldn't be refreshed
+      // (expired or revoked). Bootstrap may have already shown the app from stale
+      // NSUserDefaults data — clear that so the user sees the login screen.
+      if (isNative && event === 'INITIAL_SESSION' && !session) {
+        setUser(null)
+        setLeagues([])
+        setCurrentLeague(null)
+        setAccessToken(null)
+        return
+      }
+
       // If the network was available, session is valid and we update the profile.
       // If the network was unavailable, session is null — bootstrap already showed
       // the app; TOKEN_REFRESHED will fire when the network recovers.
@@ -617,7 +628,7 @@ export default function FourplayApp() {
         setIsLoading={setIsLoading}
         currentUserId={user.id}
         onLeagueJoined={(league: League) => {
-          setLeagues(prev => [...prev, league])
+          setLeagues(prev => prev.some(l => l.id === league.id) ? prev : [...prev, league])
           setCurrentLeague(league)
         }}
         onLeagueCreated={(league: League) => {

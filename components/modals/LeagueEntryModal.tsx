@@ -49,7 +49,6 @@ export function LeagueEntryModal({
     try {
       const league = await joinLeagueWithCode(inviteCode, currentUserId)
       setInviteCode('')
-      setCurrentLeague(league)
       onLeagueJoined?.(league)
       onClose()
     } catch (err: any) {
