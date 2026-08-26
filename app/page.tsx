@@ -5,6 +5,7 @@ import { ResetPasswordScreen } from '@/components/auth/ResetPasswordScreen'
 import { PicksTab } from '@/components/tabs/PicksTab'
 import { LeagueTab } from '@/components/tabs/LeagueTab'
 import { CurrentWeekTab } from '@/components/tabs/CurrentWeekTab'
+import { ChatTab } from '@/components/tabs/ChatTab'
 import { ProfileTab } from '@/components/tabs/ProfileTab'
 import { ModalManager } from '@/components/modals/ModalManager'
 import { Header } from '@/components/layout/Header'
@@ -584,6 +585,13 @@ export default function FourplayApp() {
               />
             )}
             
+            {activeTab === 'chat' && (
+              <ChatTab
+                currentLeague={currentLeague?.id ?? null}
+                currentUserId={user.id}
+              />
+            )}
+
             {activeTab === 'settings' && (
               <ProfileTab
                 user={user}

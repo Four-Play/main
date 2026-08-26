@@ -1,6 +1,6 @@
 "use client"
 import React from 'react';
-import { Ticket, BarChart2, Trophy, Settings } from "lucide-react";
+import { Ticket, BarChart2, Trophy, MessageCircle, Settings } from "lucide-react";
 
 interface NavbarProps {
   activeTab: string;
@@ -16,6 +16,7 @@ export function Navbar({ activeTab, setActiveTab }: NavbarProps) {
       <NavButton active={activeTab === 'picks'} onClick={() => setActiveTab('picks')} icon={Ticket} label="PICKS" />
       <NavButton active={activeTab === 'current'} onClick={() => setActiveTab('current')} icon={BarChart2} label="CURRENT" />
       <NavButton active={activeTab === 'league'} onClick={() => setActiveTab('league')} icon={Trophy} label="LEAGUE" />
+      <NavButton active={activeTab === 'chat'} onClick={() => setActiveTab('chat')} icon={MessageCircle} label="CHAT" />
       <NavButton active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={Settings} label="SETTINGS" />
     </nav>
   );
@@ -25,7 +26,7 @@ function NavButton({ active, onClick, icon: Icon, label }: any) {
   return (
     <button onClick={onClick} className={`flex flex-col items-center gap-1 transition-all ${active ? 'text-green-500 scale-110' : 'text-zinc-600'}`}>
       <Icon className={`w-5 h-5 ${active ? 'fill-current' : ''}`} />
-      <span className="text-[9px] font-black tracking-widest uppercase">{label}</span>
+      <span className="text-[8px] font-black tracking-wide uppercase">{label}</span>
     </button>
   );
 }
