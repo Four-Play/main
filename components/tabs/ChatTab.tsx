@@ -87,8 +87,8 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
   }
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100svh - 230px)' }}>
-      <div className="flex-1 overflow-y-auto space-y-2 py-1">
+    <div className="relative" style={{ height: 'calc(100svh - 230px)' }}>
+      <div className="absolute inset-0 bottom-[60px] overflow-y-auto space-y-2 py-1">
         {loading ? (
           <div className="flex justify-center pt-10">
             <div className="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
@@ -125,7 +125,7 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="flex items-center gap-2 pt-3 border-t border-zinc-800">
+      <div className="absolute bottom-0 left-0 right-0 flex items-center gap-2 pt-3 pb-1 border-t border-zinc-800 bg-black">
         <input
           ref={inputRef}
           type="text"
