@@ -22,6 +22,7 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!currentLeague) { setLoading(false); return }
@@ -67,6 +68,7 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
     if (!content || !currentLeague || sending) return
     setSending(true)
     setText('')
+    inputRef.current?.blur()
     const { error } = await supabase
       .from('league_messages')
       .insert({ league_id: currentLeague, user_id: currentUserId, content })
@@ -125,13 +127,14 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
 
       <div className="flex items-center gap-2 pt-3 border-t border-zinc-800">
         <input
+          ref={inputRef}
           type="text"
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
           placeholder="Message..."
           maxLength={500}
-          className="flex-1 bg-zinc-900 border border-zinc-700 text-white text-[13px] rounded-full px-4 py-2.5 outline-none focus:border-green-500 placeholder:text-zinc-600 transition-colors"
+          className="flex-1 bg-zinc-900 border border-zinc-700 text-white text-[16px] rounded-full px-4 py-2.5 outline-none focus:border-green-500 placeholder:text-zinc-600 transition-colors"
         />
         <button
           onClick={handleSend}
