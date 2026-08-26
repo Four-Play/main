@@ -158,7 +158,7 @@ export function LeagueSettingsModal({
           <DialogTitle className="text-green-500 uppercase font-black italic tracking-widest">
             {isAdmin ? 'League Settings' : 'League Info'}
           </DialogTitle>
-          <DialogDescription className="text-zinc-500 text-[10px] uppercase font-bold">
+          <DialogDescription className="text-zinc-500 text-[11px] uppercase font-bold">
             {isAdmin ? 'Manage rules and invites' : 'View league rules and invite code'}
           </DialogDescription>
         </DialogHeader>
@@ -169,7 +169,7 @@ export function LeagueSettingsModal({
           {!isAdmin && (
             <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5">
               <Lock className="w-3 h-3 text-zinc-500 flex-shrink-0" />
-              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
+              <p className="text-[11px] text-zinc-500 uppercase tracking-widest font-bold">
                 Only the league creator can edit these settings
               </p>
             </div>
@@ -177,7 +177,7 @@ export function LeagueSettingsModal({
 
           {/* League Name */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">
+            <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest px-1">
               League Name
             </label>
             {isAdmin ? (
@@ -195,7 +195,7 @@ export function LeagueSettingsModal({
 
           {/* Invite Code — everyone can copy */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">
+            <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest px-1">
               Invite Code
             </label>
             <div className="flex gap-2">
@@ -204,7 +204,7 @@ export function LeagueSettingsModal({
               </div>
               <Button
                 variant="outline"
-                className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-[10px] font-bold uppercase h-12 px-4"
+                className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-[11px] font-bold uppercase h-12 px-4"
                 onClick={handleCopy}
               >
                 {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
@@ -214,13 +214,13 @@ export function LeagueSettingsModal({
               <button
                 type="button"
                 onClick={handleTextInvite}
-                className="w-full h-10 rounded-md bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 transition-colors flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                className="w-full h-10 rounded-md bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 transition-colors flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
                 Send Text Invite
               </button>
             )}
-            <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
+            <p className="text-[10px] text-zinc-600 uppercase tracking-widest px-1">
               Share this code with friends to join
             </p>
           </div>
@@ -228,13 +228,13 @@ export function LeagueSettingsModal({
           {/* Lock League — admin only */}
           {isAdmin && (
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">
+              <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest px-1">
                 New Member Access
               </label>
               <button
                 type="button"
                 onClick={() => setIsLeagueLocked(prev => !prev)}
-                className={`w-full h-12 rounded-md border font-black uppercase text-[10px] tracking-widest flex items-center justify-between px-4 transition-colors ${
+                className={`w-full h-12 rounded-md border font-black uppercase text-[11px] tracking-widest flex items-center justify-between px-4 transition-colors ${
                   isLeagueLocked
                     ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20'
                     : 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
@@ -244,13 +244,13 @@ export function LeagueSettingsModal({
                   {isLeagueLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                   {isLeagueLocked ? 'League Locked' : 'League Open'}
                 </span>
-                <span className={`text-[9px] px-2 py-0.5 rounded-full font-black ${
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
                   isLeagueLocked ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
                 }`}>
                   {isLeagueLocked ? 'NO NEW MEMBERS' : 'ACCEPTING MEMBERS'}
                 </span>
               </button>
-              <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
+              <p className="text-[10px] text-zinc-600 uppercase tracking-widest px-1">
                 When locked, invite codes are disabled and no one can join
               </p>
             </div>
@@ -258,7 +258,7 @@ export function LeagueSettingsModal({
 
           {/* League Stake */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">
+            <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest px-1">
               League Stake (Points Per Loss)
             </label>
             {isAdmin ? (
@@ -275,7 +275,7 @@ export function LeagueSettingsModal({
                 {payoutDollars} pts
               </div>
             )}
-            <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
+            <p className="text-[10px] text-zinc-600 uppercase tracking-widest px-1">
               Points lost per week if you don't go 4-for-4
             </p>
           </div>
@@ -283,10 +283,10 @@ export function LeagueSettingsModal({
           {/* Spread Cushion (locked) */}
           <div className="space-y-2 opacity-50 pointer-events-none">
             <div className="flex justify-between items-center px-1">
-              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+              <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">
                 Spread Cushion
               </label>
-              <Badge className="bg-green-500 text-black text-[8px] h-4 font-black tracking-tighter">
+              <Badge className="bg-green-500 text-black text-[9px] h-4 font-black tracking-tighter">
                 PREMIUM ONLY
               </Badge>
             </div>
@@ -302,7 +302,7 @@ export function LeagueSettingsModal({
 
           {/* Export League Data — visible to all members */}
           <div className="pt-4 border-t border-zinc-900 space-y-2">
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1 block">
+            <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest px-1 block">
               Export
             </label>
             <Button
@@ -335,14 +335,14 @@ export function LeagueSettingsModal({
                   setIsExporting(false)
                 }
               }}
-              className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[10px] h-10 tracking-widest"
+              className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[11px] h-10 tracking-widest"
             >
               {isExporting
                 ? <Loader2 className="w-4 h-4 animate-spin" />
                 : <><Download className="w-3 h-3 mr-2" /> Export League Data (CSV)</>
               }
             </Button>
-            <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
+            <p className="text-[10px] text-zinc-600 uppercase tracking-widest px-1">
               Download all picks, results, and standings for this season
             </p>
           </div>
@@ -352,7 +352,7 @@ export function LeagueSettingsModal({
             <div className="pt-4 border-t border-zinc-900 space-y-3">
               <div className="flex items-center gap-2 px-1">
                 <FlaskConical className="w-3 h-3 text-zinc-500" />
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">
                   Dev Tools
                 </label>
               </div>
@@ -361,7 +361,7 @@ export function LeagueSettingsModal({
                 variant="outline"
                 disabled={isRefreshingGames}
                 onClick={handleRefreshGames}
-                className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[10px] h-10 tracking-widest"
+                className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[11px] h-10 tracking-widest"
               >
                 {isRefreshingGames
                   ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -373,7 +373,7 @@ export function LeagueSettingsModal({
                 variant="outline"
                 disabled={isScoring}
                 onClick={handleRunScoring}
-                className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[10px] h-10 tracking-widest"
+                className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-black uppercase text-[11px] h-10 tracking-widest"
               >
                 {isScoring
                   ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -382,7 +382,7 @@ export function LeagueSettingsModal({
               </Button>
 
               {devMessage && (
-                <p className={`text-[10px] font-mono px-1 ${devMessage.startsWith('✓') ? 'text-green-500' : 'text-red-400'}`}>
+                <p className={`text-[11px] font-mono px-1 ${devMessage.startsWith('✓') ? 'text-green-500' : 'text-red-400'}`}>
                   {devMessage}
                 </p>
               )}
@@ -392,20 +392,20 @@ export function LeagueSettingsModal({
           {/* Danger Zone — admin only */}
           {isAdmin && (
             <div className="pt-4 border-t border-zinc-900 space-y-2">
-              <label className="text-[10px] font-black text-red-500 uppercase tracking-widest px-1 block">
+              <label className="text-[11px] font-black text-red-500 uppercase tracking-widest px-1 block">
                 Danger Zone
               </label>
               {!showDeleteConfirm ? (
                 <Button
                   variant="outline"
-                  className="w-full border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-500 font-black uppercase text-[10px] h-10 tracking-widest"
+                  className="w-full border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-500 font-black uppercase text-[11px] h-10 tracking-widest"
                   onClick={() => setShowDeleteConfirm(true)}
                 >
                   <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete League
                 </Button>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-[9px] text-zinc-500 px-1">
+                  <p className="text-[10px] text-zinc-500 px-1">
                     Type <span className="text-red-400 font-black">DELETE</span> to confirm
                   </p>
                   <Input
@@ -417,7 +417,7 @@ export function LeagueSettingsModal({
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      className="flex-1 border-zinc-700 text-zinc-400 font-black uppercase text-[10px] h-9"
+                      className="flex-1 border-zinc-700 text-zinc-400 font-black uppercase text-[11px] h-9"
                       onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
                     >
                       Cancel
@@ -425,7 +425,7 @@ export function LeagueSettingsModal({
                     <Button
                       variant="outline"
                       disabled={deleteConfirmText !== 'DELETE' || isDeleting}
-                      className="flex-1 border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-500 font-black uppercase text-[10px] h-9 disabled:opacity-30"
+                      className="flex-1 border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-500 font-black uppercase text-[11px] h-9 disabled:opacity-30"
                       onClick={handleDelete}
                     >
                       {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Delete'}

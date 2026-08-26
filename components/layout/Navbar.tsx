@@ -26,7 +26,7 @@ function NavButton({ active, onClick, icon: Icon, label }: any) {
   return (
     <button onClick={onClick} className={`flex flex-col items-center gap-1 transition-all ${active ? 'text-green-500 scale-110' : 'text-zinc-600'}`}>
       <Icon className={`w-5 h-5 ${active ? 'fill-current' : ''}`} />
-      <span className="text-[8px] font-black tracking-wide uppercase">{label}</span>
+      <span className="text-[9px] font-black tracking-wide uppercase">{label}</span>
     </button>
   );
 }

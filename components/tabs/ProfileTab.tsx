@@ -209,12 +209,12 @@ export function ProfileTab({
           <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white">
             {user.username}
           </h2>
-          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.3em]">
+          <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-[0.3em]">
             Season Points: {user.total_points > 0 ? `+${(user.total_points / 100).toFixed(0)} pts` : user.total_points < 0 ? `-${(Math.abs(user.total_points) / 100).toFixed(0)} pts` : '0 pts'}
           </p>
           <Button
             onClick={() => setIsEditing(true)}
-            className="mt-6 w-full max-w-[180px] bg-zinc-900 border border-zinc-800 text-white font-black uppercase text-[10px] tracking-widest h-11 hover:bg-zinc-800 transition-all flex items-center justify-center gap-2"
+            className="mt-6 w-full max-w-[180px] bg-zinc-900 border border-zinc-800 text-white font-black uppercase text-[11px] tracking-widest h-11 hover:bg-zinc-800 transition-all flex items-center justify-center gap-2"
           >
             <Sliders className="w-3.5 h-3.5 text-green-500" />
             Edit Profile
@@ -223,7 +223,7 @@ export function ProfileTab({
       ) : (
         <div className="w-full space-y-4 mb-8 animate-in slide-in-from-right-4 duration-300">
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">
+            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">
               Display Name
             </label>
             <Input
@@ -238,14 +238,14 @@ export function ProfileTab({
               variant="outline"
               onClick={handleCancel}
               disabled={isSaving}
-              className="flex-1 border-zinc-800 bg-transparent text-zinc-500 font-black uppercase text-[10px] h-12"
+              className="flex-1 border-zinc-800 bg-transparent text-zinc-500 font-black uppercase text-[11px] h-12"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex-[2] bg-green-500 text-black font-black uppercase text-[10px] h-12 hover:bg-green-400"
+              className="flex-[2] bg-green-500 text-black font-black uppercase text-[11px] h-12 hover:bg-green-400"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Profile'}
             </Button>
@@ -253,14 +253,14 @@ export function ProfileTab({
 
           {/* Danger zone — account deletion with a two-step confirmation. */}
           <div className="pt-8 mt-2 border-t border-zinc-900">
-            <label className="text-[9px] font-black text-red-500/70 uppercase tracking-[0.2em] ml-1">
+            <label className="text-[10px] font-black text-red-500/70 uppercase tracking-[0.2em] ml-1">
               Danger Zone
             </label>
             {deleteState === 'idle' && (
               <Button
                 variant="outline"
                 onClick={() => setDeleteState('confirming')}
-                className="mt-2 w-full border-red-500/30 bg-transparent text-red-500 font-black uppercase text-[10px] tracking-widest h-11 hover:bg-red-500/10 flex items-center justify-center gap-2"
+                className="mt-2 w-full border-red-500/30 bg-transparent text-red-500 font-black uppercase text-[11px] tracking-widest h-11 hover:bg-red-500/10 flex items-center justify-center gap-2"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Delete Account
@@ -270,7 +270,7 @@ export function ProfileTab({
               <div className="mt-2 rounded-md border border-red-500/40 bg-red-500/5 p-4 space-y-3">
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-                  <div className="text-[11px] leading-relaxed text-zinc-300">
+                  <div className="text-[12px] leading-relaxed text-zinc-300">
                     <p className="font-bold text-white uppercase tracking-wider mb-1">
                       Delete your account?
                     </p>
@@ -285,14 +285,14 @@ export function ProfileTab({
                     variant="outline"
                     onClick={() => setDeleteState('idle')}
                     disabled={deleteState === 'deleting'}
-                    className="flex-1 border-zinc-700 bg-transparent text-zinc-300 font-black uppercase text-[10px] h-11"
+                    className="flex-1 border-zinc-700 bg-transparent text-zinc-300 font-black uppercase text-[11px] h-11"
                   >
                     Keep Account
                   </Button>
                   <Button
                     onClick={handleDeleteAccount}
                     disabled={deleteState === 'deleting'}
-                    className="flex-1 bg-red-600 text-white font-black uppercase text-[10px] h-11 hover:bg-red-500"
+                    className="flex-1 bg-red-600 text-white font-black uppercase text-[11px] h-11 hover:bg-red-500"
                   >
                     {deleteState === 'deleting'
                       ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -308,14 +308,14 @@ export function ProfileTab({
 
       {/* Theme Toggle */}
       <div className="w-full mb-4">
-        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1 block mb-2">
+        <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest px-1 block mb-2">
           Appearance
         </label>
         <div className="flex rounded-md border border-zinc-700 overflow-hidden">
           <button
             type="button"
             onClick={() => theme === 'light' ? null : toggleTheme()}
-            className={`flex-1 h-11 flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest transition-colors ${
+            className={`flex-1 h-11 flex items-center justify-center gap-2 font-black uppercase text-[11px] tracking-widest transition-colors ${
               theme === 'light'
                 ? 'bg-green-500 text-black'
                 : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800'
@@ -327,7 +327,7 @@ export function ProfileTab({
           <button
             type="button"
             onClick={() => theme === 'dark' ? null : toggleTheme()}
-            className={`flex-1 h-11 flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest transition-colors ${
+            className={`flex-1 h-11 flex items-center justify-center gap-2 font-black uppercase text-[11px] tracking-widest transition-colors ${
               theme === 'dark'
                 ? 'bg-green-500 text-black'
                 : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800'
@@ -342,7 +342,7 @@ export function ProfileTab({
       <div className="w-full pt-6 border-t border-zinc-900 flex flex-col items-center gap-2">
         <Button
           variant="ghost"
-          className="text-zinc-400 font-bold uppercase text-[9px] tracking-widest hover:text-white w-full flex items-center gap-2"
+          className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest hover:text-white w-full flex items-center gap-2"
           onClick={() => setHowToPlayOpen(true)}
         >
           <HelpCircle className="w-3.5 h-3.5 text-green-500" />
@@ -351,7 +351,7 @@ export function ProfileTab({
         {!isEditing && (
           <Button
             variant="ghost"
-            className="text-zinc-500 font-bold uppercase text-[9px] tracking-widest hover:text-white w-full"
+            className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest hover:text-white w-full"
             onClick={() => setLeagueSettingsOpen(true)}
           >
             League Management
@@ -360,7 +360,7 @@ export function ProfileTab({
         <Button
           variant="ghost"
           disabled={isSigningOut}
-          className="text-red-500 font-bold uppercase text-[9px] tracking-widest hover:bg-red-500/10 w-full"
+          className="text-red-500 font-bold uppercase text-[10px] tracking-widest hover:bg-red-500/10 w-full"
           onClick={handleSignOut}
         >
           {isSigningOut ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign Out'}

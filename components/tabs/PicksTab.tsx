@@ -101,8 +101,8 @@ export function PicksTab({
   return (
     <div className="space-y-5">
       <div className="rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-3">
-        <p className="text-[10px] font-black uppercase tracking-widest text-green-500">{activeSport.displayName}</p>
-        <p className="text-[9px] text-zinc-500 mt-0.5">{activeSport.tagline}</p>
+        <p className="text-[11px] font-black uppercase tracking-widest text-green-500">{activeSport.displayName}</p>
+        <p className="text-[10px] text-zinc-500 mt-0.5">{activeSport.tagline}</p>
       </div>
 
 <WeekSwitcher
@@ -119,18 +119,18 @@ export function PicksTab({
             ? 'bg-red-500/5 border-red-500/20'
             : 'bg-zinc-900 border-zinc-800'
         }`}>
-          <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${
+          <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
             weekTracker.userIsLoser ? 'text-red-500' : 'text-zinc-500'
           }`}>
             Week Tracker
           </p>
           {weekTracker.loserCount === 0 ? (
-            <p className="text-[13px] font-black leading-tight text-zinc-400">
+            <p className="text-[14px] font-black leading-tight text-zinc-400">
               No losers yet
             </p>
           ) : (
             <>
-              <p className={`text-[13px] font-black leading-tight ${
+              <p className={`text-[14px] font-black leading-tight ${
                 weekTracker.userIsLoser ? 'text-red-400' : 'text-green-400'
               }`}>
                 {weekTracker.userIsLoser
@@ -138,7 +138,7 @@ export function PicksTab({
                   : `+${(weekTracker.userProjected / 100).toFixed(0)} pts`
                 }
               </p>
-              <p className="text-[10px] text-zinc-500 mt-0.5 leading-relaxed">
+              <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">
                 {weekTracker.userIsLoser
                   ? `You have a losing pick. If the other ${weekTracker.survivorCount} player${weekTracker.survivorCount === 1 ? '' : 's'} win, you'd owe ${Math.abs(weekTracker.userProjected / 100).toFixed(0)} pts.`
                   : `${weekTracker.loserCount} player${weekTracker.loserCount === 1 ? ' has' : 's have'} lost so far. If nobody else loses, you'd earn ${(weekTracker.userProjected / 100).toFixed(0)} pts.`
@@ -151,17 +151,17 @@ export function PicksTab({
 
       <div className="flex justify-between items-center px-1">
         <div>
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
             {isHistorical ? 'Past Results' : isFuture ? 'Coming Soon' : 'Live Slate'}
           </h2>
           {activeSport.weekLabels && (
-            <p className="text-[9px] text-zinc-600 uppercase tracking-widest mt-0.5">
+            <p className="text-[10px] text-zinc-600 uppercase tracking-widest mt-0.5">
               {getWeekLabel(selectedWeek, ACTIVE_SPORT)}
             </p>
           )}
         </div>
         {isHistorical && (
-          <Badge className="bg-zinc-800 text-green-500 border-none text-[9px]">
+          <Badge className="bg-zinc-800 text-green-500 border-none text-[10px]">
             COMPLETED
           </Badge>
         )}
@@ -169,22 +169,22 @@ export function PicksTab({
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-2">
               {editBarMode === 'locked' && savedPickCount >= maxPicks ? (
-                <Badge className="bg-green-500/10 text-green-500 border border-green-500/20 text-[9px]">
+                <Badge className="bg-green-500/10 text-green-500 border border-green-500/20 text-[10px]">
                   ✓ SUBMITTED
                 </Badge>
               ) : editBarMode === 'locked' && savedPickCount < maxPicks ? (
-                <Badge className="bg-zinc-800 text-zinc-400 border-none text-[9px]">
+                <Badge className="bg-zinc-800 text-zinc-400 border-none text-[10px]">
                   {savedPickCount}/{maxPicks} PICKS MADE
                 </Badge>
               ) : (
-                <Badge className="bg-green-500/10 text-green-500 border-none text-[9px]">
+                <Badge className="bg-green-500/10 text-green-500 border-none text-[10px]">
                   {picksMap.size}/{maxPicks} SELECTED
                 </Badge>
               )}
               {editBarMode && (
                 <button
                   onClick={onEditPicks}
-                  className="text-[11px] font-black uppercase tracking-widest text-green-500 border border-green-500/40 px-3 py-1 rounded-full hover:bg-green-500/10 transition-colors"
+                  className="text-[12px] font-black uppercase tracking-widest text-green-500 border border-green-500/40 px-3 py-1 rounded-full hover:bg-green-500/10 transition-colors"
                 >
                   {editBarMode === 'locked' ? 'EDIT' : 'DONE'}
                 </button>
@@ -202,11 +202,11 @@ export function PicksTab({
                     const isFinal = p.game?.status === 'final'
                     return (
                       <div key={`${p.game_id}|${p.team_selected}`} className="flex flex-col items-center gap-0.5">
-                        <span className="text-[8px] font-black uppercase text-zinc-500 tracking-wide">
+                        <span className="text-[9px] font-black uppercase text-zinc-500 tracking-wide">
                           {p.team_selected.split(' ').pop()}
                         </span>
                         {isFinal ? (
-                          <span className={`text-[10px] font-black leading-none ${p.result === 'win' ? 'text-green-500' : 'text-red-500'}`}>
+                          <span className={`text-[11px] font-black leading-none ${p.result === 'win' ? 'text-green-500' : 'text-red-500'}`}>
                             {p.result === 'win' ? '✓' : '✗'}
                           </span>
                         ) : (
@@ -228,7 +228,7 @@ export function PicksTab({
       ) : games.length === 0 ? (
         // No matchups yet — show TBD placeholder cards
         <div className="space-y-1">
-          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-600 px-1 pb-1">
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 px-1 pb-1">
             Matchups TBD
           </p>
           {Array.from({ length: getPlaceholderCount(selectedWeek) }).map((_, i) => (

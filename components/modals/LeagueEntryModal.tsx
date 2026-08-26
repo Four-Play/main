@@ -81,7 +81,7 @@ export function LeagueEntryModal({
           <DialogTitle className="text-green-500 uppercase font-black italic tracking-widest">
             {type === 'join' ? 'Join League' : 'Create League'}
           </DialogTitle>
-          <DialogDescription className="text-zinc-500 text-[10px] uppercase font-bold">
+          <DialogDescription className="text-zinc-500 text-[11px] uppercase font-bold">
             {type === 'join'
               ? "Enter your crew's invite code"
               : 'Start a new pool for your squad'}
@@ -113,7 +113,7 @@ export function LeagueEntryModal({
                 value={newLeagueName}
                 onChange={(e) => setNewLeagueName(e.target.value)}
               />
-              <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-1">
+              <p className="text-[10px] text-zinc-600 uppercase tracking-widest px-1">
                 Default stake: 50 pts per loss. Change in league settings after creation.
               </p>
               <Button

@@ -86,7 +86,7 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
   if (!currentLeague) {
     return (
       <div className="fixed inset-x-0 max-w-md mx-auto flex items-center justify-center px-6 text-center" style={containerStyle}>
-        <p className="text-zinc-500 text-[11px] uppercase tracking-widest font-bold">
+        <p className="text-zinc-500 text-[12px] uppercase tracking-widest font-bold">
           No league yet! Join a league to start!
         </p>
       </div>
@@ -103,7 +103,7 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center pt-16">
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">No messages yet. Say something!</p>
+            <p className="text-[11px] font-black uppercase tracking-widest text-zinc-600">No messages yet. Say something!</p>
           </div>
         ) : (
           messages.map((msg, idx) => {
@@ -118,14 +118,14 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
             return (
               <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                 {showName && (
-                  <span className="text-[9px] font-black uppercase text-zinc-500 px-1 mb-0.5">{username}</span>
+                  <span className="text-[10px] font-black uppercase text-zinc-500 px-1 mb-0.5">{username}</span>
                 )}
                 <div className={`max-w-[75%] px-3 py-2 rounded-2xl ${
                   isMe ? 'bg-green-500 text-black rounded-tr-sm' : 'bg-zinc-800 text-white rounded-tl-sm'
                 }`}>
-                  <p className="text-[13px] leading-snug break-words">{msg.content}</p>
+                  <p className="text-[14px] leading-snug break-words">{msg.content}</p>
                 </div>
-                <span className="text-[8px] text-zinc-600 px-1 mt-0.5">{time}</span>
+                <span className="text-[9px] text-zinc-600 px-1 mt-0.5">{time}</span>
               </div>
             )
           })

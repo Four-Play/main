@@ -11,7 +11,7 @@ export function GameCardPlaceholder() {
       <CardContent className="p-2">
         {/* Header row */}
         <div className="flex justify-between items-start mb-2">
-          <span className="text-[9px] font-black text-zinc-600 bg-zinc-800 px-2 py-1 rounded uppercase">
+          <span className="text-[10px] font-black text-zinc-600 bg-zinc-800 px-2 py-1 rounded uppercase">
             TBD
           </span>
           <div className="w-5 h-5 rounded-full border border-zinc-800" />

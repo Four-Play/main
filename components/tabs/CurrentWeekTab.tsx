@@ -101,7 +101,7 @@ export function CurrentWeekTab({
   if (!currentLeague) {
     return (
       <div className="flex flex-col items-center justify-center pt-24 text-center px-6">
-        <p className="text-zinc-500 text-[11px] uppercase tracking-widest font-bold leading-relaxed">
+        <p className="text-zinc-500 text-[12px] uppercase tracking-widest font-bold leading-relaxed">
           No league yet!{'\n'}Join a league to start!
         </p>
       </div>
@@ -122,7 +122,7 @@ export function CurrentWeekTab({
       <div className="flex gap-2">
         <button
           onClick={() => setActiveView('results')}
-          className={`flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all ${
+          className={`flex-1 py-2 rounded-xl text-[11px] font-black tracking-widest transition-all ${
             activeView === 'results'
               ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.3)]'
               : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
@@ -132,7 +132,7 @@ export function CurrentWeekTab({
         </button>
         <button
           onClick={() => setActiveView('split')}
-          className={`flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all ${
+          className={`flex-1 py-2 rounded-xl text-[11px] font-black tracking-widest transition-all ${
             activeView === 'split'
               ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.3)]'
               : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
@@ -145,7 +145,7 @@ export function CurrentWeekTab({
       {/* League-wide Week Tracker */}
       {weekTracker && weekTracker.totalMembers > 0 && (
         <div className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 space-y-2">
-          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Week Tracker</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Week Tracker</p>
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1">
               <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden">
@@ -155,14 +155,14 @@ export function CurrentWeekTab({
                 />
               </div>
             </div>
-            <span className={`text-[10px] font-black whitespace-nowrap ${weekTracker.loserCount > 0 ? 'text-red-400' : 'text-zinc-500'}`}>
+            <span className={`text-[11px] font-black whitespace-nowrap ${weekTracker.loserCount > 0 ? 'text-red-400' : 'text-zinc-500'}`}>
               {weekTracker.loserCount} / {weekTracker.totalMembers} lost
             </span>
           </div>
           {weekTracker.loserCount === 0 ? (
-            <p className="text-[10px] text-zinc-500 leading-relaxed">No losers yet this week.</p>
+            <p className="text-[11px] text-zinc-500 leading-relaxed">No losers yet this week.</p>
           ) : (
-            <p className="text-[10px] text-zinc-400 leading-relaxed">
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
               If nobody else loses, each loser owes{' '}
               <span className="text-white font-black">{(weekTracker.penaltyPerLoss / 100).toFixed(0)} pts</span>
               {' '}({weekTracker.survivorCount} survivor{weekTracker.survivorCount === 1 ? '' : 's'} × {(weekTracker.stake / 100).toFixed(0)} pts stake).
@@ -182,11 +182,11 @@ export function CurrentWeekTab({
             return (
               <div key={week} className="space-y-2">
                 <div className="flex items-center gap-2 px-1">
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                  <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">
                     {getWeekLabel(week, ACTIVE_SPORT)}
                   </h3>
                   {week === currentWeek && (
-                    <span className="text-[8px] font-black bg-green-500/15 text-green-500 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                    <span className="text-[9px] font-black bg-green-500/15 text-green-500 px-1.5 py-0.5 rounded uppercase tracking-wider">
                       Current
                     </span>
                   )}
@@ -196,9 +196,9 @@ export function CurrentWeekTab({
                   <div className="flex items-center py-1.5 px-3 border-b border-zinc-800">
                     <div className="w-[22%]" />
                     {[1, 2, 3, 4].map(n => (
-                      <div key={n} className="flex-1 text-center text-[8px] font-black text-zinc-600 uppercase tracking-widest">{n}</div>
+                      <div key={n} className="flex-1 text-center text-[9px] font-black text-zinc-600 uppercase tracking-widest">{n}</div>
                     ))}
-                    <div className="w-[20%] text-right text-[8px] font-black text-zinc-600 uppercase tracking-widest pr-0.5">Result</div>
+                    <div className="w-[20%] text-right text-[9px] font-black text-zinc-600 uppercase tracking-widest pr-0.5">Result</div>
                   </div>
 
                   {members.map((member, idx) => {
@@ -223,7 +223,7 @@ export function CurrentWeekTab({
                         className={`flex items-center py-2.5 px-3 ${idx < members.length - 1 ? 'border-b border-zinc-900' : ''}`}
                       >
                         <div className="w-[22%] pr-1">
-                          <span className="text-[10px] font-bold uppercase text-white truncate block">
+                          <span className="text-[11px] font-bold uppercase text-white truncate block">
                             {(member.profile?.username ?? 'Player').substring(0, 8)}
                           </span>
                         </div>
@@ -232,7 +232,7 @@ export function CurrentWeekTab({
                           if (!slot || new Date(slot.game.commence_time) > now) {
                             return (
                               <div key={pickIdx} className="flex-1 flex items-center justify-center">
-                                <span className="text-zinc-800 text-[11px] font-mono">—</span>
+                                <span className="text-zinc-800 text-[12px] font-mono">—</span>
                               </div>
                             )
                           }
@@ -245,8 +245,8 @@ export function CurrentWeekTab({
 
                           return (
                             <div key={pickIdx} className="flex-1 flex flex-col items-center">
-                              <span className={`text-[9px] font-black uppercase leading-tight ${color}`}>{mascot}</span>
-                              <span className={`text-[8px] font-mono leading-tight ${subColor}`}>{spreadStr}</span>
+                              <span className={`text-[10px] font-black uppercase leading-tight ${color}`}>{mascot}</span>
+                              <span className={`text-[9px] font-mono leading-tight ${subColor}`}>{spreadStr}</span>
                             </div>
                           )
                         })}
@@ -254,16 +254,16 @@ export function CurrentWeekTab({
                         <div className="w-[20%] flex flex-col items-end pr-0.5">
                           {winResult ? (
                             <>
-                              <span className="text-[9px] font-black text-green-500 leading-tight">+{(winResult.amount_won_cents / 100).toFixed(0)}</span>
+                              <span className="text-[10px] font-black text-green-500 leading-tight">+{(winResult.amount_won_cents / 100).toFixed(0)}</span>
                               <span className="text-[7px] text-green-500/60 leading-tight uppercase">pts</span>
                             </>
                           ) : lossResult ? (
                             <>
-                              <span className="text-[9px] font-black text-red-500 leading-tight">-{(lossResult.amount_owed_cents / 100).toFixed(0)}</span>
+                              <span className="text-[10px] font-black text-red-500 leading-tight">-{(lossResult.amount_owed_cents / 100).toFixed(0)}</span>
                               <span className="text-[7px] text-red-500/60 leading-tight uppercase">pts</span>
                             </>
                           ) : (
-                            <span className="text-zinc-800 text-[11px] font-mono">—</span>
+                            <span className="text-zinc-800 text-[12px] font-mono">—</span>
                           )}
                         </div>
                       </div>
@@ -276,7 +276,7 @@ export function CurrentWeekTab({
 
           {weeklyPickCharts.length === 0 && (
             <div className="flex flex-col items-center py-12 text-zinc-600">
-              <p className="text-[10px] font-black uppercase tracking-widest">No picks yet this season</p>
+              <p className="text-[11px] font-black uppercase tracking-widest">No picks yet this season</p>
             </div>
           )}
         </div>
@@ -291,11 +291,11 @@ export function CurrentWeekTab({
             return (
               <div key={week} className="space-y-2">
                 <div className="flex items-center gap-2 px-1">
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                  <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">
                     {getWeekLabel(week, ACTIVE_SPORT)}
                   </h3>
                   {week === currentWeek && (
-                    <span className="text-[8px] font-black bg-green-500/15 text-green-500 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                    <span className="text-[9px] font-black bg-green-500/15 text-green-500 px-1.5 py-0.5 rounded uppercase tracking-wider">
                       Current
                     </span>
                   )}
@@ -309,10 +309,10 @@ export function CurrentWeekTab({
                     if (!revealed) {
                       return (
                         <div key={game.id} className={`px-4 py-3 flex items-center justify-between ${!isLast ? 'border-b border-zinc-900' : ''}`}>
-                          <span className="text-[10px] font-black uppercase text-zinc-600">
+                          <span className="text-[11px] font-black uppercase text-zinc-600">
                             {teamMascot(game.favorite_team)} vs {teamMascot(game.underdog_team)}
                           </span>
-                          <span className="text-[9px] text-zinc-700 uppercase font-bold tracking-wider">Locks at kickoff</span>
+                          <span className="text-[10px] text-zinc-700 uppercase font-bold tracking-wider">Locks at kickoff</span>
                         </div>
                       )
                     }
@@ -328,23 +328,23 @@ export function CurrentWeekTab({
                       <div key={game.id} className={`px-4 py-3 space-y-2 ${!isLast ? 'border-b border-zinc-900' : ''}`}>
                         {/* Matchup header */}
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase text-white">{teamMascot(game.favorite_team)}</span>
+                          <span className="text-[11px] font-black uppercase text-white">{teamMascot(game.favorite_team)}</span>
                           {statusLabel && (
-                            <span className={`text-[8px] font-black uppercase tracking-wider ${game.status === 'live' ? 'text-green-500' : 'text-zinc-500'}`}>
+                            <span className={`text-[9px] font-black uppercase tracking-wider ${game.status === 'live' ? 'text-green-500' : 'text-zinc-500'}`}>
                               {statusLabel}
                             </span>
                           )}
-                          <span className="text-[10px] font-black uppercase text-white">{teamMascot(game.underdog_team)}</span>
+                          <span className="text-[11px] font-black uppercase text-white">{teamMascot(game.underdog_team)}</span>
                         </div>
 
                         {/* Split bar */}
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-black text-white w-5 text-right">{favPicks}</span>
+                          <span className="text-[12px] font-black text-white w-5 text-right">{favPicks}</span>
                           <div className="flex-1 h-2 rounded-full bg-zinc-800 overflow-hidden flex">
                             <div className="h-full bg-zinc-300 transition-all" style={{ width: `${favPct}%` }} />
                             <div className="h-full bg-zinc-600 transition-all" style={{ width: `${dogPct}%` }} />
                           </div>
-                          <span className="text-[11px] font-black text-white w-5">{dogPicks}</span>
+                          <span className="text-[12px] font-black text-white w-5">{dogPicks}</span>
                         </div>
                       </div>
                     )
@@ -356,7 +356,7 @@ export function CurrentWeekTab({
 
           {weeklyPickCharts.length === 0 && (
             <div className="flex flex-col items-center py-12 text-zinc-600">
-              <p className="text-[10px] font-black uppercase tracking-widest">No picks yet this season</p>
+              <p className="text-[11px] font-black uppercase tracking-widest">No picks yet this season</p>
             </div>
           )}
         </div>

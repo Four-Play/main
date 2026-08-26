@@ -15,7 +15,7 @@ export function WeekSwitcher({ selectedWeek, onSelectWeek, weeks, getLabel }: We
         <button
           key={w}
           onClick={() => onSelectWeek(w)}
-          className={`flex-shrink-0 px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all ${
+          className={`flex-shrink-0 px-4 py-2 rounded-xl text-[11px] font-black tracking-widest transition-all ${
             selectedWeek === w
               ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.4)]'
               : 'bg-zinc-900 text-zinc-500 border border-zinc-800'

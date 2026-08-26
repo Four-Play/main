@@ -31,7 +31,7 @@ export function Header({ currentLeague, leagues, setCurrentLeague, setModalOpen 
       style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
     >
       <div className="flex flex-col">
-        <span className="text-[10px] font-bold text-green-500 tracking-tighter uppercase">Active League</span>
+        <span className="text-[11px] font-bold text-green-500 tracking-tighter uppercase">Active League</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="p-0 h-auto text-lg font-black italic text-white hover:bg-transparent hover:text-green-400 flex items-center gap-1 uppercase tracking-tighter">
@@ -43,7 +43,7 @@ export function Header({ currentLeague, leagues, setCurrentLeague, setModalOpen 
               <DropdownMenuItem
                 key={league.id}
                 onClick={() => setCurrentLeague(league)}
-                className="focus:bg-green-500 focus:text-black font-bold uppercase text-[10px]"
+                className="focus:bg-green-500 focus:text-black font-bold uppercase text-[11px]"
               >
                 {league.name}
               </DropdownMenuItem>
@@ -51,13 +51,13 @@ export function Header({ currentLeague, leagues, setCurrentLeague, setModalOpen 
             <DropdownMenuSeparator className="bg-zinc-800" />
             <DropdownMenuItem
               onClick={() => setModalOpen({ open: true, type: 'join' })}
-              className="text-green-500 focus:bg-green-500/10 focus:text-green-400 uppercase text-[10px] font-black"
+              className="text-green-500 focus:bg-green-500/10 focus:text-green-400 uppercase text-[11px] font-black"
             >
               <LinkIcon className="mr-2 h-4 w-4" /> Join League
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setModalOpen({ open: true, type: 'create' })}
-              className="text-green-500 focus:bg-green-500/10 focus:text-green-400 uppercase text-[10px] font-black"
+              className="text-green-500 focus:bg-green-500/10 focus:text-green-400 uppercase text-[11px] font-black"
             >
               <Plus className="mr-2 h-4 w-4" /> Create League
             </DropdownMenuItem>

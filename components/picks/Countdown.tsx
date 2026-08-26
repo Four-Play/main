@@ -37,9 +37,9 @@ export function Countdown({ targetDate, label, sublabel }: CountdownProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-6 text-center">
       <div>
-        <p className="text-[10px] font-black uppercase tracking-widest text-green-500">{label}</p>
+        <p className="text-[11px] font-black uppercase tracking-widest text-green-500">{label}</p>
         {sublabel && (
-          <p className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">{sublabel}</p>
+          <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">{sublabel}</p>
         )}
       </div>
 
@@ -54,12 +54,12 @@ export function Countdown({ targetDate, label, sublabel }: CountdownProps) {
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-16 h-16 flex items-center justify-center">
               <span className="text-2xl font-black text-white tabular-nums">{pad(value)}</span>
             </div>
-            <span className="text-[8px] font-bold uppercase tracking-widest text-zinc-600">{unit}</span>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-600">{unit}</span>
           </div>
         ))}
       </div>
 
-      <p className="text-[9px] text-zinc-600 uppercase tracking-widest">
+      <p className="text-[10px] text-zinc-600 uppercase tracking-widest">
         Picks open when the games drop
       </p>
     </div>

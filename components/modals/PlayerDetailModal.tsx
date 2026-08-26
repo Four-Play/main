@@ -114,7 +114,7 @@ export function PlayerDetailModal({ player, onClose, currentLeagueId }: PlayerDe
               <DialogTitle className="text-green-500 uppercase font-black italic">
                 {player.name}
               </DialogTitle>
-              <DialogDescription className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest">
+              <DialogDescription className="text-zinc-500 font-bold uppercase text-[11px] tracking-widest">
                 Season Record
               </DialogDescription>
             </div>
@@ -126,24 +126,24 @@ export function PlayerDetailModal({ player, onClose, currentLeagueId }: PlayerDe
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-zinc-900 rounded-xl p-3 text-center">
               <p className="text-2xl font-black text-white">{player.wins ?? 0}</p>
-              <p className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Wins</p>
+              <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Wins</p>
             </div>
             <div className="bg-zinc-900 rounded-xl p-3 text-center">
               <p className="text-2xl font-black text-white">{player.losses ?? 0}</p>
-              <p className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Losses</p>
+              <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Losses</p>
             </div>
             <div className="bg-zinc-900 rounded-xl p-3 text-center">
               <p className={`text-2xl font-black ${totalOwed >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                 {totalOwed >= 0 ? '+' : '-'}{formatPoints(totalOwed)}
               </p>
-              <p className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">
+              <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">
                 Points
               </p>
             </div>
           </div>
 
           {/* Weekly History */}
-          <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 pt-2">
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 pt-2">
             Weekly History
           </h3>
 
@@ -152,7 +152,7 @@ export function PlayerDetailModal({ player, onClose, currentLeagueId }: PlayerDe
               <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
             </div>
           ) : history.length === 0 ? (
-            <p className="text-[10px] text-zinc-600 uppercase text-center py-4">No completed weeks yet</p>
+            <p className="text-[11px] text-zinc-600 uppercase text-center py-4">No completed weeks yet</p>
           ) : (
             <div className="space-y-2">
               {history.map((result) => {
@@ -171,10 +171,10 @@ export function PlayerDetailModal({ player, onClose, currentLeagueId }: PlayerDe
                       className={`w-full flex justify-between items-center p-3 text-left ${hasPicks ? 'hover:bg-zinc-800/50 transition-colors' : 'cursor-default'}`}
                     >
                       <div>
-                        <p className="text-[10px] font-bold text-white uppercase">
+                        <p className="text-[11px] font-bold text-white uppercase">
                           {getWeekLabel(result.nfl_week, ACTIVE_SPORT)}
                         </p>
-                        <p className="text-[9px] text-zinc-500 font-mono">
+                        <p className="text-[10px] text-zinc-500 font-mono">
                           {result.picks_correct}/4 correct
                         </p>
                       </div>
@@ -182,8 +182,8 @@ export function PlayerDetailModal({ player, onClose, currentLeagueId }: PlayerDe
                         <Badge
                           className={
                             result.is_winner
-                              ? 'bg-green-500/20 text-green-500 border-none text-[9px]'
-                              : 'bg-red-500/20 text-red-500 border-none text-[9px]'
+                              ? 'bg-green-500/20 text-green-500 border-none text-[10px]'
+                              : 'bg-red-500/20 text-red-500 border-none text-[10px]'
                           }
                         >
                           {result.is_winner ? 'WIN' : 'LOSS'}
@@ -232,13 +232,13 @@ export function PlayerDetailModal({ player, onClose, currentLeagueId }: PlayerDe
                                   {team}
                                 </span>
                                 {spread && (
-                                  <span className="text-[10px] font-mono text-zinc-400">{spread}</span>
+                                  <span className="text-[11px] font-mono text-zinc-400">{spread}</span>
                                 )}
                                 {opponent && (
-                                  <span className="text-[9px] text-zinc-600 uppercase truncate">vs {opponent}</span>
+                                  <span className="text-[10px] text-zinc-600 uppercase truncate">vs {opponent}</span>
                                 )}
                               </div>
-                              <Badge className={`${badgeClass} border-none text-[9px] font-black tracking-widest flex-shrink-0`}>
+                              <Badge className={`${badgeClass} border-none text-[10px] font-black tracking-widest flex-shrink-0`}>
                                 {label}
                               </Badge>
                             </div>

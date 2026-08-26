@@ -129,12 +129,12 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
           return (
             <div className="flex justify-between items-center mb-1.5">
               {isLive ? (
-                <span className="text-[9px] font-black text-green-400 bg-green-500/10 border border-green-500/30 px-2 py-0.5 rounded uppercase flex items-center gap-1">
+                <span className="text-[10px] font-black text-green-400 bg-green-500/10 border border-green-500/30 px-2 py-0.5 rounded uppercase flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                   LIVE
                 </span>
               ) : (
-                <span className="text-[9px] font-black text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded uppercase flex items-center gap-1">
+                <span className="text-[10px] font-black text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded uppercase flex items-center gap-1">
                   {(isHistorical || hasStarted) && <Clock className="w-3 h-3" />}
                   {game.time ?? game.status}
                 </span>
@@ -142,12 +142,12 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
 
               <div className="flex gap-1">
                 {favPick?.result && (
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded ${resultBadgeClass(favPick.result)}`}>
+                  <span className={`text-[11px] font-black px-2 py-0.5 rounded ${resultBadgeClass(favPick.result)}`}>
                     {favTeam}: {favPick.result.toUpperCase()}
                   </span>
                 )}
                 {dogPick?.result && (
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded ${resultBadgeClass(dogPick.result)}`}>
+                  <span className={`text-[11px] font-black px-2 py-0.5 rounded ${resultBadgeClass(dogPick.result)}`}>
                     {dogTeam}: {dogPick.result.toUpperCase()}
                   </span>
                 )}
@@ -163,13 +163,13 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
               {teamLogoUrl(game.home_team) && (
                 <Image src={teamLogoUrl(game.home_team)!} alt="" width={28} height={28} className="object-contain" unoptimized />
               )}
-              <span className="text-[11px] font-black text-zinc-300 uppercase">{game.home_team?.split(' ').pop()}</span>
+              <span className="text-[12px] font-black text-zinc-300 uppercase">{game.home_team?.split(' ').pop()}</span>
             </div>
             <span className="text-[18px] font-black font-mono text-white tracking-tight">
               {game.home_score} – {game.away_score}
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black text-zinc-300 uppercase">{game.away_team?.split(' ').pop()}</span>
+              <span className="text-[12px] font-black text-zinc-300 uppercase">{game.away_team?.split(' ').pop()}</span>
               {teamLogoUrl(game.away_team) && (
                 <Image src={teamLogoUrl(game.away_team)!} alt="" width={28} height={28} className="object-contain" unoptimized />
               )}
@@ -185,11 +185,11 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{favTeam}</p>
             <div className="mt-1.5 space-y-0.5">
-              <p className="text-[10px] font-mono leading-tight">
+              <p className="text-[11px] font-mono leading-tight">
                 <span className="text-zinc-500">Spread: </span>
                 <span className="text-red-400">{game.spread > 0 ? '+' : ''}{game.spread}</span>
               </p>
-              <p className="text-[10px] font-mono leading-tight">
+              <p className="text-[11px] font-mono leading-tight">
                 <span className="text-zinc-500">Adjusted Spread: </span>
                 <span className="text-green-400">{favCushion >= 0 ? '+' : ''}{favCushion}</span>
               </p>
@@ -202,11 +202,11 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
           >
             <p className="font-bold text-sm text-white uppercase leading-tight">{dogTeam}</p>
             <div className="mt-1.5 space-y-0.5">
-              <p className="text-[10px] font-mono leading-tight">
+              <p className="text-[11px] font-mono leading-tight">
                 <span className="text-zinc-500">Spread: </span>
                 <span className="text-green-400">+{Math.abs(game.spread)}</span>
               </p>
-              <p className="text-[10px] font-mono leading-tight">
+              <p className="text-[11px] font-mono leading-tight">
                 <span className="text-zinc-500">Adjusted Spread: </span>
                 <span className="text-green-400">+{dogCushion}</span>
               </p>
@@ -233,10 +233,10 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
           const role = pickedFavorite ? 'FAV' : 'DOG'
           return (
             <div key={pick.team_selected} className="mt-2 px-1 flex justify-between items-center">
-              <span className="text-[9px] font-black uppercase tracking-widest text-green-500/70">
+              <span className="text-[10px] font-black uppercase tracking-widest text-green-500/70">
                 {pick.team_selected} <span className="text-zinc-700">·</span> {role}
               </span>
-              <span className="text-[9px] text-zinc-400">{neededDesc}</span>
+              <span className="text-[10px] text-zinc-400">{neededDesc}</span>
             </div>
           )
         })}
@@ -246,7 +246,7 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
           <>
             <div className="mt-2 mb-1 flex items-center gap-2">
               <div className="flex-1 h-px bg-zinc-800" />
-              <span className="text-[8px] font-black uppercase tracking-widest text-zinc-600">Over / Under</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600">Over / Under</span>
               <div className="flex-1 h-px bg-zinc-800" />
             </div>
             <div className={`flex gap-2 ${isInteractionDisabled ? 'pointer-events-none' : ''}`}>
@@ -256,11 +256,11 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
               >
                 <p className="font-bold text-sm text-white uppercase leading-tight">OVER</p>
                 <div className="mt-1.5 space-y-0.5">
-                  <p className="text-[10px] font-mono leading-tight">
+                  <p className="text-[11px] font-mono leading-tight">
                     <span className="text-zinc-500">Total: </span>
                     <span className="text-zinc-300">{game.total}</span>
                   </p>
-                  <p className="text-[10px] font-mono leading-tight">
+                  <p className="text-[11px] font-mono leading-tight">
                     <span className="text-zinc-500">Win if &gt; </span>
                     <span className="text-green-400">{game.total - cushion}</span>
                   </p>
@@ -272,11 +272,11 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
               >
                 <p className="font-bold text-sm text-white uppercase leading-tight">UNDER</p>
                 <div className="mt-1.5 space-y-0.5">
-                  <p className="text-[10px] font-mono leading-tight">
+                  <p className="text-[11px] font-mono leading-tight">
                     <span className="text-zinc-500">Total: </span>
                     <span className="text-zinc-300">{game.total}</span>
                   </p>
-                  <p className="text-[10px] font-mono leading-tight">
+                  <p className="text-[11px] font-mono leading-tight">
                     <span className="text-zinc-500">Win if &lt; </span>
                     <span className="text-green-400">{game.total + cushion}</span>
                   </p>
@@ -296,10 +296,10 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
             : `Total must stay under ${Math.ceil(threshold)}`
           return (
             <div key={pick.team_selected} className="mt-2 px-1 flex justify-between items-center">
-              <span className="text-[9px] font-black uppercase tracking-widest text-green-500/70">
+              <span className="text-[10px] font-black uppercase tracking-widest text-green-500/70">
                 {pick.team_selected}
               </span>
-              <span className="text-[9px] text-zinc-400">{neededDesc}</span>
+              <span className="text-[10px] text-zinc-400">{neededDesc}</span>
             </div>
           )
         })}
@@ -313,14 +313,14 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
           return (
             <div key={pick.team_selected} className="mt-3 pt-3 border-t border-zinc-800 space-y-1">
               <div className="flex justify-between items-center">
-                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
                   {pick.team_selected} <span className="text-zinc-700">·</span> {bd.role}
                 </span>
-                <span className="text-[9px] text-zinc-600">Needed: {bd.neededDesc}</span>
+                <span className="text-[10px] text-zinc-600">Needed: {bd.neededDesc}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-[9px] font-mono text-zinc-500">{bd.score}</span>
-                <span className={`text-[9px] font-black uppercase ${color}`}>
+                <span className="text-[10px] font-mono text-zinc-500">{bd.score}</span>
+                <span className={`text-[10px] font-black uppercase ${color}`}>
                   {bd.marginDesc} → {pick.result.toUpperCase()}
                 </span>
               </div>
@@ -338,16 +338,16 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
           return (
             <div key={pick.team_selected} className="mt-3 pt-3 border-t border-zinc-800 space-y-1">
               <div className="flex justify-between items-center">
-                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
                   {pick.team_selected}
                 </span>
-                <span className="text-[9px] text-zinc-600">
+                <span className="text-[10px] text-zinc-600">
                   Needed: {isOver ? `> ${threshold}` : `< ${threshold}`}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-[9px] font-mono text-zinc-500">Total: {actualTotal}</span>
-                <span className={`text-[9px] font-black uppercase ${color}`}>
+                <span className="text-[10px] font-mono text-zinc-500">Total: {actualTotal}</span>
+                <span className={`text-[10px] font-black uppercase ${color}`}>
                   {pick.result.toUpperCase()}
                 </span>
               </div>
@@ -357,7 +357,7 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
 
         {/* Scores only (no pick) for non-selected final games */}
         {game.status === 'final' && game.home_score != null && !anySelected && (
-          <div className="mt-2 text-[10px] font-mono text-zinc-500">
+          <div className="mt-2 text-[11px] font-mono text-zinc-500">
             {game.home_team} {game.home_score} — {game.away_team} {game.away_score}
           </div>
         )}

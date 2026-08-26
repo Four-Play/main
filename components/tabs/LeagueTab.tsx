@@ -84,14 +84,14 @@ export function LeagueTab({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex justify-between items-center px-1">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
           {currentLeagueName}
         </h2>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setLeagueSettingsOpen(true)}
-          className="h-7 text-[9px] font-black uppercase text-green-500 hover:bg-green-500/10 gap-1.5"
+          className="h-7 text-[10px] font-black uppercase text-green-500 hover:bg-green-500/10 gap-1.5"
         >
           <Sliders className="w-3 h-3" /> Settings
         </Button>
@@ -134,7 +134,7 @@ export function LeagueTab({
                       </div>
                       <span>{name}</span>
                       {member.role === 'admin' && (
-                        <span className="text-[8px] bg-zinc-800 text-zinc-400 px-1 rounded">ADM</span>
+                        <span className="text-[9px] bg-zinc-800 text-zinc-400 px-1 rounded">ADM</span>
                       )}
                     </div>
                   </TableCell>
