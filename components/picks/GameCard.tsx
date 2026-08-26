@@ -5,24 +5,43 @@ import Image from 'next/image'
 import type { Game, Pick } from '@/types/database'
 
 const NFL_LOGO: Record<string, string> = {
-  'Arizona Cardinals': 'ari', 'Atlanta Falcons': 'atl', 'Baltimore Ravens': 'bal',
-  'Buffalo Bills': 'buf', 'Carolina Panthers': 'car', 'Chicago Bears': 'chi',
-  'Cincinnati Bengals': 'cin', 'Cleveland Browns': 'cle', 'Dallas Cowboys': 'dal',
-  'Denver Broncos': 'den', 'Detroit Lions': 'det', 'Green Bay Packers': 'gb',
-  'Houston Texans': 'hou', 'Indianapolis Colts': 'ind', 'Jacksonville Jaguars': 'jax',
-  'Kansas City Chiefs': 'kc', 'Las Vegas Raiders': 'lv', 'Los Angeles Chargers': 'lac',
-  'Los Angeles Rams': 'lar', 'Miami Dolphins': 'mia', 'Minnesota Vikings': 'min',
-  'New England Patriots': 'ne', 'New Orleans Saints': 'no', 'New York Giants': 'nyg',
-  'New York Jets': 'nyj', 'Philadelphia Eagles': 'phi', 'Pittsburgh Steelers': 'pit',
-  'San Francisco 49ers': 'sf', 'Seattle Seahawks': 'sea', 'Tampa Bay Buccaneers': 'tb',
-  'Tennessee Titans': 'ten', 'Washington Commanders': 'wsh',
+  'Arizona Cardinals':    'https://r2.thesportsdb.com/images/media/team/badge/i1g1wg1784712239.png',
+  'Atlanta Falcons':      'https://r2.thesportsdb.com/images/media/team/badge/9ucfd41784714178.png',
+  'Baltimore Ravens':     'https://r2.thesportsdb.com/images/media/team/badge/einz3p1546172463.png',
+  'Buffalo Bills':        'https://r2.thesportsdb.com/images/media/team/badge/j4r1tn1784714823.png',
+  'Carolina Panthers':    'https://r2.thesportsdb.com/images/media/team/badge/kbqini1784716157.png',
+  'Chicago Bears':        'https://r2.thesportsdb.com/images/media/team/badge/0m51zd1784716955.png',
+  'Cincinnati Bengals':   'https://r2.thesportsdb.com/images/media/team/badge/h1ce8y1784717263.png',
+  'Cleveland Browns':     'https://r2.thesportsdb.com/images/media/team/badge/g7qhkz1784717593.png',
+  'Dallas Cowboys':       'https://r2.thesportsdb.com/images/media/team/badge/76ew3c1784718447.png',
+  'Denver Broncos':       'https://r2.thesportsdb.com/images/media/team/badge/zy3m9v1784718707.png',
+  'Detroit Lions':        'https://r2.thesportsdb.com/images/media/team/badge/lgsgkr1546168257.png',
+  'Green Bay Packers':    'https://r2.thesportsdb.com/images/media/team/badge/uwbfw01784719173.png',
+  'Houston Texans':       'https://r2.thesportsdb.com/images/media/team/badge/o71ce41784719551.png',
+  'Indianapolis Colts':   'https://r2.thesportsdb.com/images/media/team/badge/im99lm1784720368.png',
+  'Jacksonville Jaguars': 'https://r2.thesportsdb.com/images/media/team/badge/0mrsd41546427902.png',
+  'Kansas City Chiefs':   'https://r2.thesportsdb.com/images/media/team/badge/n58gp51784720929.png',
+  'Las Vegas Raiders':    'https://r2.thesportsdb.com/images/media/team/badge/4t8xtk1784721179.png',
+  'Los Angeles Chargers': 'https://r2.thesportsdb.com/images/media/team/badge/wmi40u1784721460.png',
+  'Los Angeles Rams':     'https://r2.thesportsdb.com/images/media/team/badge/ojw15x1784721865.png',
+  'Miami Dolphins':       'https://r2.thesportsdb.com/images/media/team/badge/e803xt1784722221.png',
+  'Minnesota Vikings':    'https://r2.thesportsdb.com/images/media/team/badge/nyp3ev1784722510.png',
+  'New England Patriots': 'https://r2.thesportsdb.com/images/media/team/badge/xtwxyt1421431860.png',
+  'New Orleans Saints':   'https://r2.thesportsdb.com/images/media/team/badge/nd46c71537821337.png',
+  'New York Giants':      'https://r2.thesportsdb.com/images/media/team/badge/i9muak1784751331.png',
+  'New York Jets':        'https://r2.thesportsdb.com/images/media/team/badge/6bnwoc1784751677.png',
+  'Philadelphia Eagles':  'https://r2.thesportsdb.com/images/media/team/badge/pnpybf1515852421.png',
+  'Pittsburgh Steelers':  'https://r2.thesportsdb.com/images/media/team/badge/2975411515853129.png',
+  'San Francisco 49ers':  'https://r2.thesportsdb.com/images/media/team/badge/bqbtg61539537328.png',
+  'Seattle Seahawks':     'https://r2.thesportsdb.com/images/media/team/badge/1t84c51784752684.png',
+  'Tampa Bay Buccaneers': 'https://r2.thesportsdb.com/images/media/team/badge/2dfpdl1537820969.png',
+  'Tennessee Titans':     'https://r2.thesportsdb.com/images/media/team/badge/3td0f41779180767.png',
+  'Washington Commanders':'https://r2.thesportsdb.com/images/media/team/badge/rn0c7v1643826119.png',
 }
 
 function teamLogoUrl(teamName?: string): string | null {
   if (!teamName) return null
-  const abbr = NFL_LOGO[teamName]
-  if (!abbr) return null
-  return `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr}.png`
+  return NFL_LOGO[teamName] ?? null
 }
 
 /** Returns display strings for the result breakdown — no logic changes, purely cosmetic */
