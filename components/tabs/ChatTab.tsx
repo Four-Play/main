@@ -76,9 +76,16 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
     setSending(false)
   }
 
+  // Fixed container pinned between header (safe-area + ~70px) and navbar (safe-area + ~58px).
+  // Position:fixed is the only reliable way to keep the input bar from scrolling with the page.
+  const containerStyle: React.CSSProperties = {
+    top: 'calc(env(safe-area-inset-top, 0px) + 70px)',
+    bottom: 'calc(env(safe-area-inset-bottom, 0px) + 58px)',
+  }
+
   if (!currentLeague) {
     return (
-      <div className="flex flex-col items-center justify-center pt-24 text-center px-6">
+      <div className="fixed inset-x-0 max-w-md mx-auto flex items-center justify-center px-6 text-center" style={containerStyle}>
         <p className="text-zinc-500 text-[11px] uppercase tracking-widest font-bold">
           No league yet! Join a league to start!
         </p>
@@ -87,8 +94,9 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
   }
 
   return (
-    <div className="relative" style={{ height: 'calc(100svh - 230px)' }}>
-      <div className="absolute inset-0 bottom-[60px] overflow-y-auto space-y-2 py-1">
+    <div className="fixed inset-x-0 max-w-md mx-auto flex flex-col bg-black px-4" style={containerStyle}>
+      {/* Messages — fills remaining height and scrolls independently */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-2 py-1">
         {loading ? (
           <div className="flex justify-center pt-10">
             <div className="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
@@ -125,7 +133,8 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 flex items-center gap-2 pt-3 pb-1 border-t border-zinc-800 bg-black">
+      {/* Input — locked to bottom of fixed container, never scrolls */}
+      <div className="flex-shrink-0 flex items-center gap-2 pt-3 pb-2 border-t border-zinc-800">
         <input
           ref={inputRef}
           type="text"
