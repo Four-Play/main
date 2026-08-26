@@ -149,6 +149,60 @@ export function PicksTab({
         </div>
       )}
 
+      {!isHistorical && !isFuture && editBarMode === 'locked' && savedPickCount > 0 && (
+        <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-3">
+          <div className="flex gap-1.5">
+            {(() => {
+              const sorted = Array.from(picksMap.values()).sort((a, b) => {
+                const at = a.game?.commence_time ? new Date(a.game.commence_time).getTime() : 0
+                const bt = b.game?.commence_time ? new Date(b.game.commence_time).getTime() : 0
+                return at - bt
+              })
+              const slots: (typeof sorted[0] | null)[] = [
+                ...sorted,
+                ...Array(Math.max(0, maxPicks - sorted.length)).fill(null),
+              ].slice(0, maxPicks)
+
+              return slots.map((p, idx) => {
+                if (!p) {
+                  return (
+                    <div key={idx} className="flex-1 h-11 rounded-lg border border-dashed border-zinc-700 flex items-center justify-center">
+                      <span className="text-[15px] text-zinc-700 font-black leading-none">+</span>
+                    </div>
+                  )
+                }
+
+                const isFinal = p.game?.status === 'final'
+                const barColor = getPickBarColor(p, cushion)
+                const isGreen = barColor.includes('green')
+                const mascot = p.team_selected.split(' ').pop() ?? p.team_selected
+
+                const boxClass = isFinal
+                  ? p.result === 'win'
+                    ? 'border-green-500/40 bg-green-500/5'
+                    : 'border-red-500/30 bg-red-500/5'
+                  : isGreen
+                    ? 'border-green-500/40 bg-green-500/5'
+                    : 'border-red-500/30 bg-red-500/5'
+
+                return (
+                  <div key={`${p.game_id}|${p.team_selected}`} className={`flex-1 h-11 rounded-lg border flex flex-col items-center justify-center gap-0.5 ${boxClass}`}>
+                    <span className="text-[11px] font-black uppercase text-zinc-300 leading-tight">{mascot}</span>
+                    {isFinal ? (
+                      <span className={`text-[13px] font-black leading-none ${p.result === 'win' ? 'text-green-500' : 'text-red-500'}`}>
+                        {p.result === 'win' ? '✓' : '✗'}
+                      </span>
+                    ) : (
+                      <div className={`h-1 w-4/5 rounded-full ${barColor}`} />
+                    )}
+                  </div>
+                )
+              })
+            })()}
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center px-1">
         <div>
           <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
@@ -166,80 +220,27 @@ export function PicksTab({
           </Badge>
         )}
         {!isHistorical && !isFuture && (
-          <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-2">
-              {editBarMode === 'locked' && savedPickCount >= maxPicks ? (
-                <Badge className="bg-green-500/10 text-green-500 border border-green-500/20 text-[10px]">
-                  ✓ SUBMITTED
-                </Badge>
-              ) : editBarMode === 'locked' && savedPickCount < maxPicks ? (
-                <Badge className="bg-zinc-800 text-zinc-400 border-none text-[10px]">
-                  {savedPickCount}/{maxPicks} PICKS MADE
-                </Badge>
-              ) : (
-                <Badge className="bg-green-500/10 text-green-500 border-none text-[10px]">
-                  {picksMap.size}/{maxPicks} SELECTED
-                </Badge>
-              )}
-              {editBarMode && (
-                <button
-                  onClick={onEditPicks}
-                  className="text-[12px] font-black uppercase tracking-widest text-green-500 border border-green-500/40 px-3 py-1 rounded-full hover:bg-green-500/10 transition-colors"
-                >
-                  {editBarMode === 'locked' ? 'EDIT' : 'DONE'}
-                </button>
-              )}
-            </div>
-            {editBarMode === 'locked' && savedPickCount > 0 && (
-              <div className="flex gap-1.5 mt-1">
-                {(() => {
-                  const sorted = Array.from(picksMap.values()).sort((a, b) => {
-                    const at = a.game?.commence_time ? new Date(a.game.commence_time).getTime() : 0
-                    const bt = b.game?.commence_time ? new Date(b.game.commence_time).getTime() : 0
-                    return at - bt
-                  })
-                  const slots: (typeof sorted[0] | null)[] = [
-                    ...sorted,
-                    ...Array(Math.max(0, maxPicks - sorted.length)).fill(null),
-                  ].slice(0, maxPicks)
-
-                  return slots.map((p, idx) => {
-                    if (!p) {
-                      return (
-                        <div key={idx} className="flex-1 h-10 rounded-lg border border-dashed border-zinc-700 flex items-center justify-center">
-                          <span className="text-[15px] text-zinc-700 font-black leading-none">+</span>
-                        </div>
-                      )
-                    }
-
-                    const isFinal = p.game?.status === 'final'
-                    const barColor = getPickBarColor(p, cushion)
-                    const isGreen = barColor.includes('green')
-                    const mascot = p.team_selected.split(' ').pop() ?? p.team_selected
-
-                    const boxClass = isFinal
-                      ? p.result === 'win'
-                        ? 'border-green-500/40 bg-green-500/5'
-                        : 'border-red-500/30 bg-red-500/5'
-                      : isGreen
-                        ? 'border-green-500/40 bg-green-500/5'
-                        : 'border-red-500/30 bg-red-500/5'
-
-                    return (
-                      <div key={`${p.game_id}|${p.team_selected}`} className={`flex-1 h-10 rounded-lg border flex flex-col items-center justify-center gap-0.5 ${boxClass}`}>
-                        <span className="text-[10px] font-black uppercase text-zinc-300 leading-tight">{mascot}</span>
-                        {isFinal ? (
-                          <span className={`text-[12px] font-black leading-none ${p.result === 'win' ? 'text-green-500' : 'text-red-500'}`}>
-                            {p.result === 'win' ? '✓' : '✗'}
-                          </span>
-                        ) : (
-                          <div className={`h-1 w-4/5 rounded-full ${barColor}`} />
-                        )}
-                      </div>
-                    )
-                  })
-                })()}
-              </div>
+          <div className="flex items-center gap-2">
+            {editBarMode === 'locked' && savedPickCount >= maxPicks ? (
+              <Badge className="bg-green-500/10 text-green-500 border border-green-500/20 text-[10px]">
+                ✓ SUBMITTED
+              </Badge>
+            ) : editBarMode === 'locked' && savedPickCount < maxPicks ? (
+              <Badge className="bg-zinc-800 text-zinc-400 border-none text-[10px]">
+                {savedPickCount}/{maxPicks} PICKS MADE
+              </Badge>
+            ) : (
+              <Badge className="bg-green-500/10 text-green-500 border-none text-[10px]">
+                {picksMap.size}/{maxPicks} SELECTED
+              </Badge>
+            )}
+            {editBarMode && (
+              <button
+                onClick={onEditPicks}
+                className="text-[12px] font-black uppercase tracking-widest text-green-500 border border-green-500/40 px-3 py-1 rounded-full hover:bg-green-500/10 transition-colors"
+              >
+                {editBarMode === 'locked' ? 'EDIT' : 'DONE'}
+              </button>
             )}
           </div>
         )}
