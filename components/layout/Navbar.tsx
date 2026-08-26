@@ -1,6 +1,6 @@
 "use client"
 import React from 'react';
-import { Ticket, Trophy, Settings } from "lucide-react";
+import { Ticket, BarChart2, Trophy, Settings } from "lucide-react";
 
 interface NavbarProps {
   activeTab: string;
@@ -14,6 +14,7 @@ export function Navbar({ activeTab, setActiveTab }: NavbarProps) {
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
     >
       <NavButton active={activeTab === 'picks'} onClick={() => setActiveTab('picks')} icon={Ticket} label="PICKS" />
+      <NavButton active={activeTab === 'current'} onClick={() => setActiveTab('current')} icon={BarChart2} label="CURRENT" />
       <NavButton active={activeTab === 'league'} onClick={() => setActiveTab('league')} icon={Trophy} label="LEAGUE" />
       <NavButton active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={Settings} label="SETTINGS" />
     </nav>

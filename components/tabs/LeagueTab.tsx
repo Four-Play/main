@@ -5,26 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Sliders, Users } from "lucide-react"
-import { getWeekLabel, ACTIVE_SPORT } from '@/lib/weekUtils'
-import type { LeagueMember, WeekSummary } from '@/types/database'
-
-interface PickChartWeek {
-  week: number
-  games: Array<{
-    id: string
-    commence_time: string
-    favorite_team: string
-    underdog_team: string
-    spread: number
-    status: string
-  }>
-  picks: Array<{
-    user_id: string
-    game_id: string
-    team_selected: string
-    result: string | null
-  }>
-}
+import type { LeagueMember } from '@/types/database'
 
 interface LeagueTabProps {
   currentLeague: string
@@ -36,20 +17,6 @@ interface LeagueTabProps {
   accessToken: string | null
 }
 
-// Returns the team mascot — last word of the full team name (e.g. "Kansas City Chiefs" → "Chiefs")
-function teamMascot(name: string): string {
-  if (!name) return '?'
-  const parts = name.trim().split(' ')
-  return parts[parts.length - 1]
-}
-
-// Adjusted spread shown in each pick cell (team's cushioned line)
-function adjSpreadStr(spread: number, pickedFav: boolean): string {
-  const adj = pickedFav ? spread + 13 : Math.abs(spread) + 13
-  const sign = adj >= 0 ? '+' : ''
-  return `${sign}${Number.isInteger(adj) ? adj : adj.toFixed(1)}`
-}
-
 export function LeagueTab({
   currentLeague,
   currentLeagueName,
@@ -59,21 +26,8 @@ export function LeagueTab({
   currentYear,
   accessToken,
 }: LeagueTabProps) {
-  interface WeekTracker {
-    loserCount: number
-    survivorCount: number
-    totalWithPicks: number
-    totalMembers: number
-    stake: number        // in "cents" (×100)
-    penaltyPerLoss: number  // in "cents"
-  }
-
   const [members, setMembers] = useState<LeagueMember[]>([])
-  const [weekSummaries, setWeekSummaries] = useState<WeekSummary[]>([])
-  const [weeklyPickCharts, setWeeklyPickCharts] = useState<PickChartWeek[]>([])
-  const [weekTracker, setWeekTracker] = useState<WeekTracker | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeView, setActiveView] = useState<'standings' | 'results'>('standings')
   const [refreshKey, setRefreshKey] = useState(0)
   const hiddenAtRef = useRef<number>(0)
 
@@ -104,9 +58,6 @@ export function LeagueTab({
       .then(data => {
         if (!active) return
         if (data.members) setMembers(data.members)
-        if (data.weekSummaries) setWeekSummaries(data.weekSummaries)
-        if (data.weeklyPickCharts) setWeeklyPickCharts(data.weeklyPickCharts)
-        if (data.weekTracker) setWeekTracker(data.weekTracker)
       })
       .catch(() => {})
       .finally(() => {
@@ -146,275 +97,59 @@ export function LeagueTab({
         </Button>
       </div>
 
-      {/* View toggle */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setActiveView('standings')}
-          className={`flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all ${
-            activeView === 'standings'
-              ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.3)]'
-              : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
-          }`}
-        >
-          STANDINGS
-        </button>
-        <button
-          onClick={() => setActiveView('results')}
-          className={`flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all ${
-            activeView === 'results'
-              ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.3)]'
-              : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
-          }`}
-        >
-          RESULTS
-        </button>
-      </div>
-
-      {/* Live Week Tracker banner — always shown for current week */}
-      {weekTracker && weekTracker.totalMembers > 0 && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 space-y-2">
-          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
-            Week Tracker
-          </p>
-
-          {/* Progress bar: losers / total members */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1">
-              <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-red-500 transition-all"
-                  style={{ width: weekTracker.totalMembers > 0 ? `${Math.round((weekTracker.loserCount / weekTracker.totalMembers) * 100)}%` : '0%' }}
-                />
-              </div>
-            </div>
-            <span className={`text-[10px] font-black whitespace-nowrap ${weekTracker.loserCount > 0 ? 'text-red-400' : 'text-zinc-500'}`}>
-              {weekTracker.loserCount} / {weekTracker.totalMembers} lost
-            </span>
-          </div>
-
-          {weekTracker.loserCount === 0 ? (
-            <p className="text-[10px] text-zinc-500 leading-relaxed">
-              No losers yet this week.
-            </p>
-          ) : (
-            <p className="text-[10px] text-zinc-400 leading-relaxed">
-              If nobody else loses, each loser owes{' '}
-              <span className="text-white font-black">
-                {(weekTracker.penaltyPerLoss / 100).toFixed(0)} pts
-              </span>{' '}
-              ({weekTracker.survivorCount} survivor{weekTracker.survivorCount === 1 ? '' : 's'} × {(weekTracker.stake / 100).toFixed(0)} pts stake).
-            </p>
-          )}
-        </div>
-      )}
-
-      {activeView === 'standings' ? (
-        <Card className="bg-zinc-950 border-zinc-800 rounded-2xl overflow-hidden">
-          <Table>
-            <TableBody>
-              {members.map((member, idx) => {
-                const profile = member.profile
-                const name = profile?.username ?? 'Unknown'
-                const points = member.league_points
-                const avatarUrl = profile?.avatar_url
-                return (
-                  <TableRow
-                    key={member.id}
-                    className="border-zinc-800 cursor-pointer hover:bg-zinc-900 transition-colors"
-                    onClick={() => setViewingPlayer({ ...member, name })}
-                  >
-                    <TableCell className="text-zinc-600 font-mono text-xs w-8">
-                      {idx + 1}
-                    </TableCell>
-                    <TableCell className="font-bold uppercase text-white text-xs tracking-tight">
-                      <div className="flex items-center gap-2">
-                        <div className="relative w-7 h-7 rounded-full overflow-hidden bg-zinc-900 border border-zinc-800 flex-shrink-0">
-                          {avatarUrl ? (
-                            <Image
-                              src={avatarUrl}
-                              alt=""
-                              fill
-                              sizes="28px"
-                              className="object-cover"
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Users className="w-3.5 h-3.5 text-zinc-600" />
-                            </div>
-                          )}
-                        </div>
-                        <span>{name}</span>
-                        {member.role === 'admin' && (
-                          <span className="text-[8px] bg-zinc-800 text-zinc-400 px-1 rounded">ADM</span>
+      <Card className="bg-zinc-950 border-zinc-800 rounded-2xl overflow-hidden">
+        <Table>
+          <TableBody>
+            {members.map((member, idx) => {
+              const profile = member.profile
+              const name = profile?.username ?? 'Unknown'
+              const points = member.league_points
+              const avatarUrl = profile?.avatar_url
+              return (
+                <TableRow
+                  key={member.id}
+                  className="border-zinc-800 cursor-pointer hover:bg-zinc-900 transition-colors"
+                  onClick={() => setViewingPlayer({ ...member, name })}
+                >
+                  <TableCell className="text-zinc-600 font-mono text-xs w-8">
+                    {idx + 1}
+                  </TableCell>
+                  <TableCell className="font-bold uppercase text-white text-xs tracking-tight">
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-7 h-7 rounded-full overflow-hidden bg-zinc-900 border border-zinc-800 flex-shrink-0">
+                        {avatarUrl ? (
+                          <Image
+                            src={avatarUrl}
+                            alt=""
+                            fill
+                            sizes="28px"
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Users className="w-3.5 h-3.5 text-zinc-600" />
+                          </div>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-center font-mono text-zinc-500 text-xs">
-                      {member.wins}-{member.losses}
-                    </TableCell>
-                    <TableCell className={`text-right font-mono font-black text-xs ${points >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {points >= 0 ? `+${(points / 100).toFixed(0)} pts` : `-${(Math.abs(points) / 100).toFixed(0)} pts`}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </Card>
-      ) : (
-        // RESULTS — pick chart, current week first, prior weeks below
-        <div className="space-y-5">
-          {weeklyPickCharts.map(chart => {
-            const { week, games, picks } = chart
-            const gamesById = new Map(games.map(g => [g.id, g as PickChartWeek['games'][0]]))
-            const now = new Date()
-
-            return (
-              <div key={week} className="space-y-2">
-                {/* Week label */}
-                <div className="flex items-center gap-2 px-1">
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                    {getWeekLabel(week, ACTIVE_SPORT)}
-                  </h3>
-                  {week === currentWeek && (
-                    <span className="text-[8px] font-black bg-green-500/15 text-green-500 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                      Current
-                    </span>
-                  )}
-                </div>
-
-                {/* Chart card */}
-                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden">
-                  {/* Column headers */}
-                  <div className="flex items-center py-1.5 px-3 border-b border-zinc-800">
-                    <div className="w-[22%]" />
-                    {[1, 2, 3, 4].map(n => (
-                      <div key={n} className="flex-1 text-center text-[8px] font-black text-zinc-600 uppercase tracking-widest">
-                        {n}
-                      </div>
-                    ))}
-                    <div className="w-[20%] text-right text-[8px] font-black text-zinc-600 uppercase tracking-widest pr-0.5">
-                      Result
+                      <span>{name}</span>
+                      {member.role === 'admin' && (
+                        <span className="text-[8px] bg-zinc-800 text-zinc-400 px-1 rounded">ADM</span>
+                      )}
                     </div>
-                  </div>
-
-                  {/* One row per member */}
-                  {members.map((member, idx) => {
-                    const weeklySummary = weekSummaries.find(s => s.week === week)
-                    const winResult = weeklySummary?.winners.find(r => r.user_id === member.user_id)
-                    const lossResult = weeklySummary?.losers.find(r => r.user_id === member.user_id)
-
-                    // Get this member's picks for the week, enriched with game data, sorted by start time
-                    const enriched = picks
-                      .filter(p => p.user_id === member.user_id)
-                      .reduce<Array<{ user_id: string; game_id: string; team_selected: string; result: string | null; game: PickChartWeek['games'][0] }>>(
-                        (acc, p) => {
-                          const game = gamesById.get(p.game_id)
-                          if (game) acc.push({ ...p, game })
-                          return acc
-                        },
-                        []
-                      )
-                      .sort((a, b) => new Date(a.game.commence_time).getTime() - new Date(b.game.commence_time).getTime())
-
-                    // Pad to exactly 4 slots (null = no pick)
-                    const slots: (typeof enriched[0] | null)[] = [...enriched, null, null, null, null].slice(0, 4)
-
-                    return (
-                      <div
-                        key={member.user_id}
-                        className={`flex items-center py-2.5 px-3 ${idx < members.length - 1 ? 'border-b border-zinc-900' : ''}`}
-                      >
-                        {/* Player name */}
-                        <div className="w-[22%] pr-1">
-                          <span className="text-[10px] font-bold uppercase text-white truncate block">
-                            {(member.profile?.username ?? 'Player').substring(0, 8)}
-                          </span>
-                        </div>
-
-                        {/* 4 pick slots */}
-                        {slots.map((slot, pickIdx) => {
-                          // No pick or game not found
-                          if (!slot) {
-                            return (
-                              <div key={pickIdx} className="flex-1 flex items-center justify-center">
-                                <span className="text-zinc-800 text-[11px] font-mono">—</span>
-                              </div>
-                            )
-                          }
-
-                          // Pick exists but game hasn't started — hide it
-                          const revealed = new Date(slot.game.commence_time) <= now
-                          if (!revealed) {
-                            return (
-                              <div key={pickIdx} className="flex-1 flex items-center justify-center">
-                                <span className="text-zinc-800 text-[11px] font-mono">—</span>
-                              </div>
-                            )
-                          }
-
-                          const pickedFav = slot.team_selected === slot.game.favorite_team
-                          const mascot = teamMascot(slot.team_selected)
-                          const spreadStr = adjSpreadStr(slot.game.spread, pickedFav)
-
-                          const color =
-                            slot.result === 'win' ? 'text-green-500' :
-                            slot.result === 'loss' ? 'text-red-500' :
-                            'text-white'
-
-                          const subColor =
-                            slot.result === 'win' ? 'text-green-500/70' :
-                            slot.result === 'loss' ? 'text-red-500/70' :
-                            'text-zinc-500'
-
-                          return (
-                            <div key={pickIdx} className="flex-1 flex flex-col items-center">
-                              <span className={`text-[9px] font-black uppercase leading-tight ${color}`}>
-                                {mascot}
-                              </span>
-                              <span className={`text-[8px] font-mono leading-tight ${subColor}`}>
-                                {spreadStr}
-                              </span>
-                            </div>
-                          )
-                        })}
-
-                        {/* Week result — shown once all games are scored */}
-                        <div className="w-[20%] flex flex-col items-end pr-0.5">
-                          {winResult ? (
-                            <>
-                              <span className="text-[9px] font-black text-green-500 leading-tight">
-                                +{(winResult.amount_won_cents / 100).toFixed(0)}
-                              </span>
-                              <span className="text-[7px] text-green-500/60 leading-tight uppercase">pts</span>
-                            </>
-                          ) : lossResult ? (
-                            <>
-                              <span className="text-[9px] font-black text-red-500 leading-tight">
-                                -{(lossResult.amount_owed_cents / 100).toFixed(0)}
-                              </span>
-                              <span className="text-[7px] text-red-500/60 leading-tight uppercase">pts</span>
-                            </>
-                          ) : (
-                            <span className="text-zinc-800 text-[11px] font-mono">—</span>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-
-          {weeklyPickCharts.length === 0 && (
-            <div className="flex flex-col items-center py-12 gap-2 text-zinc-600">
-              <p className="text-[10px] font-black uppercase tracking-widest">No picks yet this season</p>
-            </div>
-          )}
-        </div>
-      )}
+                  </TableCell>
+                  <TableCell className="text-center font-mono text-zinc-500 text-xs">
+                    {member.wins}-{member.losses}
+                  </TableCell>
+                  <TableCell className={`text-right font-mono font-black text-xs ${points >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {points >= 0 ? `+${(points / 100).toFixed(0)} pts` : `-${(Math.abs(points) / 100).toFixed(0)} pts`}
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   )
 }

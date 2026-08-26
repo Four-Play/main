@@ -4,6 +4,7 @@ import { AuthScreen } from '@/components/auth/AuthScreen'
 import { ResetPasswordScreen } from '@/components/auth/ResetPasswordScreen'
 import { PicksTab } from '@/components/tabs/PicksTab'
 import { LeagueTab } from '@/components/tabs/LeagueTab'
+import { CurrentWeekTab } from '@/components/tabs/CurrentWeekTab'
 import { ProfileTab } from '@/components/tabs/ProfileTab'
 import { ModalManager } from '@/components/modals/ModalManager'
 import { Header } from '@/components/layout/Header'
@@ -559,6 +560,15 @@ export default function FourplayApp() {
                 }
                 onEditPicks={() => setIsEditingPicks(v => !v)}
                 weekTracker={weekTracker}
+              />
+            )}
+
+            {activeTab === 'current' && (
+              <CurrentWeekTab
+                currentLeague={currentLeague?.id ?? null}
+                currentWeek={currentWeek}
+                currentYear={currentYear}
+                accessToken={accessToken}
               />
             )}
 
