@@ -32,12 +32,12 @@ export async function GET(request: Request) {
       .eq('season_year', year),
     supabase
       .from('games')
-      .select('id, commence_time, favorite_team, underdog_team, spread, nfl_week, status')
+      .select('id, commence_time, favorite_team, underdog_team, spread, nfl_week, sport, status')
       .eq('season_year', year)
       .order('commence_time', { ascending: true }),
     supabase
       .from('leagues')
-      .select('payout_per_loss_cents')
+      .select('payout_per_loss_cents, sport')
       .eq('id', leagueId)
       .maybeSingle(),
   ])
@@ -46,6 +46,7 @@ export async function GET(request: Request) {
   if (resultsResult.error) return NextResponse.json({ error: resultsResult.error.message }, { status: 500 })
 
   const stake = leagueResult.data?.payout_per_loss_cents ?? 0
+  const leagueSport = leagueResult.data?.sport ?? 'americanfootball_nfl'
 
   // Build weekSummaries (standings tab still uses this)
   const byWeek = new Map<number, any[]>()
@@ -63,8 +64,8 @@ export async function GET(request: Request) {
     return { week, year, winners, losers, prizePerWinner, isFinal: rows.some(r => r.calculated_at != null) }
   })
 
-  // Build weeklyPickCharts for the RESULTS tab
-  const allGames = gamesResult.data ?? []
+  // Build weeklyPickCharts for the RESULTS tab — only games matching this league's sport
+  const allGames = (gamesResult.data ?? []).filter((g: any) => g.sport === leagueSport)
   const allPicks = picksResult.data ?? []
 
   const gamesByWeek = new Map<number, any[]>()
