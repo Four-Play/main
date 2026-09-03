@@ -2,7 +2,15 @@
   "crons": [
     {
       "path": "/api/cron/games",
-      "schedule": "0 10 * * *"
+      "schedule": "0 * * * 0"
+    },
+    {
+      "path": "/api/cron/games",
+      "schedule": "0 10 * * 1-6"
+    },
+    {
+      "path": "/api/cron/games",
+      "schedule": "0 22 * * 1,4"
     },
     {
       "path": "/api/cron/score",
