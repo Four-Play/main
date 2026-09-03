@@ -155,6 +155,7 @@ export function PicksTab({
 
       {!isHistorical && !isFuture && editBarMode === 'locked' && savedPickCount > 0 && (
         <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Your Picks</p>
           <div className="flex gap-1.5">
             {(() => {
               const sorted = Array.from(picksMap.values()).sort((a, b) => {
@@ -207,6 +208,16 @@ export function PicksTab({
         </div>
       )}
 
+      {!isHistorical && !isFuture && editBarMode === 'locked' && savedPickCount >= maxPicks && (
+        <div className="rounded-xl bg-green-500/10 border border-green-500/30 px-4 py-3 flex items-center gap-3">
+          <span className="text-green-500 text-[22px] leading-none">✓</span>
+          <div>
+            <p className="text-[13px] font-black uppercase tracking-widest text-green-500 leading-tight">Picks Submitted</p>
+            <p className="text-[10px] text-green-500/60 mt-0.5">Good luck this week!</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center px-1">
         <div>
           <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
@@ -225,19 +236,15 @@ export function PicksTab({
         )}
         {!isHistorical && !isFuture && (
           <div className="flex items-center gap-2">
-            {editBarMode === 'locked' && savedPickCount >= maxPicks ? (
-              <Badge className="bg-green-500/10 text-green-500 border border-green-500/20 text-[10px]">
-                ✓ SUBMITTED
-              </Badge>
-            ) : editBarMode === 'locked' && savedPickCount < maxPicks ? (
+            {editBarMode === 'locked' && savedPickCount < maxPicks ? (
               <Badge className="bg-zinc-800 text-zinc-400 border-none text-[10px]">
                 {savedPickCount}/{maxPicks} PICKS MADE
               </Badge>
-            ) : (
+            ) : editBarMode !== 'locked' ? (
               <Badge className="bg-green-500/10 text-green-500 border-none text-[10px]">
                 {picksMap.size}/{maxPicks} SELECTED
               </Badge>
-            )}
+            ) : null}
             {editBarMode && (
               <button
                 onClick={onEditPicks}
