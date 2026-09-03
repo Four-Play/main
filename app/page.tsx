@@ -20,8 +20,7 @@ import { supabase } from '@/lib/supabase/client'
 import { readStoredUser } from '@/lib/supabase/storage'
 import { Capacitor } from '@capacitor/core'
 import type { Profile, League, Game, Pick } from '@/types/database'
-import { computeCurrentWeek, ACTIVE_SPORT } from '@/lib/weekUtils'
-import { SEASON_YEAR, PLAYOFF_RULES } from '@/config/season'
+import { computeCurrentWeek, ACTIVE_SPORT, getSeasonYear, getPlayoffRules } from '@/lib/weekUtils'
 
 export default function FourplayApp() {
   // Auth state
@@ -71,7 +70,7 @@ export default function FourplayApp() {
   const [isSubmittingPicks, setIsSubmittingPicks] = useState(false)
   const [isEditingPicks, setIsEditingPicks] = useState(false)
   const [currentWeek, setCurrentWeek] = useState(() => computeCurrentWeek(ACTIVE_SPORT))
-  const [currentYear, setCurrentYear] = useState(SEASON_YEAR)
+  const [currentYear, setCurrentYear] = useState(() => getSeasonYear(ACTIVE_SPORT))
   const [selectedWeek, setSelectedWeek] = useState(() => computeCurrentWeek(ACTIVE_SPORT))
 
   // Detect password reset redirect from /auth/callback
@@ -220,6 +219,17 @@ export default function FourplayApp() {
       .catch(() => {})
   }, [accessToken])
 
+  // When the current league changes, recompute week/year for that league's sport
+  useEffect(() => {
+    if (!currentLeague) return
+    const sport = currentLeague.sport ?? ACTIVE_SPORT
+    const week = computeCurrentWeek(sport)
+    const year = getSeasonYear(sport)
+    setCurrentWeek(week)
+    setCurrentYear(year)
+    setSelectedWeek(week)
+  }, [currentLeague?.id])
+
   // Fetch live week tracker — only meaningful for the current active week
   useEffect(() => {
     if (!currentLeague || !accessToken || selectedWeek !== currentWeek) {
@@ -238,12 +248,13 @@ export default function FourplayApp() {
   }, [currentLeague, currentWeek, currentYear, selectedWeek, accessToken])
 
   // Load games for current week
-  const loadGames = useCallback(async (week: number, year: number) => {
+  const loadGames = useCallback(async (week: number, year: number, sport?: string) => {
     setGamesLoading(true)
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15000)
+    const sportParam = sport ? `&sport=${sport}` : ''
     try {
-      const res = await fetch(`/api/games?week=${week}&year=${year}`, { signal: controller.signal })
+      const res = await fetch(`/api/games?week=${week}&year=${year}${sportParam}`, { signal: controller.signal })
       const data = await res.json()
       if (data.games) {
         const mapped = data.games.map((g: any) => ({
@@ -265,15 +276,16 @@ export default function FourplayApp() {
   }, [])
 
   useEffect(() => {
-    loadGames(selectedWeek, currentYear)
-  }, [selectedWeek, currentYear, loadGames])
+    loadGames(selectedWeek, currentYear, currentLeague?.sport ?? ACTIVE_SPORT)
+  }, [selectedWeek, currentYear, currentLeague?.sport, loadGames])
 
   // Silent background refresh for live scores — no loading spinner, current week only
   const refreshGames = useCallback(async () => {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15000)
+    const sport = currentLeague?.sport ?? ACTIVE_SPORT
     try {
-      const res = await fetch(`/api/games?week=${selectedWeek}&year=${currentYear}`, { signal: controller.signal })
+      const res = await fetch(`/api/games?week=${selectedWeek}&year=${currentYear}&sport=${sport}`, { signal: controller.signal })
       const data = await res.json()
       if (data.games) {
         setGames(data.games.map((g: any) => ({
@@ -288,7 +300,7 @@ export default function FourplayApp() {
     } finally {
       clearTimeout(timeout)
     }
-  }, [selectedWeek, currentYear])
+  }, [selectedWeek, currentYear, currentLeague?.sport])
 
   useEffect(() => {
     if (selectedWeek !== currentWeek) return
@@ -365,7 +377,8 @@ export default function FourplayApp() {
     }
 
     const key = pickKey(gameId, teamSelected)
-    const maxPicks = PLAYOFF_RULES[selectedWeek]?.picksRequired ?? 4
+    const leaguePlayoffRules = getPlayoffRules(currentLeague.sport ?? ACTIVE_SPORT)
+    const maxPicks = leaguePlayoffRules[selectedWeek]?.picksRequired ?? 4
 
     // Unselect: clicking an already-selected side removes that pick
     if (picksMap.has(key)) {
@@ -561,6 +574,7 @@ export default function FourplayApp() {
                 }
                 onEditPicks={() => setIsEditingPicks(v => !v)}
                 weekTracker={weekTracker}
+                sport={currentLeague?.sport ?? ACTIVE_SPORT}
               />
             )}
 

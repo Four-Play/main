@@ -19,6 +19,7 @@ export interface League {
   payout_per_loss_cents: number
   spread_cushion: number
   is_locked?: boolean
+  sport: string  // 'americanfootball_nfl' | 'americanfootball_ncaaf'
   created_at?: string
 }
 
@@ -48,6 +49,7 @@ export interface Game {
   commence_time?: string
   nfl_week?: number
   season_year?: number
+  sport?: string
   home_score?: number
   away_score?: number
   status?: 'upcoming' | 'live' | 'final'

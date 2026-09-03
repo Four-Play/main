@@ -1,26 +1,27 @@
 // app/api/games/route.ts
 // Serves game data from the DB cache — no Odds API calls on user visits.
-// The /api/cron/games job refreshes the DB every 4 hours.
-// One-time live fetch only when the DB has no games at all for the requested
-// week (first deploy, or after a DB reset).
+// The /api/cron/games job refreshes the DB on schedule.
+// One-time live fetch only when the DB has no games at all for the requested week.
 
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { ACTIVE_SPORT, SPORT_CONFIG, computeWeekFromDate, computeCurrentWeek, toETDateString } from '@/lib/weekUtils'
-import { SEASON_WEEKS } from '@/config/season'
+import { ACTIVE_SPORT, SPORT_CONFIG, computeWeekFromDate, computeCurrentWeek, toETDateString, getSeasonWeeks, getSeasonYear, getPlayoffRules } from '@/lib/weekUtils'
+import { NCAAF_ALLOWED_TEAMS } from '@/config/ncaaf-season'
 
 export const dynamic = 'force-dynamic'
 
 const ODDS_API_KEY = process.env.ODDS_API_KEY!
 const ODDS_BASE = 'https://api.the-odds-api.com/v4'
 
-const SPORT_KEY = ACTIVE_SPORT
-const TARGET_SEASON_YEAR = SPORT_CONFIG[SPORT_KEY].seasonYear
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
 
-  const currentWeek = computeCurrentWeek(SPORT_KEY)
+  const sportKey = searchParams.get('sport') ?? ACTIVE_SPORT
+  const SEASON_WEEKS = getSeasonWeeks(sportKey)
+  const TARGET_SEASON_YEAR = getSeasonYear(sportKey)
+  const PLAYOFF_RULES = getPlayoffRules(sportKey)
+
+  const currentWeek = computeCurrentWeek(sportKey)
   const requestedWeek = parseInt(searchParams.get('week') ?? String(currentWeek))
   const week = isNaN(requestedWeek) ? currentWeek : requestedWeek
   const year = TARGET_SEASON_YEAR
@@ -34,6 +35,7 @@ export async function GET(request: Request) {
     .from('games')
     .select('*')
     .eq('season_year', year)
+    .eq('sport', sportKey)
     .order('commence_time', { ascending: true })
 
   const weekGamesFromCache = (allCached ?? []).filter((g: any) => {
@@ -43,7 +45,6 @@ export async function GET(request: Request) {
   })
 
   if (weekGamesFromCache.length > 0) {
-    // Compute fav/dog/time display fields that aren't stored in the DB.
     const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
     const enriched = weekGamesFromCache.map((g: any) => {
       const gameTime = new Date(g.commence_time)
@@ -58,12 +59,10 @@ export async function GET(request: Request) {
       }
     })
     const source = weekConfig && weekConfig.endDate < todayStr ? 'cache' : 'cache-live'
-    return NextResponse.json({ games: enriched, week, currentWeek, year, source })
+    return NextResponse.json({ games: enriched, week, currentWeek, year, source, sport: sportKey })
   }
 
   // ── 2. DB is empty for this week — one-time live fetch ────────────────────
-  // This only happens on first deploy or after a DB reset. The cron job will
-  // keep the DB populated going forward so this path is rarely hit.
   try {
     const controller = new AbortController()
     const apiTimeout = setTimeout(() => controller.abort(), 12000)
@@ -72,16 +71,24 @@ export async function GET(request: Request) {
       ? `&commenceTimeFrom=${weekConfig.startDate}T00:00:00Z&commenceTimeTo=${weekConfig.endDate}T23:59:59Z`
       : ''
 
+    const markets = week in PLAYOFF_RULES ? 'spreads,totals' : 'spreads'
     const [eventsRes, oddsRes] = await Promise.all([
-      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/events/?apiKey=${ODDS_API_KEY}${dateParams}`, { cache: 'no-store', signal: controller.signal }),
-      fetch(`${ODDS_BASE}/sports/${SPORT_KEY}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american${dateParams}`, { cache: 'no-store', signal: controller.signal }),
+      fetch(`${ODDS_BASE}/sports/${sportKey}/events/?apiKey=${ODDS_API_KEY}${dateParams}`, { cache: 'no-store', signal: controller.signal }),
+      fetch(`${ODDS_BASE}/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=${markets}&oddsFormat=american${dateParams}`, { cache: 'no-store', signal: controller.signal }),
     ]).finally(() => clearTimeout(apiTimeout))
 
-    const eventsData: any[] = eventsRes.ok ? await eventsRes.json() : []
-    const oddsData: any[]   = oddsRes.ok   ? await oddsRes.json()   : []
+    let eventsData: any[] = eventsRes.ok ? await eventsRes.json() : []
+    const oddsData: any[]  = oddsRes.ok  ? await oddsRes.json()  : []
+
+    // Filter NCAAF to Power 4 + Notre Dame only
+    if (sportKey === 'americanfootball_ncaaf') {
+      eventsData = eventsData.filter(e =>
+        NCAAF_ALLOWED_TEAMS.has(e.home_team) && NCAAF_ALLOWED_TEAMS.has(e.away_team)
+      )
+    }
 
     if (eventsData.length === 0) {
-      return NextResponse.json({ games: [], week, currentWeek, year, message: 'No games found' })
+      return NextResponse.json({ games: [], week, currentWeek, year, message: 'No games found', sport: sportKey })
     }
 
     const oddsById = new Map<string, any>()
@@ -111,6 +118,11 @@ export async function GET(request: Request) {
         }
       }
 
+      const totalsMarket = oddsEvent?.bookmakers
+        ?.find((b: any) => b.key === 'draftkings' || b.key === 'fanduel' || b.key === 'lowvig')
+        ?.markets?.find((m: any) => m.key === 'totals')
+      const total: number | undefined = totalsMarket?.outcomes?.find((o: any) => o.name === 'Over')?.point
+
       const gameTime = new Date(event.commence_time)
       const timeStr = gameTime.toLocaleTimeString('en-US', {
         hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York',
@@ -123,9 +135,11 @@ export async function GET(request: Request) {
         favorite_team: favTeam,
         underdog_team: dogTeam,
         spread,
+        ...(total != null ? { total } : {}),
         commence_time: event.commence_time,
-        nfl_week: computeWeekFromDate(event.commence_time, SPORT_KEY),
+        nfl_week: computeWeekFromDate(event.commence_time, sportKey),
         season_year: year,
+        sport: sportKey,
         status: 'upcoming' as string,
         fav: favTeam,
         dog: dogTeam,
@@ -133,15 +147,14 @@ export async function GET(request: Request) {
       }
     })
 
-    // Upsert so the cron doesn't need to run before the first user visit.
     const dbRows = rows.map(({ fav, dog, time, ...rest }: any) => rest)
     await supabase.from('games').upsert(dbRows, { onConflict: 'external_id' })
 
-    // Re-query to get DB-assigned ids (used as foreign keys in picks).
     const { data: refreshed } = await supabase
       .from('games')
       .select('*')
       .eq('season_year', year)
+      .eq('sport', sportKey)
       .order('commence_time', { ascending: true })
 
     const weekGames = (refreshed ?? []).filter((g: any) => {
@@ -150,14 +163,13 @@ export async function GET(request: Request) {
       return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
     }).map((g: any) => {
       const gameTime = new Date(g.commence_time)
-      const dayNames2 = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
       const timeStr = gameTime.toLocaleTimeString('en-US', {
         hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York',
       })
-      return { ...g, fav: g.favorite_team, dog: g.underdog_team, time: `${dayNames2[gameTime.getDay()]} ${timeStr}` }
+      return { ...g, fav: g.favorite_team, dog: g.underdog_team, time: `${['SUN','MON','TUE','WED','THU','FRI','SAT'][gameTime.getDay()]} ${timeStr}` }
     })
 
-    return NextResponse.json({ games: weekGames, week, currentWeek, year, source: 'api-bootstrap' })
+    return NextResponse.json({ games: weekGames, week, currentWeek, year, source: 'api-bootstrap', sport: sportKey })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

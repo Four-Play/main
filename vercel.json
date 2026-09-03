@@ -6,7 +6,11 @@
     },
     {
       "path": "/api/cron/games",
-      "schedule": "0 10 * * 1-6"
+      "schedule": "0 * * * 6"
+    },
+    {
+      "path": "/api/cron/games",
+      "schedule": "0 10 * * 1-5"
     },
     {
       "path": "/api/cron/games",

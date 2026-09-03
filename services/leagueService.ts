@@ -7,12 +7,13 @@ import type { League } from '@/types/database'
 export async function createLeague(
   name: string,
   _adminId: string,
-  payoutPerLossCents: number = 5000
+  payoutPerLossCents: number = 5000,
+  sport: string = 'americanfootball_nfl'
 ): Promise<League> {
   const res = await authFetch('/api/leagues/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, payoutPerLossCents }),
+    body: JSON.stringify({ name, payoutPerLossCents, sport }),
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error ?? 'Failed to create league')

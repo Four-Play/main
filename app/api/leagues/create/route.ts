@@ -10,8 +10,11 @@ export async function POST(request: Request) {
   const user = await getAuthenticatedUser(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { name, payoutPerLossCents = 5000 } = await request.json()
+  const { name, payoutPerLossCents = 5000, sport = 'americanfootball_nfl' } = await request.json()
   if (!name || name.trim().length < 3) return NextResponse.json({ error: 'League name must be at least 3 characters' }, { status: 400 })
+
+  const validSports = ['americanfootball_nfl', 'americanfootball_ncaaf']
+  const leagueSport = validSports.includes(sport) ? sport : 'americanfootball_nfl'
 
   const supabase = createServiceClient()
 
@@ -22,6 +25,7 @@ export async function POST(request: Request) {
       invite_code: generateInviteCode(),
       admin_id: user.id,
       payout_per_loss_cents: payoutPerLossCents,
+      sport: leagueSport,
     })
     .select()
     .single()

@@ -4,11 +4,9 @@ import { GameCard } from '@/components/picks/GameCard'
 import { WeekSwitcher } from '@/components/picks/WeekSwitcher'
 import { Loader2 } from "lucide-react"
 import type { Game, Pick } from '@/types/database'
-import { ACTIVE_SPORT, SPORT_CONFIG, getWeekLabel } from '@/lib/weekUtils'
-import { SEASON_WEEKS, PLAYOFF_RULES, getPlaceholderCount } from '@/config/season'
+import { ACTIVE_SPORT, SPORT_CONFIG, getWeekLabel, getSeasonWeeks, getPlayoffRules } from '@/lib/weekUtils'
+import { getPlaceholderCount } from '@/config/season'
 import { GameCardPlaceholder } from '@/components/picks/GameCardPlaceholder'
-
-const activeSport = SPORT_CONFIG[ACTIVE_SPORT]
 
 function getPickBarColor(pick: Pick, cushion: number): string {
   const game = pick.game
@@ -73,6 +71,7 @@ interface PicksTabProps {
   savedPickCount?: number
   onEditPicks?: () => void
   weekTracker?: WeekTracker | null
+  sport?: string
 }
 
 export function PicksTab({
@@ -88,7 +87,12 @@ export function PicksTab({
   savedPickCount = 0,
   onEditPicks,
   weekTracker = null,
+  sport = ACTIVE_SPORT,
 }: PicksTabProps) {
+  const activeSport = SPORT_CONFIG[sport] ?? SPORT_CONFIG[ACTIVE_SPORT]
+  const PLAYOFF_RULES = getPlayoffRules(sport)
+  const SEASON_WEEKS = getSeasonWeeks(sport)
+
   const isHistorical = selectedWeek < currentWeek
   const isFuture = selectedWeek > currentWeek
   const playoffRule = PLAYOFF_RULES[selectedWeek]
@@ -109,7 +113,7 @@ export function PicksTab({
         selectedWeek={selectedWeek}
         onSelectWeek={setSelectedWeek}
         weeks={weeks}
-        getLabel={(w) => getWeekLabel(w, ACTIVE_SPORT)}
+        getLabel={(w) => getWeekLabel(w, sport)}
       />
 
       {/* Live Week Tracker — personal projection, current week only */}
@@ -210,7 +214,7 @@ export function PicksTab({
           </h2>
           {activeSport.weekLabels && (
             <p className="text-[10px] text-zinc-600 uppercase tracking-widest mt-0.5">
-              {getWeekLabel(selectedWeek, ACTIVE_SPORT)}
+              {getWeekLabel(selectedWeek, sport)}
             </p>
           )}
         </div>
