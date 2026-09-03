@@ -30,8 +30,8 @@ export const NCAAF_SEASON_WEEKS: SeasonWeek[] = [
 ]
 
 export const NCAAF_PLAYOFF_RULES: Record<number, { cushion: number; picksRequired: number }> = {
-  15: { cushion: 10, picksRequired: 4 }, // Conference Championships
-  16: { cushion: 10, picksRequired: 4 }, // CFP First Round
+  15: { cushion: 10, picksRequired: 3 }, // Conference Championships
+  16: { cushion: 10, picksRequired: 3 }, // CFP First Round
   17: { cushion: 7,  picksRequired: 2 }, // CFP Quarterfinals
   18: { cushion: 3,  picksRequired: 2 }, // CFP Semifinals
   19: { cushion: 0,  picksRequired: 1 }, // CFP Championship
