@@ -5,13 +5,9 @@
 
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { ACTIVE_SPORT, SPORT_CONFIG, computeWeekFromDate, computeCurrentWeek, toETDateString, getSeasonWeeks, getSeasonYear, getPlayoffRules } from '@/lib/weekUtils'
-import { NCAAF_ALLOWED_TEAMS } from '@/config/ncaaf-season'
+import { ACTIVE_SPORT, computeCurrentWeek, toETDateString, getSeasonWeeks, getSeasonYear, getPlayoffRules } from '@/lib/weekUtils'
 
 export const dynamic = 'force-dynamic'
-
-const ODDS_API_KEY = process.env.ODDS_API_KEY!
-const ODDS_BASE = 'https://api.the-odds-api.com/v4'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -44,8 +40,9 @@ export async function GET(request: Request) {
     return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
   })
 
+  const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+
   if (weekGamesFromCache.length > 0) {
-    const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
     const enriched = weekGamesFromCache.map((g: any) => {
       const gameTime = new Date(g.commence_time)
       const timeStr = gameTime.toLocaleTimeString('en-US', {
@@ -62,115 +59,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ games: enriched, week, currentWeek, year, source, sport: sportKey })
   }
 
-  // ── 2. DB is empty for this week — one-time live fetch ────────────────────
-  try {
-    const controller = new AbortController()
-    const apiTimeout = setTimeout(() => controller.abort(), 12000)
-
-    const dateParams = weekConfig
-      ? `&commenceTimeFrom=${weekConfig.startDate}T00:00:00Z&commenceTimeTo=${weekConfig.endDate}T23:59:59Z`
-      : ''
-
-    const markets = week in PLAYOFF_RULES ? 'spreads,totals' : 'spreads'
-    const [eventsRes, oddsRes] = await Promise.all([
-      fetch(`${ODDS_BASE}/sports/${sportKey}/events/?apiKey=${ODDS_API_KEY}${dateParams}`, { cache: 'no-store', signal: controller.signal }),
-      fetch(`${ODDS_BASE}/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=${markets}&oddsFormat=american${dateParams}`, { cache: 'no-store', signal: controller.signal }),
-    ]).finally(() => clearTimeout(apiTimeout))
-
-    let eventsData: any[] = eventsRes.ok ? await eventsRes.json() : []
-    const oddsData: any[]  = oddsRes.ok  ? await oddsRes.json()  : []
-
-    // Filter NCAAF to Power 4 + Notre Dame only
-    if (sportKey === 'americanfootball_ncaaf') {
-      eventsData = eventsData.filter(e =>
-        NCAAF_ALLOWED_TEAMS.has(e.home_team) && NCAAF_ALLOWED_TEAMS.has(e.away_team)
-      )
-    }
-
-    if (eventsData.length === 0) {
-      return NextResponse.json({ games: [], week, currentWeek, year, message: 'No games found', sport: sportKey })
-    }
-
-    const oddsById = new Map<string, any>()
-    for (const o of oddsData) oddsById.set(o.id, o)
-
-    const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
-
-    const rows = eventsData.map((event: any) => {
-      const oddsEvent = oddsById.get(event.id)
-      let favTeam = event.home_team
-      let dogTeam = event.away_team
-      let spread = 0
-
-      const spreadMarket = oddsEvent?.bookmakers
-        ?.find((b: any) => b.key === 'draftkings' || b.key === 'fanduel' || b.key === 'lowvig')
-        ?.markets?.find((m: any) => m.key === 'spreads')
-
-      if (spreadMarket) {
-        const homeOutcome = spreadMarket.outcomes?.find((o: any) => o.name === event.home_team)
-        if (homeOutcome) {
-          spread = homeOutcome.point
-          if (spread > 0) {
-            favTeam = event.away_team
-            dogTeam = event.home_team
-            spread = Math.abs(spread) * -1
-          }
-        }
-      }
-
-      const totalsMarket = oddsEvent?.bookmakers
-        ?.find((b: any) => b.key === 'draftkings' || b.key === 'fanduel' || b.key === 'lowvig')
-        ?.markets?.find((m: any) => m.key === 'totals')
-      const total: number | undefined = totalsMarket?.outcomes?.find((o: any) => o.name === 'Over')?.point
-
-      const gameTime = new Date(event.commence_time)
-      const timeStr = gameTime.toLocaleTimeString('en-US', {
-        hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York',
-      })
-
-      return {
-        external_id: event.id,
-        home_team: event.home_team,
-        away_team: event.away_team,
-        favorite_team: favTeam,
-        underdog_team: dogTeam,
-        spread,
-        ...(total != null ? { total } : {}),
-        commence_time: event.commence_time,
-        nfl_week: computeWeekFromDate(event.commence_time, sportKey),
-        season_year: year,
-        sport: sportKey,
-        status: 'upcoming' as string,
-        fav: favTeam,
-        dog: dogTeam,
-        time: `${dayNames[gameTime.getDay()]} ${timeStr}`,
-      }
-    })
-
-    const dbRows = rows.map(({ fav, dog, time, ...rest }: any) => rest)
-    await supabase.from('games').upsert(dbRows, { onConflict: 'external_id' })
-
-    const { data: refreshed } = await supabase
-      .from('games')
-      .select('*')
-      .eq('season_year', year)
-      .eq('sport', sportKey)
-      .order('commence_time', { ascending: true })
-
-    const weekGames = (refreshed ?? []).filter((g: any) => {
-      if (!weekConfig) return g.nfl_week === week
-      const gameDate = toETDateString(g.commence_time)
-      return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
-    }).map((g: any) => {
-      const gameTime = new Date(g.commence_time)
-      const timeStr = gameTime.toLocaleTimeString('en-US', {
-        hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York',
-      })
-      return { ...g, fav: g.favorite_team, dog: g.underdog_team, time: `${['SUN','MON','TUE','WED','THU','FRI','SAT'][gameTime.getDay()]} ${timeStr}` }
-    })
-
-    return NextResponse.json({ games: weekGames, week, currentWeek, year, source: 'api-bootstrap', sport: sportKey })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
+  // DB is empty for this week — return empty so the UI shows TBD placeholders.
+  // Games are populated by the cron job or the admin Refresh Games button.
+  return NextResponse.json({ games: [], week, currentWeek, year, source: 'empty', sport: sportKey })
 }
