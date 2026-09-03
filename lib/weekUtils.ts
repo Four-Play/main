@@ -100,5 +100,9 @@ export function computeCurrentWeek(sportKey: string = ACTIVE_SPORT): number {
   }
   if (weeks.length === 0) return 1
   if (todayStr < weeks[0].startDate) return weeks[0].week
+  // Between weeks (e.g. gap days between college football weeks):
+  // return the next upcoming week rather than jumping to the last week.
+  const nextWeek = weeks.find(w => w.startDate > todayStr)
+  if (nextWeek) return nextWeek.week
   return weeks[weeks.length - 1].week
 }
