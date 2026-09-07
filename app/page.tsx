@@ -552,7 +552,8 @@ export default function FourplayApp() {
           </div>
         ) : (
           <> 
-            {activeTab === 'picks' && (
+            {/* Tabs are always mounted so data survives tab switches — CSS hidden keeps them out of view */}
+            <div className={activeTab !== 'picks' ? 'hidden' : ''}>
               <PicksTab
                 selectedWeek={selectedWeek}
                 setSelectedWeek={setSelectedWeek}
@@ -576,35 +577,37 @@ export default function FourplayApp() {
                 weekTracker={weekTracker}
                 sport={currentLeague?.sport ?? ACTIVE_SPORT}
               />
-            )}
+            </div>
 
-            {activeTab === 'current' && (
+            <div className={activeTab !== 'current' ? 'hidden' : ''}>
               <CurrentWeekTab
                 currentLeague={currentLeague?.id ?? null}
                 currentWeek={currentWeek}
                 currentYear={currentYear}
                 accessToken={accessToken}
               />
+            </div>
+
+            {currentLeague && (
+              <div className={activeTab !== 'league' ? 'hidden' : ''}>
+                <LeagueTab
+                  currentLeague={currentLeague.id}
+                  currentLeagueName={currentLeague.name}
+                  setLeagueSettingsOpen={setLeagueSettingsOpen}
+                  setViewingPlayer={setViewingPlayer}
+                  currentWeek={currentWeek}
+                  currentYear={currentYear}
+                  accessToken={accessToken}
+                />
+              </div>
             )}
 
-            {activeTab === 'league' && currentLeague && (
-              <LeagueTab
-                currentLeague={currentLeague.id}
-                currentLeagueName={currentLeague.name}
-                setLeagueSettingsOpen={setLeagueSettingsOpen}
-                setViewingPlayer={setViewingPlayer}
-                currentWeek={currentWeek}
-                currentYear={currentYear}
-                accessToken={accessToken}
-              />
-            )}
-            
-            {activeTab === 'chat' && (
+            <div className={activeTab !== 'chat' ? 'hidden' : ''}>
               <ChatTab
                 currentLeague={currentLeague?.id ?? null}
                 currentUserId={user.id}
               />
-            )}
+            </div>
 
             {activeTab === 'settings' && (
               <ProfileTab
