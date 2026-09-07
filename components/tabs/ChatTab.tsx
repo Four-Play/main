@@ -96,13 +96,14 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
   return (
     <div className="fixed inset-x-0 max-w-md mx-auto flex flex-col bg-black px-4" style={containerStyle}>
       {/* Messages — fills remaining height and scrolls independently */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-2 py-1">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex flex-col justify-end min-h-full space-y-2 py-1">
         {loading ? (
           <div className="flex justify-center pt-10">
             <div className="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center pt-16">
+          <div className="flex flex-col items-center justify-end flex-1 pb-4">
             <p className="text-[11px] font-black uppercase tracking-widest text-zinc-600">No messages yet. Say something!</p>
           </div>
         ) : (
@@ -131,6 +132,7 @@ export function ChatTab({ currentLeague, currentUserId }: ChatTabProps) {
           })
         )}
         <div ref={bottomRef} />
+        </div>
       </div>
 
       {/* Input — locked to bottom of fixed container, never scrolls */}

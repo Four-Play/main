@@ -45,17 +45,24 @@ export async function POST(request: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Only delete picks for games that haven't started yet
+  // Only delete picks for games that haven't started yet.
+  // Delete in parallel (not a loop) to keep specificity on both game_id AND
+  // team_selected — a user can pick both fav and dog on the same game.
   const deleteable = (toDelete ?? []).filter((p: { gameId: string }) => !lockedGameIds.has(p.gameId))
   if (deleteable.length > 0) {
-    const deleteGameIds = deleteable.map((p: { gameId: string }) => p.gameId)
-    const { error } = await supabase
-      .from('picks')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('league_id', leagueId)
-      .in('game_id', deleteGameIds)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    const deleteResults = await Promise.all(
+      deleteable.map(({ gameId, team }: { gameId: string; team: string }) =>
+        supabase
+          .from('picks')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('league_id', leagueId)
+          .eq('game_id', gameId)
+          .eq('team_selected', team)
+      )
+    )
+    const deleteError = deleteResults.find(r => r.error)
+    if (deleteError?.error) return NextResponse.json({ error: deleteError.error.message }, { status: 500 })
   }
 
   return NextResponse.json({ success: true, lockedGameCount: lockedGameIds.size })
