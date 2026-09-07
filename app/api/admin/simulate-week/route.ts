@@ -37,16 +37,14 @@ export async function POST(request: Request) {
       )
     }
 
-    // Generate random but spread-aware scores (NFL range: 7–45 pts)
-    for (const game of games) {
-      const homeScore = Math.floor(Math.random() * 39) + 7
-      const awayScore = Math.floor(Math.random() * 39) + 7
-
-      await supabase
-        .from('games')
-        .update({ home_score: homeScore, away_score: awayScore, status: 'final' })
-        .eq('id', game.id)
-    }
+    // Generate random scores and upsert all in one round-trip
+    const scoreRows = games.map((game: any) => ({
+      id: game.id,
+      home_score: Math.floor(Math.random() * 39) + 7,
+      away_score: Math.floor(Math.random() * 39) + 7,
+      status: 'final',
+    }))
+    await supabase.from('games').upsert(scoreRows, { onConflict: 'id' })
 
     // Score picks and update standings
     const { picksScored, weeksCalculated } = await scoreExistingGames(supabase)

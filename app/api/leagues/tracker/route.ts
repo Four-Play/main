@@ -32,27 +32,16 @@ export async function GET(request: Request) {
 
   const supabase = createServiceClient()
 
-  // Fetch league stake, all members, scored picks, and whether user has submitted any picks
-  const [leagueResult, membersResult, picksResult, userPicksResult] = await Promise.all([
+  // Single query for all picks this week — derives both scored picks and user submission status
+  const [leagueResult, membersResult, picksResult] = await Promise.all([
     supabase.from('leagues').select('payout_per_loss_cents').eq('id', leagueId).maybeSingle(),
     supabase.from('league_members').select('user_id').eq('league_id', leagueId),
-    // Only picks with a result set (from final games) count toward the tracker
     supabase
       .from('picks')
       .select('user_id, result, game:games(status)')
       .eq('league_id', leagueId)
       .eq('nfl_week', week)
-      .eq('season_year', year)
-      .not('result', 'is', null),
-    // Separate check: has the current user submitted ANY picks this week (regardless of game status)
-    supabase
-      .from('picks')
-      .select('id')
-      .eq('league_id', leagueId)
-      .eq('nfl_week', week)
-      .eq('season_year', year)
-      .eq('user_id', user.id)
-      .limit(1),
+      .eq('season_year', year),
   ])
 
   if (!leagueResult.data) return NextResponse.json({ error: 'League not found' }, { status: 404 })
@@ -60,8 +49,9 @@ export async function GET(request: Request) {
   const stake = leagueResult.data.payout_per_loss_cents   // stored in cents (×100)
   const members = membersResult.data ?? []
   const totalMembers = members.length
-  const userSubmitted = (userPicksResult.data?.length ?? 0) > 0
-  const scoredPicks = (picksResult.data ?? []).filter((p: any) => p.game?.status === 'final')
+  const allPicks = picksResult.data ?? []
+  const userSubmitted = allPicks.some((p: any) => p.user_id === user.id)
+  const scoredPicks = allPicks.filter((p: any) => p.result != null && p.game?.status === 'final')
 
   // Group scored picks by user — identify definitive losers
   const pickResultsByUser = new Map<string, string[]>()

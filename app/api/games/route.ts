@@ -1,7 +1,6 @@
 // app/api/games/route.ts
 // Serves game data from the DB cache — no Odds API calls on user visits.
 // The /api/cron/games job refreshes the DB on schedule.
-// One-time live fetch only when the DB has no games at all for the requested week.
 
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -26,40 +25,42 @@ export async function GET(request: Request) {
   const weekConfig = SEASON_WEEKS.find(w => w.week === week)
   const todayStr = toETDateString(new Date().toISOString())
 
-  // ── 1. Try to serve from the DB cache ─────────────────────────────────────
-  const { data: allCached } = await supabase
+  // Build DB query scoped to the requested week — avoids full-season scan
+  let query = supabase
     .from('games')
-    .select('*')
+    .select('id, external_id, home_team, away_team, favorite_team, underdog_team, spread, total, commence_time, nfl_week, season_year, sport, status, home_score, away_score')
     .eq('season_year', year)
     .eq('sport', sportKey)
     .order('commence_time', { ascending: true })
 
-  const weekGamesFromCache = (allCached ?? []).filter((g: any) => {
-    if (!weekConfig) return g.nfl_week === week
-    const gameDate = toETDateString(g.commence_time)
-    return gameDate >= weekConfig.startDate && gameDate <= weekConfig.endDate
-  })
-
-  const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
-
-  if (weekGamesFromCache.length > 0) {
-    const enriched = weekGamesFromCache.map((g: any) => {
-      const gameTime = new Date(g.commence_time)
-      const timeStr = gameTime.toLocaleTimeString('en-US', {
-        hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York',
-      })
-      return {
-        ...g,
-        fav: g.favorite_team,
-        dog: g.underdog_team,
-        time: `${dayNames[gameTime.getDay()]} ${timeStr}`,
-      }
-    })
-    const source = weekConfig && weekConfig.endDate < todayStr ? 'cache' : 'cache-live'
-    return NextResponse.json({ games: enriched, week, currentWeek, year, source, sport: sportKey })
+  if (weekConfig) {
+    query = query
+      .gte('commence_time', `${weekConfig.startDate}T00:00:00Z`)
+      .lte('commence_time', `${weekConfig.endDate}T23:59:59Z`)
+  } else {
+    query = query.eq('nfl_week', week)
   }
 
-  // DB is empty for this week — return empty so the UI shows TBD placeholders.
-  // Games are populated by the cron job or the admin Refresh Games button.
-  return NextResponse.json({ games: [], week, currentWeek, year, source: 'empty', sport: sportKey })
+  const { data: weekGames } = await query
+
+  if (!weekGames || weekGames.length === 0) {
+    return NextResponse.json({ games: [], week, currentWeek, year, source: 'empty', sport: sportKey })
+  }
+
+  const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+  const enriched = weekGames.map((g: any) => {
+    const gameTime = new Date(g.commence_time)
+    const timeStr = gameTime.toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York',
+    })
+    return {
+      ...g,
+      fav: g.favorite_team,
+      dog: g.underdog_team,
+      time: `${dayNames[gameTime.getDay()]} ${timeStr}`,
+    }
+  })
+
+  const source = weekConfig && weekConfig.endDate < todayStr ? 'cache' : 'cache-live'
+  return NextResponse.json({ games: enriched, week, currentWeek, year, source, sport: sportKey })
 }

@@ -47,14 +47,14 @@ export async function POST(request: Request) {
 
   // Only delete picks for games that haven't started yet
   const deleteable = (toDelete ?? []).filter((p: { gameId: string }) => !lockedGameIds.has(p.gameId))
-  for (const { gameId, team } of deleteable) {
+  if (deleteable.length > 0) {
+    const deleteGameIds = deleteable.map((p: { gameId: string }) => p.gameId)
     const { error } = await supabase
       .from('picks')
       .delete()
       .eq('user_id', user.id)
       .eq('league_id', leagueId)
-      .eq('game_id', gameId)
-      .eq('team_selected', team)
+      .in('game_id', deleteGameIds)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   }
 

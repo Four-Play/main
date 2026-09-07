@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('league_members')
-    .select('league_id, leagues(*)')
+    .select('league_id, leagues(id, name, invite_code, sport, payout_per_loss_cents, spread_cushion, is_locked, admin_id)')
     .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

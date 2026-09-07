@@ -45,13 +45,20 @@ export async function GET(request: Request) {
 
   if (!membership) return NextResponse.json({ error: 'Not a member of this league' }, { status: 403 })
 
-  // Fetch all the data in parallel
-  const [leagueResult, membersResult, resultsResult, picksResult, gamesResult] = await Promise.all([
-    supabase.from('leagues').select('name, payout_per_loss_cents, spread_cushion').eq('id', leagueId).single(),
+  // Fetch league first to get sport, then query everything else in parallel with sport filter
+  const leagueResult = await supabase
+    .from('leagues')
+    .select('name, payout_per_loss_cents, spread_cushion, sport')
+    .eq('id', leagueId)
+    .single()
+
+  const leagueSport = leagueResult.data?.sport ?? 'americanfootball_nfl'
+
+  const [membersResult, resultsResult, picksResult, gamesResult] = await Promise.all([
     supabase.from('league_members').select('user_id, wins, losses, league_points, profile:profiles(username)').eq('league_id', leagueId).order('league_points', { ascending: false }),
     supabase.from('weekly_results').select('user_id, nfl_week, is_winner, amount_won_cents, amount_owed_cents, profile:profiles(username)').eq('league_id', leagueId).eq('season_year', year).order('nfl_week'),
     supabase.from('picks').select('user_id, nfl_week, game_id, team_selected, result, profile:profiles(username)').eq('league_id', leagueId).eq('season_year', year).order('nfl_week'),
-    supabase.from('games').select('id, nfl_week, home_team, away_team, spread, commence_time, status').eq('season_year', year).order('commence_time'),
+    supabase.from('games').select('id, nfl_week, home_team, away_team, spread, commence_time, status').eq('season_year', year).eq('sport', leagueSport).order('commence_time'),
   ])
 
   const league = leagueResult.data

@@ -20,20 +20,14 @@ export async function POST(request: Request) {
   if (lookupError || !league) return NextResponse.json({ error: 'League not found' }, { status: 404 })
   if (league.admin_id !== user.id) return NextResponse.json({ error: 'Only the league admin can edit settings' }, { status: 403 })
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from('leagues')
     .update(updates)
     .eq('id', leagueId)
-
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
-
-  const { data: updated, error: fetchError } = await supabase
-    .from('leagues')
     .select()
-    .eq('id', leagueId)
     .single()
 
-  if (fetchError || !updated) return NextResponse.json({ error: 'League not found after update' }, { status: 500 })
+  if (updateError || !updated) return NextResponse.json({ error: updateError?.message ?? 'Update failed' }, { status: 500 })
 
   return NextResponse.json({ league: updated })
 }

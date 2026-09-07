@@ -149,19 +149,17 @@ export async function calculateWeeklyResults(
     resultsByUser.set(r.user_id, arr)
   }
 
-  await Promise.all(members.map((member: any) => {
+  const memberUpdateRows = members.map((member: any) => {
     const rows = resultsByUser.get(member.user_id) ?? []
     const wins = rows.filter((r: any) => r.is_winner).length
     const losses = rows.filter((r: any) => !r.is_winner).length
     const points = rows.reduce((sum: number, r: any) =>
       sum + (r.amount_won_cents ?? 0) - (r.amount_owed_cents ?? 0), 0)
-
-    return supabase
-      .from('league_members')
-      .update({ wins, losses, league_points: points })
-      .eq('user_id', member.user_id)
-      .eq('league_id', leagueId)
-  }))
+    return { user_id: member.user_id, league_id: leagueId, wins, losses, league_points: points }
+  })
+  await supabase
+    .from('league_members')
+    .upsert(memberUpdateRows, { onConflict: 'user_id,league_id' })
 
   // Sync profiles.total_points — sum across ALL leagues so the Settings tab
   // always reflects the user's true season total. One batch fetch, then parallel updates.
@@ -179,12 +177,13 @@ export async function calculateWeeklyResults(
     )
   }
 
-  await Promise.all(members.map((member: any) =>
-    supabase
-      .from('profiles')
-      .update({ total_points: totalByUser.get(member.user_id) ?? 0 })
-      .eq('id', member.user_id)
-  ))
+  const profileUpdateRows = members.map((member: any) => ({
+    id: member.user_id,
+    total_points: totalByUser.get(member.user_id) ?? 0,
+  }))
+  await supabase
+    .from('profiles')
+    .upsert(profileUpdateRows, { onConflict: 'id' })
 }
 
 /**
@@ -194,7 +193,7 @@ export async function calculateWeeklyResults(
 export async function scoreExistingGames(supabase: any) {
   const { data: scoredGames } = await supabase
     .from('games')
-    .select('*')
+    .select('id, home_team, away_team, favorite_team, spread, home_score, away_score, total, nfl_week')
     .eq('status', 'final')
     .not('home_score', 'is', null)
     .not('away_score', 'is', null)
@@ -285,16 +284,10 @@ export async function scoreExistingGames(supabase: any) {
     }
   }
 
-  // Find all league/week combos with scored picks and calculate results
-  const { data: affectedPicks } = await supabase
-    .from('picks')
-    .select('league_id, nfl_week, season_year')
-    .not('result', 'is', null)
-
-  if (!affectedPicks) return { picksScored, weeksCalculated: 0 }
-
+  // Derive which league/week combos to recalculate from the picks we just scored —
+  // avoids an unbounded scan of all historical scored picks across every season.
   const combos = new Map<string, { leagueId: string; week: number; year: number }>()
-  for (const p of affectedPicks) {
+  for (const p of picks ?? []) {
     const key = `${p.league_id}:${p.nfl_week}:${p.season_year}`
     if (!combos.has(key)) {
       combos.set(key, { leagueId: p.league_id, week: p.nfl_week, year: p.season_year })

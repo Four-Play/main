@@ -20,10 +20,9 @@ export async function GET(request: Request) {
   const supabase = createServiceClient()
   const now = new Date().toISOString()
 
-  // Determine which sports have active leagues so we know which to check
-  const { data: leagueSports } = await supabase.from('leagues').select('sport')
-  const activeSports = [...new Set((leagueSports ?? []).map((l: any) => l.sport ?? ACTIVE_SPORT))]
-  if (!activeSports.includes(ACTIVE_SPORT)) activeSports.push(ACTIVE_SPORT)
+  // All supported sports — avoids a full leagues table scan every 3 minutes.
+  // The active-games probe below skips any sport with nothing in progress.
+  const activeSports = [ACTIVE_SPORT, NCAAF_SPORT]
 
   let totalGamesUpdated = 0
   let totalPicksScored = 0
@@ -57,23 +56,27 @@ export async function GET(request: Request) {
         continue
       }
 
-      let gamesUpdated = 0
+      // Build update rows in memory, then upsert in one round-trip
+      const updateRows: any[] = []
       for (const score of scoresData) {
         const homeScore = score.scores?.find((s: any) => s.name === score.home_team)?.score
         const awayScore = score.scores?.find((s: any) => s.name === score.away_team)?.score
         if (homeScore == null || awayScore == null) continue
+        updateRows.push({
+          external_id: score.id,
+          home_score: parseInt(homeScore),
+          away_score: parseInt(awayScore),
+          status: score.completed ? 'final' : 'live',
+          sport: sportKey,
+        })
+      }
 
+      let gamesUpdated = 0
+      if (updateRows.length > 0) {
         const { error } = await supabase
           .from('games')
-          .update({
-            home_score: parseInt(homeScore),
-            away_score: parseInt(awayScore),
-            status: score.completed ? 'final' : 'live',
-          })
-          .eq('external_id', score.id)
-          .eq('sport', sportKey)
-
-        if (!error) gamesUpdated++
+          .upsert(updateRows, { onConflict: 'external_id' })
+        if (!error) gamesUpdated = updateRows.length
       }
 
       totalGamesUpdated += gamesUpdated

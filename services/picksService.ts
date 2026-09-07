@@ -12,8 +12,8 @@ export async function getMyPicks(
   const { data, error } = await supabase
     .from('picks')
     .select(`
-      *,
-      game:games(*)
+      id, user_id, league_id, game_id, team_selected, result, nfl_week, season_year, is_locked,
+      game:games(id, home_team, away_team, favorite_team, underdog_team, spread, total, commence_time, status, home_score, away_score, sport, nfl_week)
     `)
     .eq('user_id', userId)
     .eq('league_id', leagueId)
@@ -81,8 +81,8 @@ export async function getLeaguePicks(
   const { data, error } = await supabase
     .from('picks')
     .select(`
-      *,
-      game:games(*)
+      id, user_id, league_id, game_id, team_selected, result, nfl_week, season_year, is_locked,
+      game:games(id, home_team, away_team, favorite_team, underdog_team, spread, total, commence_time, status, home_score, away_score, sport, nfl_week)
     `)
     .eq('league_id', leagueId)
     .eq('nfl_week', week)
