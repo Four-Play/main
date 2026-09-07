@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   const { data: league, error: lookupError } = await supabase
     .from('leagues')
-    .select('id, name, is_locked, invite_code, sport, payout_per_loss_cents, spread_cushion, admin_id')
+    .select('*')
     .eq('invite_code', inviteCode.toUpperCase())
     .maybeSingle()
 
