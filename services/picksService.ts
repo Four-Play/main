@@ -21,7 +21,7 @@ export async function getMyPicks(
     .eq('season_year', year)
 
   if (error) throw new Error(error.message)
-  return (data ?? []) as Pick[]
+  return (data ?? []) as unknown as Pick[]
 }
 
 export async function savePick(
@@ -92,7 +92,7 @@ export async function getLeaguePicks(
 
   // Hide other players' picks for current week unless the game has started
   const now = new Date()
-  return ((data ?? []) as Pick[]).filter(pick => {
+  return ((data ?? []) as unknown as Pick[]).filter(pick => {
     if (pick.user_id === currentUserId) return true
     const game = pick.game as Game | undefined
     if (!game) return false
