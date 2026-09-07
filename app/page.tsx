@@ -34,6 +34,8 @@ export default function FourplayApp() {
 
   // App state
   const [activeTab, setActiveTab] = useState('picks')
+  // Track which tabs have been visited so they stay mounted (lazy-load on first visit, instant on return)
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['picks']))
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -552,43 +554,47 @@ export default function FourplayApp() {
           </div>
         ) : (
           <> 
-            {/* Tabs are always mounted so data survives tab switches — CSS hidden keeps them out of view */}
-            <div className={activeTab !== 'picks' ? 'hidden' : ''}>
-              <PicksTab
-                selectedWeek={selectedWeek}
-                setSelectedWeek={setSelectedWeek}
-                currentWeek={currentWeek}
-                games={games}
-                gamesLoading={gamesLoading}
-                picksMap={picksMap}
-                onTogglePick={handleTogglePick}
-                disableInteraction={picksLocked}
-                savedPickCount={savedPickKeys.size}
-                editBarMode={
-                  !isHistorical &&
-                  !isFuture &&
-                  savedPickKeys.size > 0 &&
-                  pickDiff.total === 0 &&
-                  games.some(g => !g.commence_time || new Date(g.commence_time) > new Date())
-                    ? (picksLocked ? 'locked' : 'editing')
-                    : null
-                }
-                onEditPicks={() => setIsEditingPicks(v => !v)}
-                weekTracker={weekTracker}
-                sport={currentLeague?.sport ?? ACTIVE_SPORT}
-              />
-            </div>
+            {/* Tabs mount on first visit and stay mounted — lazy like ESPN/Instagram, instant on return */}
+            {mountedTabs.has('picks') && (
+              <div className={activeTab !== 'picks' ? 'hidden' : ''}>
+                <PicksTab
+                  selectedWeek={selectedWeek}
+                  setSelectedWeek={setSelectedWeek}
+                  currentWeek={currentWeek}
+                  games={games}
+                  gamesLoading={gamesLoading}
+                  picksMap={picksMap}
+                  onTogglePick={handleTogglePick}
+                  disableInteraction={picksLocked}
+                  savedPickCount={savedPickKeys.size}
+                  editBarMode={
+                    !isHistorical &&
+                    !isFuture &&
+                    savedPickKeys.size > 0 &&
+                    pickDiff.total === 0 &&
+                    games.some(g => !g.commence_time || new Date(g.commence_time) > new Date())
+                      ? (picksLocked ? 'locked' : 'editing')
+                      : null
+                  }
+                  onEditPicks={() => setIsEditingPicks(v => !v)}
+                  weekTracker={weekTracker}
+                  sport={currentLeague?.sport ?? ACTIVE_SPORT}
+                />
+              </div>
+            )}
 
-            <div className={activeTab !== 'current' ? 'hidden' : ''}>
-              <CurrentWeekTab
-                currentLeague={currentLeague?.id ?? null}
-                currentWeek={currentWeek}
-                currentYear={currentYear}
-                accessToken={accessToken}
-              />
-            </div>
+            {mountedTabs.has('current') && (
+              <div className={activeTab !== 'current' ? 'hidden' : ''}>
+                <CurrentWeekTab
+                  currentLeague={currentLeague?.id ?? null}
+                  currentWeek={currentWeek}
+                  currentYear={currentYear}
+                  accessToken={accessToken}
+                />
+              </div>
+            )}
 
-            {currentLeague && (
+            {currentLeague && mountedTabs.has('league') && (
               <div className={activeTab !== 'league' ? 'hidden' : ''}>
                 <LeagueTab
                   currentLeague={currentLeague.id}
@@ -602,12 +608,14 @@ export default function FourplayApp() {
               </div>
             )}
 
-            <div className={activeTab !== 'chat' ? 'hidden' : ''}>
-              <ChatTab
-                currentLeague={currentLeague?.id ?? null}
-                currentUserId={user.id}
-              />
-            </div>
+            {mountedTabs.has('chat') && (
+              <div className={activeTab !== 'chat' ? 'hidden' : ''}>
+                <ChatTab
+                  currentLeague={currentLeague?.id ?? null}
+                  currentUserId={user.id}
+                />
+              </div>
+            )}
 
             {activeTab === 'settings' && (
               <ProfileTab
@@ -625,6 +633,7 @@ export default function FourplayApp() {
                   setLeagues([])
                   setCurrentLeague(null)
                   setActiveTab('picks')
+                  setMountedTabs(new Set(['picks']))
                   setIsEditing(false)
                 }}
               />
@@ -641,7 +650,7 @@ export default function FourplayApp() {
       />
 
 
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Navbar activeTab={activeTab} setActiveTab={tab => { setActiveTab(tab); setMountedTabs(prev => new Set([...prev, tab])) }} />
 
       <ModalManager
         viewingPlayer={viewingPlayer}
