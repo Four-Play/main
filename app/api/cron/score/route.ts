@@ -30,19 +30,22 @@ export async function GET(request: Request) {
   const sportResults: Record<string, any> = {}
 
   for (const sportKey of activeSports) {
-    // Check if this sport has any games that have kicked off but aren't final
-    const { data: activeGames } = await supabase
+    // Fetch all non-final kicked-off games for this sport.
+    // Using external_id lets us filter Odds API results to only games we need
+    // to update — skips already-final games and avoids redundant PATCHes.
+    const { data: nonFinalGames } = await supabase
       .from('games')
-      .select('id')
+      .select('external_id')
       .eq('sport', sportKey)
       .neq('status', 'final')
       .lt('commence_time', now)
-      .limit(1)
 
-    if (!activeGames || activeGames.length === 0) {
+    if (!nonFinalGames || nonFinalGames.length === 0) {
       sportResults[sportKey] = { skipped: true, reason: 'no active games' }
       continue
     }
+
+    const nonFinalIds = new Set(nonFinalGames.map((g: any) => g.external_id))
 
     try {
       const scoresUrl = `${ODDS_BASE}/sports/${sportKey}/scores/?apiKey=${ODDS_API_KEY}&daysFrom=3`
@@ -56,11 +59,12 @@ export async function GET(request: Request) {
         continue
       }
 
-      // Build update rows in memory, then run parallel UPDATEs.
+      // Build update rows only for games not yet final in our DB.
       // Cannot use upsert here — if external_id doesn't exist in our DB the
       // upsert would try to INSERT an incomplete row and hit NOT NULL constraints.
       const updateRows: any[] = []
       for (const score of scoresData) {
+        if (!nonFinalIds.has(score.id)) continue  // already final in our DB, skip
         const homeScore = score.scores?.find((s: any) => s.name === score.home_team)?.score
         const awayScore = score.scores?.find((s: any) => s.name === score.away_team)?.score
         if (homeScore == null || awayScore == null) continue
