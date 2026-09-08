@@ -1,8 +1,10 @@
 // app/api/games/route.ts
 // Serves game data from the DB cache — no Odds API calls on user visits.
 // The /api/cron/games job refreshes the DB on schedule.
+// Response-level Redis cache (60s TTL) reduces Supabase load during high traffic.
 
 import { NextResponse } from 'next/server'
+import { kv } from '@vercel/kv'
 import { createServiceClient } from '@/lib/supabase/server'
 import { ACTIVE_SPORT, computeCurrentWeek, toETDateString, getSeasonWeeks, getSeasonYear, getPlayoffRules } from '@/lib/weekUtils'
 
@@ -14,12 +16,23 @@ export async function GET(request: Request) {
   const sportKey = searchParams.get('sport') ?? ACTIVE_SPORT
   const SEASON_WEEKS = getSeasonWeeks(sportKey)
   const TARGET_SEASON_YEAR = getSeasonYear(sportKey)
-  const PLAYOFF_RULES = getPlayoffRules(sportKey)
 
   const currentWeek = computeCurrentWeek(sportKey)
   const requestedWeek = parseInt(searchParams.get('week') ?? String(currentWeek))
   const week = isNaN(requestedWeek) ? currentWeek : requestedWeek
   const year = TARGET_SEASON_YEAR
+
+  const cacheKey = `games:${sportKey}:${year}:w${week}`
+
+  // Check Redis cache first — avoids Supabase hit for ~60s per unique week/sport
+  try {
+    const cached = await kv.get<object>(cacheKey)
+    if (cached) {
+      return NextResponse.json({ ...cached, source: 'redis' })
+    }
+  } catch {
+    // Redis unavailable — fall through to Supabase
+  }
 
   const supabase = createServiceClient()
   const weekConfig = SEASON_WEEKS.find(w => w.week === week)
@@ -62,5 +75,14 @@ export async function GET(request: Request) {
   })
 
   const source = weekConfig && weekConfig.endDate < todayStr ? 'cache' : 'cache-live'
-  return NextResponse.json({ games: enriched, week, currentWeek, year, source, sport: sportKey })
+  const payload = { games: enriched, week, currentWeek, year, source, sport: sportKey }
+
+  // Store in Redis for 60 seconds — all users share one cached response per week/sport
+  try {
+    await kv.set(cacheKey, payload, { ex: 60 })
+  } catch {
+    // Non-fatal — serve the response even if Redis write fails
+  }
+
+  return NextResponse.json(payload)
 }
