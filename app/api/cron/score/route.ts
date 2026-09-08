@@ -56,7 +56,9 @@ export async function GET(request: Request) {
         continue
       }
 
-      // Build update rows in memory, then upsert in one round-trip
+      // Build update rows in memory, then run parallel UPDATEs.
+      // Cannot use upsert here — if external_id doesn't exist in our DB the
+      // upsert would try to INSERT an incomplete row and hit NOT NULL constraints.
       const updateRows: any[] = []
       for (const score of scoresData) {
         const homeScore = score.scores?.find((s: any) => s.name === score.home_team)?.score
@@ -67,16 +69,20 @@ export async function GET(request: Request) {
           home_score: parseInt(homeScore),
           away_score: parseInt(awayScore),
           status: score.completed ? 'final' : 'live',
-          sport: sportKey,
         })
       }
 
       let gamesUpdated = 0
       if (updateRows.length > 0) {
-        const { error } = await supabase
-          .from('games')
-          .upsert(updateRows, { onConflict: 'external_id' })
-        if (!error) gamesUpdated = updateRows.length
+        const results = await Promise.all(
+          updateRows.map(row =>
+            supabase
+              .from('games')
+              .update({ home_score: row.home_score, away_score: row.away_score, status: row.status })
+              .eq('external_id', row.external_id)
+          )
+        )
+        gamesUpdated = results.filter(r => !r.error).length
       }
 
       totalGamesUpdated += gamesUpdated
