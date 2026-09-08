@@ -8,7 +8,7 @@ export const NCAAF_SEASON_YEAR = 2026
 
 // Regular season week dates are approximate — adjust if the schedule shifts.
 export const NCAAF_SEASON_WEEKS: SeasonWeek[] = [
-  { week:  1, name: 'WK 1',           startDate: '2026-09-03', endDate: '2026-09-08', placeholderCount: 4 },
+  { week:  1, name: 'WK 1',           startDate: '2026-09-03', endDate: '2026-09-07', placeholderCount: 4 },
   { week:  2, name: 'WK 2',           startDate: '2026-09-08', endDate: '2026-09-13', placeholderCount: 4 },
   { week:  3, name: 'WK 3',           startDate: '2026-09-14', endDate: '2026-09-20', placeholderCount: 4 },
   { week:  4, name: 'WK 4',           startDate: '2026-09-21', endDate: '2026-09-27', placeholderCount: 4 },

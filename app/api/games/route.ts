@@ -47,9 +47,14 @@ export async function GET(request: Request) {
     .order('commence_time', { ascending: true })
 
   if (weekConfig) {
+    // End boundary is 3am ET the day after endDate (07:59:59Z) to capture
+    // Monday night games whose UTC commence_time crosses midnight into the next day.
+    const endNext = new Date(`${weekConfig.endDate}T00:00:00Z`)
+    endNext.setUTCDate(endNext.getUTCDate() + 1)
+    const endBoundary = endNext.toISOString().slice(0, 10) + 'T07:59:59Z'
     query = query
-      .gte('commence_time', `${weekConfig.startDate}T00:00:00Z`)
-      .lte('commence_time', `${weekConfig.endDate}T23:59:59Z`)
+      .gte('commence_time', `${weekConfig.startDate}T08:00:00Z`)
+      .lte('commence_time', endBoundary)
   } else {
     query = query.eq('nfl_week', week)
   }
