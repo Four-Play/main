@@ -123,9 +123,10 @@ export function LeagueSettingsModal({
       const res = await authFetch('/api/admin/refresh-games', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      const spreads = Object.values(data.results as Record<string, { spreads: number }>)
-        .reduce((sum, r) => sum + r.spreads, 0)
-      setDevMessage(`✓ Refreshed ${data.totalUpserted} games (${spreads > 0 ? spreads + ' with spreads' : 'no spreads yet — API quota'})`)
+      const allResults = data.allResults as Record<string, { totalUpserted: number; results: Record<number, { events: number; spreads: number }> }>
+      const totalUpserted = Object.values(allResults).reduce((sum, r) => sum + r.totalUpserted, 0)
+      const spreads = Object.values(allResults).flatMap(r => Object.values(r.results)).reduce((sum, r) => sum + r.spreads, 0)
+      setDevMessage(`✓ Refreshed ${totalUpserted} games (${spreads > 0 ? spreads + ' with spreads' : 'no spreads yet — API quota'})`)
     } catch (err: any) {
       setDevMessage(`✗ ${err.message}`)
     } finally {
