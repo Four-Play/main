@@ -86,13 +86,17 @@ export async function GET(request: Request) {
     }
   }
 
-  // Score picks and calculate weekly results for all final games (sport-agnostic)
-  try {
-    const { picksScored, weeksCalculated } = await scoreExistingGames(supabase)
-    totalPicksScored = picksScored
-    totalWeeksCalculated = weeksCalculated
-  } catch (err: any) {
-    // non-fatal — scores updated even if scoring fails
+  // Only score picks if at least one sport had active games — skips the
+  // expensive final-games scan entirely when no games are in progress.
+  const anyActiveGames = Object.values(sportResults).some((r: any) => !r.skipped)
+  if (anyActiveGames) {
+    try {
+      const { picksScored, weeksCalculated } = await scoreExistingGames(supabase)
+      totalPicksScored = picksScored
+      totalWeeksCalculated = weeksCalculated
+    } catch (err: any) {
+      // non-fatal — scores updated even if scoring fails
+    }
   }
 
   return NextResponse.json({
