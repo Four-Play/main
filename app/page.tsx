@@ -221,34 +221,6 @@ export default function FourplayApp() {
       .catch(() => {})
   }, [accessToken])
 
-  // When the current league changes, recompute week/year for that league's sport
-  useEffect(() => {
-    if (!currentLeague) return
-    const sport = currentLeague.sport ?? ACTIVE_SPORT
-    const week = computeCurrentWeek(sport)
-    const year = getSeasonYear(sport)
-    setCurrentWeek(week)
-    setCurrentYear(year)
-    setSelectedWeek(week)
-  }, [currentLeague?.id])
-
-  // Fetch live week tracker — only meaningful for the current active week
-  useEffect(() => {
-    if (!currentLeague || !accessToken || selectedWeek !== currentWeek) {
-      setWeekTracker(null)
-      return
-    }
-    const controller = new AbortController()
-    fetch(
-      `/api/leagues/tracker?leagueId=${currentLeague.id}&week=${currentWeek}&year=${currentYear}`,
-      { headers: { Authorization: `Bearer ${accessToken}` }, signal: controller.signal }
-    )
-      .then(res => res.json())
-      .then(data => { if (data && !data.error) setWeekTracker(data) })
-      .catch(() => {})
-    return () => controller.abort()
-  }, [currentLeague, currentWeek, currentYear, selectedWeek, accessToken])
-
   // Load games for current week
   const loadGames = useCallback(async (week: number, year: number, sport?: string) => {
     setGamesLoading(true)
@@ -277,9 +249,40 @@ export default function FourplayApp() {
     }
   }, [])
 
+  // When the current league changes, recompute week/year for that league's sport
+  // and immediately load games — avoids a flash of the wrong week's games that
+  // would happen if we relied on selectedWeek state propagating first.
+  useEffect(() => {
+    if (!currentLeague) return
+    const sport = currentLeague.sport ?? ACTIVE_SPORT
+    const week = computeCurrentWeek(sport)
+    const year = getSeasonYear(sport)
+    setCurrentWeek(week)
+    setCurrentYear(year)
+    setSelectedWeek(week)
+    loadGames(week, year, sport)
+  }, [currentLeague?.id, loadGames])
+
+  // Fetch live week tracker — only meaningful for the current active week
+  useEffect(() => {
+    if (!currentLeague || !accessToken || selectedWeek !== currentWeek) {
+      setWeekTracker(null)
+      return
+    }
+    const controller = new AbortController()
+    fetch(
+      `/api/leagues/tracker?leagueId=${currentLeague.id}&week=${currentWeek}&year=${currentYear}`,
+      { headers: { Authorization: `Bearer ${accessToken}` }, signal: controller.signal }
+    )
+      .then(res => res.json())
+      .then(data => { if (data && !data.error) setWeekTracker(data) })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [currentLeague, currentWeek, currentYear, selectedWeek, accessToken])
+
   useEffect(() => {
     loadGames(selectedWeek, currentYear, currentLeague?.sport ?? ACTIVE_SPORT)
-  }, [selectedWeek, currentYear, currentLeague?.sport, loadGames])
+  }, [selectedWeek, currentYear, loadGames])
 
   // Silent background refresh for live scores — no loading spinner, current week only
   const refreshGames = useCallback(async () => {
