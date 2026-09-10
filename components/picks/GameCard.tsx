@@ -85,6 +85,17 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
 
   const favSelected = !!favPick
   const dogSelected = !!dogPick
+
+  // Away on left, home on right
+  const awayTeam = game.away_team ?? ''
+  const homeTeam = game.home_team ?? ''
+  const awayIsFav = awayTeam === favTeam
+  const awaySelected = awayIsFav ? favSelected : dogSelected
+  const homeSelected = !awayIsFav ? favSelected : dogSelected
+  const awaySpreadStr = awayIsFav ? `${game.spread}` : `+${Math.abs(game.spread)}`
+  const homeSpreadStr = awayIsFav ? `+${Math.abs(game.spread)}` : `${game.spread}`
+  const awayCushionStr = awayIsFav ? (favCushion >= 0 ? `+${favCushion}` : `${favCushion}`) : `+${dogCushion}`
+  const homeCushionStr = awayIsFav ? `+${dogCushion}` : (favCushion >= 0 ? `+${favCushion}` : `${favCushion}`)
   const overSelected = !!overPick
   const underSelected = !!underPick
   const anySelected = favSelected || dogSelected || overSelected || underSelected
@@ -156,59 +167,59 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
           )
         })()}
 
-        {/* Live score */}
+        {/* Live score — away left, home right */}
         {game.status === 'live' && game.home_score != null && game.away_score != null && (
           <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 mb-1.5">
             <div className="flex items-center gap-2">
-              {teamLogoUrl(game.home_team) && (
-                <Image src={teamLogoUrl(game.home_team)!} alt="" width={28} height={28} className="object-contain" unoptimized />
-              )}
-              <span className="text-[12px] font-black text-zinc-300 uppercase">{game.home_team?.split(' ').pop()}</span>
-            </div>
-            <span className="text-[18px] font-black font-mono text-white tracking-tight">
-              {game.home_score} – {game.away_score}
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-[12px] font-black text-zinc-300 uppercase">{game.away_team?.split(' ').pop()}</span>
               {teamLogoUrl(game.away_team) && (
                 <Image src={teamLogoUrl(game.away_team)!} alt="" width={28} height={28} className="object-contain" unoptimized />
+              )}
+              <span className="text-[12px] font-black text-zinc-300 uppercase">{game.away_team?.split(' ').pop()}</span>
+            </div>
+            <span className="text-[18px] font-black font-mono text-white tracking-tight">
+              {game.away_score} – {game.home_score}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[12px] font-black text-zinc-300 uppercase">{game.home_team?.split(' ').pop()}</span>
+              {teamLogoUrl(game.home_team) && (
+                <Image src={teamLogoUrl(game.home_team)!} alt="" width={28} height={28} className="object-contain" unoptimized />
               )}
             </div>
           </div>
         )}
 
-        {/* Two-half team selector */}
+        {/* Two-half team selector — away on left, home on right */}
         <div className={`flex gap-2 ${isInteractionDisabled ? 'pointer-events-none' : ''}`}>
           <button
-            className={halfClass(favSelected)}
-            onClick={() => favTeam && onSelect(game.id, favTeam)}
+            className={halfClass(awaySelected)}
+            onClick={() => awayTeam && onSelect(game.id, awayTeam)}
           >
-            <p className="font-bold text-sm text-white uppercase leading-tight">{favTeam}</p>
+            <p className="font-bold text-sm text-white uppercase leading-tight">{awayTeam}</p>
             <div className="mt-1.5 space-y-0.5">
               <p className="text-[11px] font-mono leading-tight">
                 <span className="text-zinc-500">Spread: </span>
-                <span className="text-red-400">{game.spread > 0 ? '+' : ''}{game.spread}</span>
+                <span className={awayIsFav ? 'text-red-400' : 'text-green-400'}>{awaySpreadStr}</span>
               </p>
               <p className="text-[11px] font-mono leading-tight">
                 <span className="text-zinc-500">Adjusted Spread: </span>
-                <span className="text-green-400">{favCushion >= 0 ? '+' : ''}{favCushion}</span>
+                <span className="text-green-400">{awayCushionStr}</span>
               </p>
             </div>
           </button>
 
           <button
-            className={halfClass(dogSelected)}
-            onClick={() => dogTeam && onSelect(game.id, dogTeam)}
+            className={halfClass(homeSelected)}
+            onClick={() => homeTeam && onSelect(game.id, homeTeam)}
           >
-            <p className="font-bold text-sm text-white uppercase leading-tight">{dogTeam}</p>
+            <p className="font-bold text-sm text-white uppercase leading-tight">{homeTeam}</p>
             <div className="mt-1.5 space-y-0.5">
               <p className="text-[11px] font-mono leading-tight">
                 <span className="text-zinc-500">Spread: </span>
-                <span className="text-green-400">+{Math.abs(game.spread)}</span>
+                <span className={awayIsFav ? 'text-green-400' : 'text-red-400'}>{homeSpreadStr}</span>
               </p>
               <p className="text-[11px] font-mono leading-tight">
                 <span className="text-zinc-500">Adjusted Spread: </span>
-                <span className="text-green-400">+{dogCushion}</span>
+                <span className="text-green-400">{homeCushionStr}</span>
               </p>
             </div>
           </button>
