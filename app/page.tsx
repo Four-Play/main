@@ -221,6 +221,26 @@ export default function FourplayApp() {
       .catch(() => {})
   }, [accessToken])
 
+  // Load user's existing picks for this week
+  const loadPicks = useCallback(async (week: number, year: number, leagueId: string) => {
+    if (!user) return
+    try {
+      const picks = await getMyPicks(user.id, leagueId, week, year)
+      const map = new Map<string, Pick>()
+      const saved = new Set<string>()
+      for (const pick of picks) {
+        const key = pickKey(pick.game_id, pick.team_selected)
+        map.set(key, pick)
+        saved.add(key)
+      }
+      setPicksMap(map)
+      setSavedPickKeys(saved)
+      setIsEditingPicks(false)
+    } catch (err) {
+      console.error('Failed to load picks:', err)
+    }
+  }, [user])
+
   // Load games for current week
   const loadGames = useCallback(async (week: number, year: number, sport?: string) => {
     setGamesLoading(true)
@@ -261,7 +281,8 @@ export default function FourplayApp() {
     setCurrentYear(year)
     setSelectedWeek(week)
     loadGames(week, year, sport)
-  }, [currentLeague?.id, loadGames])
+    loadPicks(week, year, currentLeague.id)
+  }, [currentLeague?.id, loadGames, loadPicks])
 
   // Fetch live week tracker — only meaningful for the current active week
   useEffect(() => {
@@ -313,32 +334,11 @@ export default function FourplayApp() {
     return () => clearInterval(interval)
   }, [selectedWeek, currentWeek, refreshGames])
 
-  // Load user's existing picks for this week
-  const loadPicks = useCallback(async () => {
-    if (!user || !currentLeague) return
-    try {
-      const picks = await getMyPicks(user.id, currentLeague.id, selectedWeek, currentYear)
-      const map = new Map<string, Pick>()
-      const saved = new Set<string>()
-
-      for (const pick of picks) {
-        const key = pickKey(pick.game_id, pick.team_selected)
-        map.set(key, pick)
-        saved.add(key)
-      }
-
-      setPicksMap(map)
-      setSavedPickKeys(saved)
-      // Freshly-loaded picks are the committed state — exit any edit session
-      setIsEditingPicks(false)
-    } catch (err) {
-      console.error('Failed to load picks:', err)
-    }
-  }, [user, currentLeague, selectedWeek, currentYear])
-
+  // Reload picks when the user navigates between weeks
   useEffect(() => {
-    loadPicks()
-  }, [loadPicks])
+    if (!currentLeague) return
+    loadPicks(selectedWeek, currentYear, currentLeague.id)
+  }, [selectedWeek, currentYear, loadPicks])
 
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -476,7 +476,7 @@ export default function FourplayApp() {
       if (!res.ok) throw new Error(data.error ?? 'Failed to submit picks')
 
       // Reload authoritative state from DB so the UI matches what was actually saved
-      await loadPicks()
+      await loadPicks(selectedWeek, currentYear, currentLeague!.id)
     } catch (err: any) {
       console.error('[submit] handleSubmitPicks error:', err)
       alert(err.message ?? 'Failed to submit picks')
