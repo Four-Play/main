@@ -330,7 +330,7 @@ export function CurrentWeekTab({
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-black uppercase text-white">{teamMascot(game.favorite_team)}</span>
                           {statusLabel && (
-                            <span className={`text-[9px] font-black uppercase tracking-wider ${game.status === 'live' ? 'text-green-500' : 'text-zinc-500'}`}>
+                            <span className={`text-[9px] font-black uppercase tracking-wider ${game.status === 'live' ? 'text-red-500' : 'text-zinc-500'}`}>
                               {statusLabel}
                             </span>
                           )}

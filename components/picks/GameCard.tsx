@@ -129,8 +129,8 @@ export function GameCard({ game, favPick, dogPick, overPick, underPick, isHistor
           return (
             <div className="flex justify-between items-center mb-1.5">
               {isLive ? (
-                <span className="text-[10px] font-black text-green-400 bg-green-500/10 border border-green-500/30 px-2 py-0.5 rounded uppercase flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-[10px] font-black text-red-400 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded uppercase flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
                   LIVE
                 </span>
               ) : (
