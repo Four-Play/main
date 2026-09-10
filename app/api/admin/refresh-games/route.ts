@@ -5,7 +5,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient, getAuthenticatedUser } from '@/lib/supabase/server'
 import { ACTIVE_SPORT, NCAAF_SPORT, computeWeekFromDate, toETDateString, getSeasonWeeks, getPlayoffRules, getSeasonYear } from '@/lib/weekUtils'
-import { NCAAF_ALLOWED_TEAMS } from '@/config/ncaaf-season'
+import { NCAAF_ALLOWED_TEAMS, NCAAF_FEATURED_TEAMS } from '@/config/ncaaf-season'
 
 const ODDS_API_KEY = process.env.ODDS_API_KEY!
 const ODDS_BASE    = 'https://api.the-odds-api.com/v4'
@@ -55,7 +55,8 @@ export async function POST(request: Request) {
 
         if (sportKey === NCAAF_SPORT) {
           eventsData = eventsData.filter(e =>
-            NCAAF_ALLOWED_TEAMS.has(e.home_team) && NCAAF_ALLOWED_TEAMS.has(e.away_team)
+            (NCAAF_ALLOWED_TEAMS.has(e.home_team) && NCAAF_ALLOWED_TEAMS.has(e.away_team)) ||
+            NCAAF_FEATURED_TEAMS.has(e.home_team) || NCAAF_FEATURED_TEAMS.has(e.away_team)
           )
         }
 

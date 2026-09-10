@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { ACTIVE_SPORT, NCAAF_SPORT, computeWeekFromDate, toETDateString, getSeasonWeeks, getPlayoffRules, getSeasonYear } from '@/lib/weekUtils'
-import { NCAAF_ALLOWED_TEAMS } from '@/config/ncaaf-season'
+import { NCAAF_ALLOWED_TEAMS, NCAAF_FEATURED_TEAMS } from '@/config/ncaaf-season'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,10 +66,12 @@ export async function GET(request: Request) {
         let eventsData: any[] = eventsRes.ok ? await eventsRes.json() : []
         const oddsData: any[]  = oddsRes.ok  ? await oddsRes.json()  : []
 
-        // For NCAAF, filter to Power 4 + Notre Dame matchups only
+        // For NCAAF, filter to Power 4 + Notre Dame matchups, plus any game
+        // where a featured team is playing regardless of their opponent.
         if (sportKey === NCAAF_SPORT) {
           eventsData = eventsData.filter(e =>
-            NCAAF_ALLOWED_TEAMS.has(e.home_team) && NCAAF_ALLOWED_TEAMS.has(e.away_team)
+            (NCAAF_ALLOWED_TEAMS.has(e.home_team) && NCAAF_ALLOWED_TEAMS.has(e.away_team)) ||
+            NCAAF_FEATURED_TEAMS.has(e.home_team) || NCAAF_FEATURED_TEAMS.has(e.away_team)
           )
         }
 

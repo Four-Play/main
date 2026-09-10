@@ -37,8 +37,18 @@ export const NCAAF_PLAYOFF_RULES: Record<number, { cushion: number; picksRequire
   19: { cushion: 0,  picksRequired: 1 }, // CFP Championship
 }
 
+// Featured teams whose games are always included even if their opponent is
+// outside Power 4 — e.g. Oklahoma vs. a G5 school still appears on the slate.
+export const NCAAF_FEATURED_TEAMS = new Set<string>([
+  'Oklahoma Sooners',
+  'Tennessee Volunteers',
+  'USC Trojans',
+  'Michigan Wolverines',
+])
+
 // Power 4 conferences + Notre Dame — any game where either team is not in this
-// set is excluded from the slate. Names must match the Odds API format exactly
+// set is excluded from the slate (unless one team is in NCAAF_FEATURED_TEAMS).
+// Names must match the Odds API format exactly
 // (full school + mascot, e.g. "Ohio State Buckeyes" not "Ohio State").
 export const NCAAF_ALLOWED_TEAMS = new Set<string>([
   // Big Ten (18 teams)
