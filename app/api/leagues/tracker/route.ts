@@ -80,10 +80,15 @@ export async function GET(request: Request) {
     }
   }
 
+  // For the projection, assume every league member will play this week.
+  // Members who haven't submitted picks yet are treated as survivors in the estimate.
+  // Actual scoring only ever uses real confirmed results — this is purely for the display.
+  const projectedSurvivorCount = totalMembers - loserCount
+
   // Projected points if nobody else loses from here
-  // loserProjected  = -(stake × survivorCount)  [pays each survivor]
-  // survivorProjected = +(stake × loserCount)    [earns from each loser]
-  const loserProjected = loserCount > 0 ? -(stake * survivorCount) : 0
+  // loserProjected  = -(stake × projectedSurvivorCount)  [pays each survivor]
+  // survivorProjected = +(stake × loserCount)             [earns from each loser]
+  const loserProjected = loserCount > 0 ? -(stake * projectedSurvivorCount) : 0
   const survivorProjected = loserCount > 0 ? stake * loserCount : 0
 
   let userProjected = 0
@@ -91,12 +96,12 @@ export async function GET(request: Request) {
     userProjected = userIsLoser ? loserProjected : survivorProjected
   }
 
-  // Penalty each loser would owe if no more people lose (= stake × survivorCount)
-  const penaltyPerLoss = loserCount > 0 ? stake * survivorCount : 0
+  // Penalty each loser would owe if no more people lose (= stake × projectedSurvivorCount)
+  const penaltyPerLoss = loserCount > 0 ? stake * projectedSurvivorCount : 0
 
   return NextResponse.json({
     loserCount,
-    survivorCount,
+    survivorCount: projectedSurvivorCount,
     totalWithPicks: loserCount + survivorCount,
     totalMembers,
     stake,              // in "cents" (×100) — divide by 100 to display
