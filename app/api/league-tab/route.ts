@@ -110,11 +110,12 @@ export async function GET(request: Request) {
 
   const loserCount = loserSet.size
   const survivorCount = survivorSet.size
-  const penaltyPerLoss = loserCount > 0 ? stake * survivorCount : 0
+  const projectedSurvivorCount = memberIds.length - loserCount
+  const penaltyPerLoss = loserCount > 0 ? stake * projectedSurvivorCount : 0
 
   const weekTracker = {
     loserCount,
-    survivorCount,
+    survivorCount: projectedSurvivorCount,
     totalWithPicks: loserCount + survivorCount,
     totalMembers: memberIds.length,
     stake,
