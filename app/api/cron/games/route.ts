@@ -90,7 +90,7 @@ export async function GET(request: Request) {
           for (const row of locked ?? []) lockedSpreads.set(row.external_id, row)
         }
 
-        const rows = eventsData.map((event: any) => {
+        let rows = eventsData.map((event: any) => {
           const locked = lockedSpreads.get(event.id)
           let favTeam = event.home_team
           let dogTeam = event.away_team
@@ -140,6 +140,40 @@ export async function GET(request: Request) {
             status: 'upcoming',
           }
         })
+
+        // Detect Odds API event re-keying: same matchup in DB but different external_id.
+        // When the API changes a game's kickoff time it issues a new event ID, orphaning
+        // the old row. Migrate the existing row instead of inserting a duplicate.
+        if (eventIds.length > 0) {
+          const { data: staleGames } = await supabase
+            .from('games')
+            .select('id, external_id, home_team, away_team, commence_time')
+            .eq('sport', sportKey)
+            .eq('nfl_week', week)
+            .eq('season_year', SEASON_YEAR)
+            .not('external_id', 'in', `(${eventIds.join(',')})`)
+
+          if (staleGames && staleGames.length > 0) {
+            const rowByMatchup = new Map(rows.map(r => [`${r.home_team}|${r.away_team}`, r]))
+            const rekeyed = new Set<string>()
+            for (const stale of staleGames) {
+              const newRow = rowByMatchup.get(`${stale.home_team}|${stale.away_team}`)
+              if (!newRow) continue
+              const started = new Date(stale.commence_time) < new Date()
+              await supabase.from('games').update({
+                external_id: newRow.external_id,
+                commence_time: newRow.commence_time,
+                ...(started ? {} : {
+                  spread: newRow.spread,
+                  favorite_team: newRow.favorite_team,
+                  underdog_team: newRow.underdog_team,
+                }),
+              }).eq('id', stale.id)
+              rekeyed.add(newRow.external_id)
+            }
+            rows = rows.filter(r => !rekeyed.has(r.external_id))
+          }
+        }
 
         if (rows.length > 0) {
           await supabase.from('games').upsert(rows, { onConflict: 'external_id' })
