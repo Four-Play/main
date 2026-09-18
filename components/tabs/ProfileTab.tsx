@@ -363,11 +363,23 @@ export function ProfileTab({
           className="text-yellow-500 font-bold uppercase text-[10px] tracking-widest w-full"
           onClick={async () => {
             const isNative = Capacitor.isNativePlatform()
-            if (!isNative) { alert('Not native platform — push will never register'); return }
+            if (!isNative) { alert('Not native platform'); return }
             try {
               const { PushNotifications } = await import('@capacitor/push-notifications')
-              const perm = await PushNotifications.checkPermissions()
-              alert(`Native: true\nPermission: ${perm.receive}`)
+              PushNotifications.addListener('registration', ({ value: token }) => {
+                alert(`Token received:\n${token.slice(0, 20)}...\n\nSending to server...`)
+                fetch('/api/account/push-token', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ token, platform: 'ios' }),
+                }).then(r => alert(`Server response: ${r.status}`))
+                  .catch(e => alert(`Server error: ${e.message}`))
+              })
+              PushNotifications.addListener('registrationError', (err) => {
+                alert(`Registration error: ${JSON.stringify(err)}`)
+              })
+              await PushNotifications.register()
+              alert('register() called — waiting for token...')
             } catch (err: any) {
               alert(`Error: ${err?.message ?? err}`)
             }
