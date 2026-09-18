@@ -26,12 +26,12 @@ export async function GET(request: Request) {
   const [membersResult, resultsResult, picksResult, gamesResult] = await Promise.all([
     supabase
       .from('league_members')
-      .select('user_id, wins, losses, league_points, total_owed_cents, role, profile:profiles(id, username, avatar_url, total_points)')
+      .select('user_id, wins, losses, league_points, total_owed_cents, role')
       .eq('league_id', leagueId)
       .order('league_points', { ascending: false }),
     supabase
       .from('weekly_results')
-      .select('user_id, nfl_week, is_winner, amount_won_cents, amount_owed_cents, calculated_at, profile:profiles(id, username)')
+      .select('user_id, nfl_week, is_winner, amount_won_cents, amount_owed_cents, calculated_at')
       .eq('league_id', leagueId)
       .eq('season_year', year)
       .order('nfl_week', { ascending: false }),
@@ -50,6 +50,13 @@ export async function GET(request: Request) {
 
   if (membersResult.error) return NextResponse.json({ error: membersResult.error.message }, { status: 500 })
   if (resultsResult.error) return NextResponse.json({ error: resultsResult.error.message }, { status: 500 })
+
+  // Fetch profiles separately — avoids relying on PostgREST FK relationship inference
+  const rawMemberIds = (membersResult.data ?? []).map(m => m.user_id).filter(Boolean)
+  const { data: profilesData } = rawMemberIds.length > 0
+    ? await supabase.from('profiles').select('id, username, avatar_url, total_points').in('id', rawMemberIds)
+    : { data: [] }
+  const profileMap = new Map((profilesData ?? []).map((p: any) => [p.id, p]))
 
   // Build weekSummaries (standings tab still uses this)
   const byWeek = new Map<number, any[]>()
@@ -97,7 +104,7 @@ export async function GET(request: Request) {
   // Week Tracker: compute from current week picks (final games only)
   const finalGameIds = new Set(allGames.filter(g => g.status === 'final').map(g => g.id))
   const currentWeekPicks = allPicks.filter(p => p.nfl_week === currentWeek)
-  const memberIds = (membersResult.data ?? []).map(m => m.user_id)
+  const memberIds = rawMemberIds
 
   const loserSet = new Set<string>()
   const survivorSet = new Set<string>()
@@ -122,8 +129,13 @@ export async function GET(request: Request) {
     penaltyPerLoss,
   }
 
+  const members = (membersResult.data ?? []).map((m: any) => ({
+    ...m,
+    profile: profileMap.get(m.user_id) ?? null,
+  }))
+
   return NextResponse.json({
-    members: membersResult.data ?? [],
+    members,
     weekSummaries,
     weeklyPickCharts,
     weekTracker,
