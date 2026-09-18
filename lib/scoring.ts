@@ -56,12 +56,14 @@ export async function calculateWeeklyResults(
 
   if (!league) return
 
-  const { data: members } = await supabase
+  const { data: membersRaw } = await supabase
     .from('league_members')
     .select('user_id')
     .eq('league_id', leagueId)
+    .not('user_id', 'is', null)
 
-  if (!members || members.length === 0) return
+  const members = membersRaw?.filter((m: any) => m.user_id) ?? []
+  if (members.length === 0) return
 
   // Single batched fetch of every member's picks for this week.
   // Replaces the per-member query loop (was O(members) round-trips).

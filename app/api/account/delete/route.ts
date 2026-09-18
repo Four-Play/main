@@ -1,6 +1,7 @@
 // app/api/account/delete/route.ts
-// Permanently deletes the requesting user's account and all associated data.
-// Requires a valid logged-in Supabase session.
+// Deletes the requesting user's auth account and anonymizes their profile.
+// League history, picks, and weekly results are preserved so the leaderboard
+// stays accurate — the user appears as "Deleted User" with no avatar.
 
 import { NextResponse } from 'next/server'
 import { createServiceClient, getAuthenticatedUser } from '@/lib/supabase/server'
@@ -15,29 +16,26 @@ export async function POST(request: Request) {
   const supabase = createServiceClient()
   const userId = user.id
 
-  // Delete in dependency order. Even if FK CASCADE is set up, being explicit
-  // makes the contract obvious and survives schema changes.
-  const tables = ['picks', 'weekly_results', 'league_members', 'profiles'] as const
-  for (const table of tables) {
-    const column = table === 'profiles' ? 'id' : 'user_id'
-    const { error } = await supabase.from(table).delete().eq(column, userId)
-    if (error) {
-      console.error(`[account-delete] failed to clear ${table}:`, error)
-      return NextResponse.json(
-        { error: `Failed to delete account data (${table})` },
-        { status: 500 }
-      )
-    }
+  // Anonymize profile — keeps the row so league history displays correctly.
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ username: 'Deleted User', avatar_url: null })
+    .eq('id', userId)
+
+  if (profileError) {
+    console.error('[account-delete] failed to anonymize profile:', profileError)
+    return NextResponse.json({ error: 'Failed to anonymize profile' }, { status: 500 })
   }
 
-  // Finally, remove the auth user itself so the email becomes available again.
+  // Remove device tokens so the user stops receiving push notifications.
+  await supabase.from('device_tokens').delete().eq('user_id', userId)
+
+  // Delete the auth user. league_members, picks, and weekly_results FKs are
+  // now SET NULL (not CASCADE) so those rows are preserved with user_id = null.
   const { error: authError } = await supabase.auth.admin.deleteUser(userId)
   if (authError) {
     console.error('[account-delete] failed to delete auth user:', authError)
-    return NextResponse.json(
-      { error: 'Failed to delete account credentials' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to delete account credentials' }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })
