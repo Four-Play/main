@@ -55,8 +55,6 @@ export function CurrentWeekTab({
     stake: number
     penaltyPerLoss: number
   } | null>(null)
-  const [availableWeeks, setAvailableWeeks] = useState<number[]>([])
-  const [selectedViewWeek, setSelectedViewWeek] = useState(currentWeek)
   const [loading, setLoading] = useState(true)
   const [activeView, setActiveView] = useState<'results' | 'split'>('results')
   const [refreshKey, setRefreshKey] = useState(0)
@@ -74,11 +72,6 @@ export function CurrentWeekTab({
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
 
-  // Reset selected week when league or current week changes
-  useEffect(() => {
-    setSelectedViewWeek(currentWeek)
-  }, [currentLeague, currentWeek, currentYear])
-
   useEffect(() => {
     if (!currentLeague) { setLoading(false); return }
 
@@ -88,7 +81,7 @@ export function CurrentWeekTab({
     const headers: HeadersInit = accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
 
     fetch(
-      `/api/league-tab?leagueId=${currentLeague}&year=${currentYear}&week=${currentWeek}&viewWeek=${selectedViewWeek}`,
+      `/api/league-tab?leagueId=${currentLeague}&year=${currentYear}&week=${currentWeek}`,
       { headers, signal: controller.signal }
     )
       .then(res => res.json())
@@ -97,14 +90,13 @@ export function CurrentWeekTab({
         if (data.members) setMembers(data.members)
         if (data.weekSummaries) setWeekSummaries(data.weekSummaries)
         if (data.weeklyPickCharts) setWeeklyPickCharts(data.weeklyPickCharts)
-        setWeekTracker(data.weekTracker ?? null)
-        if (data.availableWeeks) setAvailableWeeks(data.availableWeeks)
+        if (data.weekTracker) setWeekTracker(data.weekTracker)
       })
       .catch(() => {})
       .finally(() => { clearTimeout(timeout); if (active) setLoading(false) })
 
     return () => { active = false; clearTimeout(timeout); controller.abort() }
-  }, [currentLeague, currentYear, currentWeek, accessToken, refreshKey, selectedViewWeek])
+  }, [currentLeague, currentYear, currentWeek, accessToken, refreshKey])
 
   if (!currentLeague) {
     return (
@@ -126,24 +118,6 @@ export function CurrentWeekTab({
 
   return (
     <div className="space-y-4">
-      {/* Week selector */}
-      {availableWeeks.length > 1 && (
-        <div className="flex items-center justify-between px-1">
-          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Viewing</span>
-          <select
-            value={selectedViewWeek}
-            onChange={e => setSelectedViewWeek(Number(e.target.value))}
-            className="bg-zinc-900 border border-zinc-800 text-white text-[11px] font-bold rounded-lg px-3 py-1.5 outline-none appearance-none"
-          >
-            {availableWeeks.map(w => (
-              <option key={w} value={w}>
-                {getWeekLabel(w, ACTIVE_SPORT)}{w === currentWeek ? ' (Current)' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
       {/* Sub-tab toggle */}
       <div className="flex gap-2">
         <button

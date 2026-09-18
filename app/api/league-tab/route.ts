@@ -9,7 +9,6 @@ export async function GET(request: Request) {
   const leagueId = searchParams.get('leagueId')
   const year = parseInt(searchParams.get('year') ?? '0')
   const currentWeek = parseInt(searchParams.get('week') ?? '1')
-  const viewWeek = parseInt(searchParams.get('viewWeek') ?? String(currentWeek))
   if (!leagueId || !year) return NextResponse.json({ error: 'Missing leagueId or year' }, { status: 400 })
 
   const supabase = createServiceClient()
@@ -40,14 +39,12 @@ export async function GET(request: Request) {
       .from('picks')
       .select('user_id, game_id, team_selected, result, nfl_week')
       .eq('league_id', leagueId)
-      .eq('season_year', year)
-      .eq('nfl_week', viewWeek),
+      .eq('season_year', year),
     supabase
       .from('games')
       .select('id, commence_time, favorite_team, underdog_team, spread, nfl_week, status')
       .eq('season_year', year)
       .eq('sport', leagueSport)
-      .eq('nfl_week', viewWeek)
       .order('commence_time', { ascending: true }),
   ])
 
@@ -87,42 +84,42 @@ export async function GET(request: Request) {
     picksByWeek.set(p.nfl_week, arr)
   }
 
-  // Single week chart for the requested viewWeek
-  const weeklyPickCharts = [{
-    week: viewWeek,
-    games: allGames,
-    picks: allPicks,
-  }]
+  // Always show current week; also show every past week that has picks
+  const weeksToShow = new Set<number>([currentWeek, ...allPicks.map((p: any) => p.nfl_week as number)])
+  const weeklyPickCharts = [...weeksToShow]
+    .sort((a, b) => b - a)
+    .map(week => ({
+      week,
+      games: gamesByWeek.get(week) ?? [],
+      picks: picksByWeek.get(week) ?? [],
+    }))
 
-  // Available weeks for the dropdown: current week + any week with scored results
-  const resultWeeks = [...new Set((resultsResult.data ?? []).map((r: any) => r.nfl_week as number))]
-  const availableWeeks = [...new Set([currentWeek, ...resultWeeks])].sort((a, b) => b - a)
+  // Week Tracker: compute from current week picks (final games only)
+  const finalGameIds = new Set(allGames.filter(g => g.status === 'final').map(g => g.id))
+  const currentWeekPicks = allPicks.filter(p => p.nfl_week === currentWeek)
+  const memberIds = (membersResult.data ?? []).map(m => m.user_id)
 
-  // Week Tracker: only meaningful for the current week (live in-progress data)
-  const memberIds = (membersResult.data ?? []).map(m => m.user_id).filter(Boolean)
-  let weekTracker = null
-  if (viewWeek === currentWeek) {
-    const finalGameIds = new Set(allGames.filter(g => g.status === 'final').map(g => g.id))
-    const loserSet = new Set<string>()
-    const survivorSet = new Set<string>()
-    for (const userId of memberIds) {
-      const memberPicks = allPicks.filter(p => p.user_id === userId && finalGameIds.has(p.game_id))
-      if (memberPicks.length === 0) continue
-      if (memberPicks.some(p => p.result === 'loss')) loserSet.add(userId)
-      else survivorSet.add(userId)
-    }
-    const loserCount = loserSet.size
-    const survivorCount = survivorSet.size
-    const projectedSurvivorCount = memberIds.length - loserCount
-    const penaltyPerLoss = loserCount > 0 ? stake * projectedSurvivorCount : 0
-    weekTracker = {
-      loserCount,
-      survivorCount: projectedSurvivorCount,
-      totalWithPicks: loserCount + survivorCount,
-      totalMembers: memberIds.length,
-      stake,
-      penaltyPerLoss,
-    }
+  const loserSet = new Set<string>()
+  const survivorSet = new Set<string>()
+  for (const userId of memberIds) {
+    const memberPicks = currentWeekPicks.filter(p => p.user_id === userId && finalGameIds.has(p.game_id))
+    if (memberPicks.length === 0) continue
+    if (memberPicks.some(p => p.result === 'loss')) loserSet.add(userId)
+    else survivorSet.add(userId)
+  }
+
+  const loserCount = loserSet.size
+  const survivorCount = survivorSet.size
+  const projectedSurvivorCount = memberIds.length - loserCount
+  const penaltyPerLoss = loserCount > 0 ? stake * projectedSurvivorCount : 0
+
+  const weekTracker = {
+    loserCount,
+    survivorCount: projectedSurvivorCount,
+    totalWithPicks: loserCount + survivorCount,
+    totalMembers: memberIds.length,
+    stake,
+    penaltyPerLoss,
   }
 
   return NextResponse.json({
@@ -130,7 +127,5 @@ export async function GET(request: Request) {
     weekSummaries,
     weeklyPickCharts,
     weekTracker,
-    availableWeeks,
-    viewWeek,
   })
 }
