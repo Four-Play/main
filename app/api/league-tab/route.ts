@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient, getAuthenticatedUser } from '@/lib/supabase/server'
 
-
 export async function GET(request: Request) {
   const user = await getAuthenticatedUser(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
