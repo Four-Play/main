@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { AuthScreen } from '@/components/auth/AuthScreen'
 import { ResetPasswordScreen } from '@/components/auth/ResetPasswordScreen'
 import { PicksTab } from '@/components/tabs/PicksTab'
@@ -36,6 +36,8 @@ export default function FourplayApp() {
   const [activeTab, setActiveTab] = useState('picks')
   // Track which tabs have been visited so they stay mounted (lazy-load on first visit, instant on return)
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['picks']))
+  const [unreadChatCount, setUnreadChatCount] = useState(0)
+  const activeTabRef = useRef('picks')
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -339,6 +341,44 @@ export default function FourplayApp() {
     if (!currentLeague) return
     loadPicks(selectedWeek, currentYear, currentLeague.id)
   }, [selectedWeek, currentYear, loadPicks])
+
+  // Keep activeTabRef in sync so realtime callbacks can read current tab without stale closure
+  useEffect(() => { activeTabRef.current = activeTab }, [activeTab])
+
+  // Unread chat badge: query initial count, subscribe to realtime inserts
+  useEffect(() => {
+    if (!currentLeague || !user) { setUnreadChatCount(0); return }
+    const leagueId = currentLeague.id
+    const userId = user.id
+
+    const getLastSeen = () => { try { return localStorage.getItem(`chat_last_seen_${leagueId}`) ?? '1970-01-01T00:00:00Z' } catch { return '1970-01-01T00:00:00Z' } }
+
+    supabase
+      .from('league_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('league_id', leagueId)
+      .neq('user_id', userId)
+      .gt('created_at', getLastSeen())
+      .then(({ count }) => {
+        if (activeTabRef.current !== 'chat') setUnreadChatCount(count ?? 0)
+      })
+
+    const channel = supabase
+      .channel(`unread_badge:${leagueId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'league_messages', filter: `league_id=eq.${leagueId}` },
+        (payload) => {
+          const msg = payload.new as { user_id: string }
+          if (msg.user_id !== userId && activeTabRef.current !== 'chat') {
+            setUnreadChatCount(prev => prev + 1)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [currentLeague, user])
 
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -653,7 +693,18 @@ export default function FourplayApp() {
       />
 
 
-      <Navbar activeTab={activeTab} setActiveTab={tab => { setActiveTab(tab); setMountedTabs(prev => new Set([...prev, tab])) }} />
+      <Navbar
+        activeTab={activeTab}
+        unreadChatCount={unreadChatCount}
+        setActiveTab={tab => {
+          setActiveTab(tab)
+          setMountedTabs(prev => new Set([...prev, tab]))
+          if (tab === 'chat') {
+            setUnreadChatCount(0)
+            try { localStorage.setItem(`chat_last_seen_${currentLeague?.id}`, new Date().toISOString()) } catch {}
+          }
+        }}
+      />
 
       <ModalManager
         viewingPlayer={viewingPlayer}
