@@ -357,6 +357,24 @@ export function ProfileTab({
             League Management
           </Button>
         )}
+        {/* TEMP DEBUG — remove after push notifications are confirmed working */}
+        <Button
+          variant="ghost"
+          className="text-yellow-500 font-bold uppercase text-[10px] tracking-widest w-full"
+          onClick={async () => {
+            const isNative = Capacitor.isNativePlatform()
+            if (!isNative) { alert('Not native platform — push will never register'); return }
+            try {
+              const { PushNotifications } = await import('@capacitor/push-notifications')
+              const perm = await PushNotifications.checkPermissions()
+              alert(`Native: true\nPermission: ${perm.receive}`)
+            } catch (err: any) {
+              alert(`Error: ${err?.message ?? err}`)
+            }
+          }}
+        >
+          Debug Push
+        </Button>
         <Button
           variant="ghost"
           disabled={isSigningOut}

@@ -14,8 +14,9 @@ export async function registerPushNotifications(accessToken: string): Promise<vo
   const { PushNotifications } = await import('@capacitor/push-notifications')
 
   PushNotifications.addListener('registration', async ({ value: token }) => {
+    console.log('[push] device token received:', token.slice(-8))
     try {
-      await fetch('/api/account/push-token', {
+      const res = await fetch('/api/account/push-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -23,8 +24,9 @@ export async function registerPushNotifications(accessToken: string): Promise<vo
         },
         body: JSON.stringify({ token, platform: 'ios' }),
       })
-    } catch {
-      // Non-critical — token will be re-sent on next app launch
+      console.log('[push] token saved, status:', res.status)
+    } catch (err) {
+      console.warn('[push] token save failed:', err)
     }
   })
 
@@ -33,8 +35,11 @@ export async function registerPushNotifications(accessToken: string): Promise<vo
   })
 
   const { receive } = await PushNotifications.requestPermissions()
+  console.log('[push] permission status:', receive)
   if (receive === 'granted') {
     await PushNotifications.register()
+  } else {
+    console.warn('[push] permission not granted:', receive)
   }
 
   registered = true
