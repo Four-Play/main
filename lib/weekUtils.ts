@@ -92,6 +92,26 @@ export function getWeekLabel(week: number, sportKey: string = ACTIVE_SPORT): str
 /**
  * Compute which week we are currently in based on today's date (ET).
  */
+/**
+ * Returns the noon Central Time on the Sunday of the given NFL week.
+ * After this time, NFL spreads are frozen even if lines haven't moved at kickoff.
+ * CDT (Mar–Oct): UTC-5 → noon = 17:00 UTC
+ * CST (Nov–Feb): UTC-6 → noon = 18:00 UTC
+ */
+export function getNflSpreadLockTime(weekConfig: { startDate: string; endDate: string }): Date {
+  const start = new Date(weekConfig.startDate + 'T00:00:00Z')
+  const end = new Date(weekConfig.endDate + 'T23:59:59Z')
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    if (d.getUTCDay() === 0) {
+      const noonUtcHour = (d.getUTCMonth() >= 2 && d.getUTCMonth() <= 9) ? 17 : 18
+      const lock = new Date(d)
+      lock.setUTCHours(noonUtcHour, 0, 0, 0)
+      return lock
+    }
+  }
+  return start
+}
+
 export function computeCurrentWeek(sportKey: string = ACTIVE_SPORT): number {
   const weeks = getSeasonWeeks(sportKey)
   const todayStr = toETDateString(new Date().toISOString())

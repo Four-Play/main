@@ -5,7 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { ACTIVE_SPORT, NCAAF_SPORT, computeWeekFromDate, toETDateString, getSeasonWeeks, getPlayoffRules, getSeasonYear } from '@/lib/weekUtils'
+import { ACTIVE_SPORT, NCAAF_SPORT, computeWeekFromDate, toETDateString, getSeasonWeeks, getPlayoffRules, getSeasonYear, getNflSpreadLockTime } from '@/lib/weekUtils'
 import { NCAAF_ALLOWED_TEAMS, NCAAF_FEATURED_TEAMS } from '@/config/ncaaf-season'
 
 export const dynamic = 'force-dynamic'
@@ -81,12 +81,16 @@ export async function GET(request: Request) {
         const eventIds = eventsData.map(e => e.id)
         const lockedSpreads = new Map<string, { spread: number; favorite_team: string; underdog_team: string }>()
         if (eventIds.length > 0) {
+          // NFL spreads lock at noon Central on the Sunday of game week, not just at kickoff
+          const now = new Date()
+          const nflLock = sportKey === ACTIVE_SPORT ? getNflSpreadLockTime(weekConfig) : null
+          const spreadCutoff = (nflLock && now >= nflLock) ? new Date('2099-01-01') : now
           const { data: locked } = await supabase
             .from('games')
             .select('external_id, spread, favorite_team, underdog_team')
             .in('external_id', eventIds)
             .neq('spread', 0)
-            .lt('commence_time', new Date().toISOString())
+            .lt('commence_time', spreadCutoff.toISOString())
           for (const row of locked ?? []) lockedSpreads.set(row.external_id, row)
         }
 
