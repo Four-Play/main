@@ -201,7 +201,7 @@ export function CurrentWeekTab({
                     <div className="w-[20%] text-right text-[9px] font-black text-zinc-600 uppercase tracking-widest pr-0.5">Result</div>
                   </div>
 
-                  {members.map((member, idx) => {
+                  {[...members].sort((a, b) => (a.profile?.username ?? '').localeCompare(b.profile?.username ?? '')).map((member, idx) => {
                     const weeklySummary = weekSummaries.find(s => s.week === week)
                     const winResult = weeklySummary?.winners.find(r => r.user_id === member.user_id)
                     const lossResult = weeklySummary?.losers.find(r => r.user_id === member.user_id)
