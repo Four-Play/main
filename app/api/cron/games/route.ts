@@ -58,13 +58,25 @@ export async function GET(request: Request) {
 
       try {
         const markets = week in PLAYOFF_RULES ? 'spreads,totals' : 'spreads'
+        const now = new Date()
+        const nflSpreadsLocked = sportKey === ACTIVE_SPORT && (() => {
+          const lock = getNflSpreadLockTime(weekConfig)
+          return now >= lock
+        })()
+
+        // Skip the /odds call for NFL after noon Central Sunday — spreads are locked,
+        // so fetching lines wastes API credits. Still fetch /events for status updates.
+        const oddsUrl = nflSpreadsLocked
+          ? null
+          : `${ODDS_BASE}/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=${markets}&oddsFormat=american${dateParams}`
+
         const [eventsRes, oddsRes] = await Promise.all([
           fetch(`${ODDS_BASE}/sports/${sportKey}/events/?apiKey=${ODDS_API_KEY}${dateParams}`, { cache: 'no-store', signal: controller.signal }),
-          fetch(`${ODDS_BASE}/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=${markets}&oddsFormat=american${dateParams}`, { cache: 'no-store', signal: controller.signal }),
+          oddsUrl ? fetch(oddsUrl, { cache: 'no-store', signal: controller.signal }) : Promise.resolve(null),
         ]).finally(() => clearTimeout(timeout))
 
         let eventsData: any[] = eventsRes.ok ? await eventsRes.json() : []
-        const oddsData: any[]  = oddsRes.ok  ? await oddsRes.json()  : []
+        const oddsData: any[]  = (oddsRes && oddsRes.ok) ? await oddsRes.json() : []
 
         // For NCAAF, filter to Power 4 + Notre Dame matchups, plus any game
         // where a featured team is playing regardless of their opponent.
@@ -82,9 +94,7 @@ export async function GET(request: Request) {
         const lockedSpreads = new Map<string, { spread: number; favorite_team: string; underdog_team: string }>()
         if (eventIds.length > 0) {
           // NFL spreads lock at noon Central on the Sunday of game week, not just at kickoff
-          const now = new Date()
-          const nflLock = sportKey === ACTIVE_SPORT ? getNflSpreadLockTime(weekConfig) : null
-          const spreadCutoff = (nflLock && now >= nflLock) ? new Date('2099-01-01') : now
+          const spreadCutoff = nflSpreadsLocked ? new Date('2099-01-01') : now
           const { data: locked } = await supabase
             .from('games')
             .select('external_id, spread, favorite_team, underdog_team')
