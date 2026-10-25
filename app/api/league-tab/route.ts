@@ -39,7 +39,8 @@ export async function GET(request: Request) {
       .from('picks')
       .select('user_id, game_id, team_selected, result, nfl_week')
       .eq('league_id', leagueId)
-      .eq('season_year', year),
+      .eq('season_year', year)
+      .limit(10000),
     supabase
       .from('games')
       .select('id, commence_time, favorite_team, underdog_team, spread, nfl_week, status')
